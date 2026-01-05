@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- CONFIGURACIÓN GLOBAL --- */
+body {
+  @apply bg-gray-50 text-gray-800 antialiased;
+  /* Fuente moderna y limpia por defecto */
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* --- UTILIDAD: SCROLL INVISIBLE PERO FUNCIONAL --- */
+@layer utilities {
+  /* 1. Ocultar barra en Chrome, Safari, Edge y Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 2. Ocultar barra en Firefox e IE */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE y Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
