@@ -1,27 +1,29 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 /* -------------------------------------------------------------------------- */
 /*                           IMPORTACIONES PÚBLICAS                           */
 /* -------------------------------------------------------------------------- */
-import { LandingPage } from '../features/landing/LandingPage';
-import { CatalogPage } from '../features/landing/CatalogPage';
-import { ServicesPage } from '../features/landing/ServicesPage';
-import { ContactPage } from '../features/landing/ContactPage';
+import { LandingPage } from "../features/landing/LandingPage";
+import { CatalogPage } from "../features/landing/CatalogPage";
+import { ServicesPage } from "../features/landing/ServicesPage";
+import { ContactPage } from "../features/landing/ContactPage";
 
 /* -------------------------------------------------------------------------- */
 /*                                AUTENTICACIÓN                               */
 /* -------------------------------------------------------------------------- */
-import { LoginPage } from '../features/auth/LoginPage';
-import { RegisterPage } from '../features/auth/RegisterPage';
+import { LoginPage } from "../features/auth/LoginPage";
+import { RegisterPage } from "../features/auth/RegisterPage";
 
 /* -------------------------------------------------------------------------- */
 /*                          SISTEMA ADMINISTRATIVO                            */
 /* -------------------------------------------------------------------------- */
-import DashboardLayout from '../layouts/DashboardLayout';
-import { DashboardPage } from '../features/dashboard/DashboardPage';
-import { UsersPage } from '../features/users/UsersPage';
-import { ProductsPage } from '../features/inventory/products/ProductsPage'; // <--- NUEVA IMPORTACIÓN
+import DashboardLayout from "../layouts/DashboardLayout";
+import ProtectedRoute from "./ProtectedRoute";
+import { DashboardPage } from "../features/dashboard/DashboardPage";
+import { UsersPage } from "../features/users/UsersPage";
+import { ProductsPage } from "../features/inventory/products/ProductsPage"; // <--- NUEVA IMPORTACIÓN
+import SettingsPage from "../features/settings/SettingsPage";
 
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
@@ -51,16 +53,21 @@ const ModuloServicios = () => (
 
 // --- Sub-Módulos pendientes ---
 const Categorias = () => <h1 className="text-lg font-bold p-4">Categorías</h1>;
-const Proveedores = () => <h1 className="text-lg font-bold p-4">Proveedores</h1>;
-const Pedidos = () => <h1 className="text-lg font-bold p-4">Gestión de Pedidos</h1>;
-const Citas = () => <h1 className="text-lg font-bold p-4">Agenda de Citas Médicas</h1>;
-const Configuracion = () => <h1 className="text-lg font-bold p-4">Configuración del Sistema</h1>;
+const Proveedores = () => (
+  <h1 className="text-lg font-bold p-4">Proveedores</h1>
+);
+const Pedidos = () => (
+  <h1 className="text-lg font-bold p-4">Gestión de Pedidos</h1>
+);
+const Citas = () => (
+  <h1 className="text-lg font-bold p-4">Agenda de Citas Médicas</h1>
+);
+// La vista de configuración real está en src/features/settings/SettingsPage.jsx
 
 export const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        
         {/* =================================================================
             ZONA PÚBLICA
            ================================================================= */}
@@ -78,43 +85,41 @@ export const AppRouter = () => {
         {/* =================================================================
             ZONA PRIVADA (Dashboard Admin)
            ================================================================= */}
-        <Route path="/admin" element={<DashboardLayout />}>
-          
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           {/* Redirección inicial */}
           <Route index element={<Navigate to="dashboard" replace />} />
-          
           {/* Dashboard General */}
           <Route path="dashboard" element={<DashboardPage />} />
-          
           {/* Gestión de Usuarios (Ya programado) */}
           <Route path="usuarios" element={<UsersPage />} />
-          
           {/* --- RUTAS PRINCIPALES DE LOS MÓDULOS --- */}
           <Route path="compras" element={<ModuloCompras />} />
           <Route path="ventas" element={<ModuloVentas />} />
           <Route path="servicios" element={<ModuloServicios />} />
-
           {/* --- INVENTARIO / COMPRAS --- */}
-          <Route path="productos" element={<ProductsPage />} /> {/* <--- RUTA REAL CONECTADA */}
+          <Route path="productos" element={<ProductsPage />} />{" "}
+          {/* <--- RUTA REAL CONECTADA */}
           <Route path="categorias" element={<Categorias />} />
           <Route path="proveedores" element={<Proveedores />} />
-          
           {/* --- VENTAS --- */}
           <Route path="pedidos" element={<Pedidos />} />
-          
           {/* --- SERVICIOS --- */}
           <Route path="citas" element={<Citas />} />
-          
           {/* --- SISTEMA --- */}
-          <Route path="configuracion" element={<Configuracion />} />
-
+          <Route path="configuracion" element={<SettingsPage />} />
         </Route>
 
         {/* =================================================================
             Ruta 404
            ================================================================= */}
         <Route path="*" element={<Navigate to="/" />} />
-
       </Routes>
     </BrowserRouter>
   );
