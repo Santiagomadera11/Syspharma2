@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Stethoscope, User, Lock, ArrowRight, ChevronLeft } from "lucide-react"; // <--- Agregamos ChevronLeft
 import { authService } from "../auth/authService";
+import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 // TU IMAGEN LOCAL
 import loginImage from "../../assets/login.jpg";
@@ -9,6 +10,7 @@ import loginImage from "../../assets/login.jpg";
 export const LoginPage = () => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [toast, setToast] = useState(null);
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -21,9 +23,11 @@ export const LoginPage = () => {
       credentials.password
     );
     if (!user) {
-      alert(
-        "Credenciales inválidas. Usa admin@syspharma.com / admin123 para admin."
-      );
+      setToast({
+        message: "Credenciales inválidas. Verifica email y contraseña.",
+        type: "error",
+        zIndex: 70,
+      });
       return;
     }
     navigate("/admin/dashboard");
@@ -152,6 +156,14 @@ export const LoginPage = () => {
           </form>
         </div>
       </div>
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          zIndex={toast.zIndex}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Shield } from "lucide-react";
+import { Shield, Edit, Trash2, Info } from "lucide-react";
 import { PERMISSIONS_CONFIG } from "./rolesConfig";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
+import { rolesService } from "./rolesService";
 import { userService } from "../users/services/userService";
 
 const ROLES_KEY = "syspharma_roles";
@@ -33,28 +34,15 @@ export const SettingsPage = () => {
   const [selectedPerms, setSelectedPerms] = useState(() => ({}));
 
   useEffect(() => {
-    const raw = localStorage.getItem(ROLES_KEY);
-    let stored = [];
-    if (raw && raw !== "undefined") {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) stored = parsed;
-      } catch (e) {
-        stored = [];
-      }
-    }
-    // normalize older entries: ensure active flag and permissions array
-    const normalized = stored.map((r) => ({
+    // load roles from rolesService and normalize
+    const stored = rolesService.getAll();
+    const normalized = (Array.isArray(stored) ? stored : []).map((r) => ({
       ...r,
       active: typeof r.active === "boolean" ? r.active : true,
       permissions: Array.isArray(r.permissions) ? r.permissions : [],
     }));
     setRoles(normalized);
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem(ROLES_KEY, JSON.stringify(roles));
-  }, [roles]);
 
   const categories = useMemo(() => {
     const map = {};
@@ -91,12 +79,16 @@ export const SettingsPage = () => {
 
     // name uniqueness (case-insensitive)
     const existsName = roles.some(
-      (r) => r.id !== (editRole && editRole.id) && r.name.toLowerCase() === name.toLowerCase()
+      (r) =>
+        r.id !== (editRole && editRole.id) &&
+        r.name.toLowerCase() === name.toLowerCase()
     );
     if (existsName) errors.push("Ya existe un rol con ese nombre.");
 
     // color uniqueness
-    const existsColor = roles.some((r) => r.id !== (editRole && editRole.id) && r.colorId === roleColor);
+    const existsColor = roles.some(
+      (r) => r.id !== (editRole && editRole.id) && r.colorId === roleColor
+    );
     if (existsColor)
       errors.push("El color seleccionado ya está en uso por otro rol.");
 
@@ -131,15 +123,38 @@ export const SettingsPage = () => {
     };
 
     if (editRole) {
-      setRoles((prev) => prev.map((r) => (r.id === payload.id ? payload : r)));
-      setToast({ message: `Rol actualizado: ${payload.name}`, type: "success", zIndex: 60 });
+      const prevName = editRole.name;
+      const next = rolesService.update(payload);
+      setRoles(next);
+      // update users that referenced the previous role name
+      if (prevName && prevName !== payload.name) {
+        const users = userService.getAll();
+        const updatedUsers = users.map((u) =>
+          (u.rol || "").toLowerCase() === (prevName || "").toLowerCase()
+            ? { ...u, rol: payload.name }
+            : u
+        );
+        userService.saveAll(updatedUsers);
+      }
+      setToast({
+        message: `Rol actualizado: ${payload.name}`,
+        type: "success",
+        zIndex: 60,
+      });
     } else {
-      setRoles((prev) => [payload, ...prev]);
-      setToast({ message: `Rol creado: ${payload.name}`, type: "success", zIndex: 60 });
+      const next = rolesService.create(payload);
+      setRoles(next);
+      setToast({
+        message: `Rol creado: ${payload.name}`,
+        type: "success",
+        zIndex: 60,
+      });
     }
 
     setShowModal(false);
     resetForm();
+    // notify other parts of the app that roles changed
+    window.dispatchEvent(new CustomEvent("rolesChanged"));
   };
 
   const handleDeleteRole = (id) => {
@@ -148,16 +163,25 @@ export const SettingsPage = () => {
 
   const confirmDelete = () => {
     const id = deleteConfirm.id;
-    setRoles((prev) => prev.filter((r) => r.id !== id));
+    const next = rolesService.remove(id);
+    setRoles(next);
     setToast({ message: "Rol eliminado", type: "success", zIndex: 50 });
     setDeleteConfirm({ show: false, id: null });
+    window.dispatchEvent(new CustomEvent("rolesChanged"));
   };
 
   const cancelDelete = () => setDeleteConfirm({ show: false, id: null });
 
   const handleToggleActive = (id) => {
-    setRoles((prev) => prev.map((r) => (r.id === id ? { ...r, active: !r.active } : r)));
+    // update via rolesService to persist
+    const list = rolesService.getAll();
+    const next = list.map((r) =>
+      r.id === id ? { ...r, active: !r.active } : r
+    );
+    rolesService.saveAll(next);
+    setRoles(next);
     setToast({ message: "Estado actualizado", type: "success", zIndex: 50 });
+    window.dispatchEvent(new CustomEvent("rolesChanged"));
   };
 
   const handleEditRole = (role) => {
@@ -192,7 +216,13 @@ export const SettingsPage = () => {
       // check description
       if ((r.description || "").toLowerCase().includes(q)) return true;
       // check categories of its permissions
-      const cats = Array.from(new Set((r.permissions || []).map((pid) => permById[pid] && permById[pid].category).filter(Boolean)));
+      const cats = Array.from(
+        new Set(
+          (r.permissions || [])
+            .map((pid) => permById[pid] && permById[pid].category)
+            .filter(Boolean)
+        )
+      );
       if (cats.some((c) => c.toLowerCase().includes(q))) return true;
       return false;
     });
@@ -295,10 +325,23 @@ export const SettingsPage = () => {
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg p-4 w-full max-w-md">
             <div className="text-sm font-bold mb-2">Confirmar eliminación</div>
-            <div className="text-xs text-gray-600 mb-4">¿Estás seguro de eliminar este rol? Esta acción no se puede deshacer.</div>
+            <div className="text-xs text-gray-600 mb-4">
+              ¿Estás seguro de eliminar este rol? Esta acción no se puede
+              deshacer.
+            </div>
             <div className="flex justify-end gap-2">
-              <button onClick={cancelDelete} className="px-3 py-1 border rounded text-sm">Cancelar</button>
-              <button onClick={confirmDelete} className="px-3 py-1 bg-red-500 text-white rounded text-sm">Eliminar</button>
+              <button
+                onClick={cancelDelete}
+                className="px-3 py-1 border rounded text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-3 py-1 bg-red-500 text-white rounded text-sm"
+              >
+                Eliminar
+              </button>
             </div>
           </div>
         </div>
@@ -496,29 +539,60 @@ export default SettingsPage;
 
 const RoleRow = ({ role, onEdit, onDelete, onToggle }) => {
   const users = userService.getAll() || [];
-  const usersCount = users.filter((u) => (u.rol || "").toLowerCase() === (role.name || "").toLowerCase()).length;
+  const usersCount = users.filter(
+    (u) => (u.rol || "").toLowerCase() === (role.name || "").toLowerCase()
+  ).length;
 
   return (
     <tr className="border-b last:border-b-0">
       <td className="py-3 px-3 align-top text-xs">{role.id}</td>
       <td className="py-3 px-3 align-top">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-4 rounded-sm" style={{ background: role.color }} />
+          <div
+            className="w-6 h-4 rounded-sm"
+            style={{ background: role.color }}
+          />
           <div className="font-medium text-sm">{role.name}</div>
         </div>
       </td>
-      <td className="py-3 px-3 align-top text-sm text-gray-600">{role.description}</td>
+      <td className="py-3 px-3 align-top text-sm text-gray-600">
+        {role.description}
+      </td>
       <td className="py-3 px-3 align-top text-sm">{usersCount}</td>
       <td className="py-3 px-3 align-top text-sm">
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={!!role.active} onChange={onToggle} className="w-4 h-4" />
-          <span className="text-xs text-gray-600">{role.active ? 'Activo' : 'Inactivo'}</span>
-        </label>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggle}
+            className={`relative w-10 h-5 rounded-full transition-colors duration-200 flex items-center ${
+              role.active ? "bg-primary-500" : "bg-gray-300"
+            }`}
+            aria-pressed={!!role.active}
+          >
+            <span
+              className={`absolute left-0.5 w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 ${
+                role.active ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+          <span className="text-xs text-gray-600">
+            {role.active ? "Activo" : "Inactivo"}
+          </span>
+        </div>
       </td>
       <td className="py-3 px-3 align-top text-sm">
         <div className="flex items-center gap-2">
-          <button onClick={onEdit} className="px-2 py-1 bg-primary-400 text-white rounded text-xs">Editar</button>
-          <button onClick={onDelete} className="px-2 py-1 bg-red-100 text-red-600 rounded text-xs">Eliminar</button>
+          <button
+            onClick={onEdit}
+            className="p-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200"
+          >
+            <Edit size={14} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </td>
     </tr>
