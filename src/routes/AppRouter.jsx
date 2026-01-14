@@ -1,41 +1,40 @@
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 /* -------------------------------------------------------------------------- */
 /*                           IMPORTACIONES PÚBLICAS                           */
 /* -------------------------------------------------------------------------- */
-import { LandingPage } from "../features/landing/LandingPage";
-import { CatalogPage } from "../features/landing/CatalogPage";
-import { ServicesPage } from "../features/landing/ServicesPage";
-import { ContactPage } from "../features/landing/ContactPage";
+import { LandingPage } from '../features/landing/LandingPage';
+import { CatalogPage } from '../features/landing/CatalogPage';
+import { ServicesPage } from '../features/landing/ServicesPage';
+import { ContactPage } from '../features/landing/ContactPage';
 
 /* -------------------------------------------------------------------------- */
 /*                                AUTENTICACIÓN                               */
 /* -------------------------------------------------------------------------- */
-import { LoginPage } from "../features/auth/LoginPage";
-import { RegisterPage } from "../features/auth/RegisterPage";
+import { LoginPage } from '../features/auth/LoginPage';
+import { RegisterPage } from '../features/auth/RegisterPage';
 
 /* -------------------------------------------------------------------------- */
 /*                          SISTEMA ADMINISTRATIVO                            */
 /* -------------------------------------------------------------------------- */
-import DashboardLayout from "../layouts/DashboardLayout";
-import ProtectedRoute from "./ProtectedRoute";
-import { DashboardPage } from "../features/dashboard/DashboardPage";
-import { UsersPage } from "../features/users/UsersPage";
-import { ProductsPage } from "../features/inventory/products/ProductsPage"; // <--- NUEVA IMPORTACIÓN
-import SettingsPage from "../features/settings/SettingsPage";
+import DashboardLayout from '../layouts/DashboardLayout';
+import { DashboardPage } from '../features/dashboard/DashboardPage';
+import { UsersPage } from '../features/users/UsersPage';
+
+/* --- MÓDULO DE INVENTARIO / COMPRAS --- */
+import { PurchasesPage } from '../features/inventory/purchases/PurchasesPage'; // Listado de Compras
+import { ProductsPage } from '../features/inventory/products/ProductsPage';   // Productos
+import { CategoriesPage } from '../features/inventory/categories/CategoriesPage'; // Categorías
+import { ProvidersPage } from '../features/inventory/providers/ProvidersPage';   // Proveedores
+
+/* --- MÓDULO DE SERVICIOS --- */
+import { AppointmentsPage } from '../features/services/appointments/AppointmentsPage'; // Citas Médicas
 
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
+/*       (Se reemplazarán cuando programemos Ventas y Configuración)          */
 /* -------------------------------------------------------------------------- */
-
-// --- Módulos Principales (Resumen) ---
-const ModuloCompras = () => (
-  <div className="p-4">
-    <h1 className="text-xl font-bold text-gray-800">Panel de Compras</h1>
-    <p className="text-sm text-gray-500">Resumen general de adquisiciones.</p>
-  </div>
-);
 
 const ModuloVentas = () => (
   <div className="p-4">
@@ -47,27 +46,18 @@ const ModuloVentas = () => (
 const ModuloServicios = () => (
   <div className="p-4">
     <h1 className="text-xl font-bold text-gray-800">Gestión de Servicios</h1>
-    <p className="text-sm text-gray-500">Control de citas y procedimientos.</p>
+    <p className="text-sm text-gray-500">Selecciona una opción del menú desplegable.</p>
   </div>
 );
 
-// --- Sub-Módulos pendientes ---
-const Categorias = () => <h1 className="text-lg font-bold p-4">Categorías</h1>;
-const Proveedores = () => (
-  <h1 className="text-lg font-bold p-4">Proveedores</h1>
-);
-const Pedidos = () => (
-  <h1 className="text-lg font-bold p-4">Gestión de Pedidos</h1>
-);
-const Citas = () => (
-  <h1 className="text-lg font-bold p-4">Agenda de Citas Médicas</h1>
-);
-// La vista de configuración real está en src/features/settings/SettingsPage.jsx
+const Pedidos = () => <h1 className="text-lg font-bold p-4">Gestión de Pedidos</h1>;
+const Configuracion = () => <h1 className="text-lg font-bold p-4">Configuración del Sistema</h1>;
 
 export const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
+        
         {/* =================================================================
             ZONA PÚBLICA
            ================================================================= */}
@@ -85,41 +75,41 @@ export const AppRouter = () => {
         {/* =================================================================
             ZONA PRIVADA (Dashboard Admin)
            ================================================================= */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
+        <Route path="/admin" element={<DashboardLayout />}>
+          
           {/* Redirección inicial */}
           <Route index element={<Navigate to="dashboard" replace />} />
+          
           {/* Dashboard General */}
           <Route path="dashboard" element={<DashboardPage />} />
-          {/* Gestión de Usuarios (Ya programado) */}
+          
+          {/* Gestión de Usuarios */}
           <Route path="usuarios" element={<UsersPage />} />
-          {/* --- RUTAS PRINCIPALES DE LOS MÓDULOS --- */}
-          <Route path="compras" element={<ModuloCompras />} />
+          
+          {/* --- MÓDULO DE COMPRAS / INVENTARIO --- */}
+          <Route path="compras" element={<PurchasesPage />} /> 
+          <Route path="productos" element={<ProductsPage />} />
+          <Route path="categorias" element={<CategoriesPage />} />
+          <Route path="proveedores" element={<ProvidersPage />} />
+          
+          {/* --- MÓDULO DE VENTAS --- */}
           <Route path="ventas" element={<ModuloVentas />} />
-          <Route path="servicios" element={<ModuloServicios />} />
-          {/* --- INVENTARIO / COMPRAS --- */}
-          <Route path="productos" element={<ProductsPage />} />{" "}
-          {/* <--- RUTA REAL CONECTADA */}
-          <Route path="categorias" element={<Categorias />} />
-          <Route path="proveedores" element={<Proveedores />} />
-          {/* --- VENTAS --- */}
           <Route path="pedidos" element={<Pedidos />} />
-          {/* --- SERVICIOS --- */}
-          <Route path="citas" element={<Citas />} />
+          
+          {/* --- MÓDULO DE SERVICIOS --- */}
+          <Route path="servicios" element={<ModuloServicios />} />
+          <Route path="citas" element={<AppointmentsPage />} /> {/* <--- RUTA DE CITAS CONECTADA */}
+          
           {/* --- SISTEMA --- */}
-          <Route path="configuracion" element={<SettingsPage />} />
+          <Route path="configuracion" element={<Configuracion />} />
+
         </Route>
 
         {/* =================================================================
             Ruta 404
            ================================================================= */}
         <Route path="*" element={<Navigate to="/" />} />
+
       </Routes>
     </BrowserRouter>
   );
