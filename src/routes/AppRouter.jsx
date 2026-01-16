@@ -24,6 +24,7 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { UsersPage } from "../features/users/UsersPage";
 import { ProductsPage } from "../features/inventory/products/ProductsPage"; // <--- NUEVA IMPORTACIÓN
 import SettingsPage from "../features/settings/SettingsPage";
+import SalesPage from "../features/sales/SalesPage";
 
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
@@ -101,7 +102,7 @@ export const AppRouter = () => {
           <Route path="usuarios" element={<UsersPage />} />
           {/* --- RUTAS PRINCIPALES DE LOS MÓDULOS --- */}
           <Route path="compras" element={<ModuloCompras />} />
-          <Route path="ventas" element={<ModuloVentas />} />
+          <Route path="ventas" element={<SalesPage />} />
           <Route path="servicios" element={<ModuloServicios />} />
           {/* --- INVENTARIO / COMPRAS --- */}
           <Route path="productos" element={<ProductsPage />} />{" "}
