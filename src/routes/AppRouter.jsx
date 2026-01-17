@@ -19,12 +19,33 @@ import { RegisterPage } from "../features/auth/RegisterPage";
 /*                          SISTEMA ADMINISTRATIVO                            */
 /* -------------------------------------------------------------------------- */
 import DashboardLayout from "../layouts/DashboardLayout";
+import EmployeeLayout from "../layouts/EmployeeLayout";
+import ClientLayout from "../layouts/ClientLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { UsersPage } from "../features/users/UsersPage";
-import { ProductsPage } from "../features/inventory/products/ProductsPage"; // <--- NUEVA IMPORTACIÓN
+import { ProductsPage } from "../features/inventory/products/ProductsPage";
 import SettingsPage from "../features/settings/SettingsPage";
 import SalesPage from "../features/sales/SalesPage";
+
+/* -------------------------------------------------------------------------- */
+/*                       SISTEMA DE EMPLEADO                                  */
+/* -------------------------------------------------------------------------- */
+import EmployeeInicio from "../features/employee/EmployeeInicio";
+import EmployeeCompras from "../features/employee/EmployeeCompras";
+import EmployeeVentas from "../features/employee/EmployeeVentas";
+import EmployeeProductos from "../features/employee/EmployeeProductos";
+import EmployeePedidos from "../features/employee/EmployeePedidos";
+import EmployeeCitas from "../features/employee/EmployeeCitas";
+
+/* -------------------------------------------------------------------------- */
+/*                         SISTEMA DE CLIENTE                                 */
+/* -------------------------------------------------------------------------- */
+import ClientCatalogo from "../features/client/ClientCatalogo";
+import ClientProductos from "../features/client/ClientProductos";
+import ClientMisPedidos from "../features/client/ClientMisPedidos";
+import ClientMisCitas from "../features/client/ClientMisCitas";
+import ClientMiPerfil from "../features/client/ClientMiPerfil";
 
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
@@ -89,7 +110,7 @@ export const AppRouter = () => {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="Administrador">
               <DashboardLayout />
             </ProtectedRoute>
           }
@@ -115,6 +136,45 @@ export const AppRouter = () => {
           <Route path="citas" element={<Citas />} />
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />
+        </Route>
+
+        {/* =================================================================
+            ZONA PRIVADA (Panel Empleado)
+           ================================================================= */}
+        <Route
+          path="/employee"
+          element={
+            <ProtectedRoute requiredRole="Empleado">
+              <EmployeeLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="inicio" replace />} />
+          <Route path="inicio" element={<EmployeeInicio />} />
+          <Route path="compras" element={<EmployeeCompras />} />
+          <Route path="ventas" element={<EmployeeVentas />} />
+          <Route path="productos" element={<EmployeeProductos />} />
+          <Route path="pedidos" element={<EmployeePedidos />} />
+          <Route path="citas" element={<EmployeeCitas />} />
+        </Route>
+
+        {/* =================================================================
+            ZONA PRIVADA (Panel Cliente)
+           ================================================================= */}
+        <Route
+          path="/client"
+          element={
+            <ProtectedRoute requiredRole="Cliente">
+              <ClientLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="catalogo" replace />} />
+          <Route path="catalogo" element={<ClientCatalogo />} />
+          <Route path="productos" element={<ClientProductos />} />
+          <Route path="mis-pedidos" element={<ClientMisPedidos />} />
+          <Route path="mis-citas" element={<ClientMisCitas />} />
+          <Route path="mi-perfil" element={<ClientMiPerfil />} />
         </Route>
 
         {/* =================================================================
