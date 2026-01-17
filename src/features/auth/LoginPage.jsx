@@ -30,7 +30,16 @@ export const LoginPage = () => {
       });
       return;
     }
-    navigate("/admin/dashboard");
+    // Redireccionar según el rol
+    if (user.rol === "Administrador") {
+      navigate("/admin/dashboard");
+    } else if (user.rol === "Empleado") {
+      navigate("/employee/inicio");
+    } else if (user.rol === "Cliente") {
+      navigate("/client/catalogo");
+    } else {
+      navigate("/");
+    }
   };
 
   return (
