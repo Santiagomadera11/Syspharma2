@@ -33,7 +33,7 @@ import SalesPage from "../features/sales/SalesPage";
 /* -------------------------------------------------------------------------- */
 import EmployeeInicio from "../features/employee/EmployeeInicio";
 import EmployeeCompras from "../features/employee/EmployeeCompras";
-import EmployeeVentas from "../features/employee/EmployeeVentas";
+import EmployeeSalesPage from "../features/employee/EmployeeSalesPage";
 import EmployeeProductos from "../features/employee/EmployeeProductos";
 import EmployeePedidos from "../features/employee/EmployeePedidos";
 import EmployeeCitas from "../features/employee/EmployeeCitas";
@@ -152,7 +152,7 @@ export const AppRouter = () => {
           <Route index element={<Navigate to="inicio" replace />} />
           <Route path="inicio" element={<EmployeeInicio />} />
           <Route path="compras" element={<EmployeeCompras />} />
-          <Route path="ventas" element={<EmployeeVentas />} />
+          <Route path="ventas" element={<EmployeeSalesPage />} />
           <Route path="productos" element={<EmployeeProductos />} />
           <Route path="pedidos" element={<EmployeePedidos />} />
           <Route path="citas" element={<EmployeeCitas />} />

@@ -101,44 +101,49 @@ const ClientSidebar = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-gray-700 p-3 space-y-2">
+        <div className="p-3 border-t border-gray-700 bg-[#0D3A1C]">
           <button
             onClick={() => setShowConfirmLogout(true)}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-colors text-sm font-medium"
+            className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
           >
-            <LogOut size={18} />
-            Cerrar sesión
+            <LogOut size={16} />
+            Cerrar Sesión
           </button>
         </div>
+      </aside>
 
-        {/* Modal de confirmación */}
-        {showConfirmLogout && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-lg p-6 shadow-2xl max-w-sm w-full mx-4">
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Cerrar sesión
-              </h3>
-              <p className="text-gray-600 text-sm mb-6">
-                ¿Está seguro de que desea cerrar sesión?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowConfirmLogout(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmLogout}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition"
-                >
-                  Cerrar sesión
-                </button>
-              </div>
+      {/* Confirm Logout Modal */}
+      {showConfirmLogout && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-4"
+          >
+            <h3 className="text-lg font-bold text-gray-800 mb-2">
+              ¿Cerrar sesión?
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              ¿Estás seguro de que quieres cerrar sesión? Serás redirigido a la
+              página principal.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowConfirmLogout(false)}
+                className="px-3 py-1.5 bg-gray-100 rounded-md text-sm text-gray-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmLogout}
+                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
+              >
+                Salir
+              </button>
             </div>
           </div>
-        )}
-      </aside>
+        </div>
+      )}
     </>
   );
 };
