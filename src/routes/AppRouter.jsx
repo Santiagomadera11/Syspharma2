@@ -1,113 +1,158 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 /* -------------------------------------------------------------------------- */
 /*                           IMPORTACIONES PÚBLICAS                           */
 /* -------------------------------------------------------------------------- */
-import { LandingPage } from '../features/landing/LandingPage';
-import { CatalogPage } from '../features/landing/CatalogPage';
-import { ServicesPage } from '../features/landing/ServicesPage';
-import { ContactPage } from '../features/landing/ContactPage';
+import { LandingPage } from "../features/landing/LandingPage";
+import { CatalogPage } from "../features/landing/CatalogPage";
+import { ServicesPage } from "../features/landing/ServicesPage";
+import { ContactPage } from "../features/landing/ContactPage";
 
 /* -------------------------------------------------------------------------- */
 /*                                AUTENTICACIÓN                               */
 /* -------------------------------------------------------------------------- */
-import { LoginPage } from '../features/auth/LoginPage';
-import { RegisterPage } from '../features/auth/RegisterPage';
+import { LoginPage } from "../features/auth/LoginPage";
+import { RegisterPage } from "../features/auth/RegisterPage";
+
+/* -------------------------------------------------------------------------- */
+/*                               LAYOUTS Y SEGURIDAD                          */
+/* -------------------------------------------------------------------------- */
+import DashboardLayout from "../layouts/DashboardLayout";
+import EmployeeLayout from "../layouts/EmployeeLayout";
+import ClientLayout from "../layouts/ClientLayout";
+import ProtectedRoute from "./ProtectedRoute";
 
 /* -------------------------------------------------------------------------- */
 /*                          SISTEMA ADMINISTRATIVO                            */
 /* -------------------------------------------------------------------------- */
-import DashboardLayout from '../layouts/DashboardLayout';
-import { DashboardPage } from '../features/dashboard/DashboardPage';
-import { UsersPage } from '../features/users/UsersPage';
+import { DashboardPage } from "../features/dashboard/DashboardPage";
+import { UsersPage } from "../features/users/UsersPage";
 
-/* --- MÓDULO DE INVENTARIO / COMPRAS --- */
-import { PurchasesPage } from '../features/inventory/purchases/PurchasesPage'; // Listado de Compras
-import { ProductsPage } from '../features/inventory/products/ProductsPage';   // Productos
-import { CategoriesPage } from '../features/inventory/categories/CategoriesPage'; // Categorías
-import { ProvidersPage } from '../features/inventory/providers/ProvidersPage';   // Proveedores
+/* --- INVENTARIO / COMPRAS --- */
+import { PurchasesPage } from "../features/inventory/purchases/PurchasesPage";
+import { ProductsPage } from "../features/inventory/products/ProductsPage";
+import { CategoriesPage } from "../features/inventory/categories/CategoriesPage";
+import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
 
-/* --- MÓDULO DE SERVICIOS --- */
-import { AppointmentsPage } from '../features/services/appointments/AppointmentsPage'; // Citas Médicas
+/* --- SERVICIOS --- */
+import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
+
+/* -------------------------------------------------------------------------- */
+/*                       SISTEMA DE EMPLEADO                                  */
+/* -------------------------------------------------------------------------- */
+import EmployeeInicio from "../features/employee/EmployeeInicio";
+import EmployeeCompras from "../features/employee/EmployeeCompras";
+import EmployeeSalesPage from "../features/employee/EmployeeSalesPage";
+import EmployeeProductos from "../features/employee/EmployeeProductos";
+import EmployeePedidos from "../features/employee/EmployeePedidos";
+import EmployeeCitas from "../features/employee/EmployeeCitas";
+
+/* -------------------------------------------------------------------------- */
+/*                         SISTEMA DE CLIENTE                                 */
+/* -------------------------------------------------------------------------- */
+import ClientCatalogo from "../features/client/ClientCatalogo";
+import ClientProductos from "../features/client/ClientProductos";
+import ClientMisPedidos from "../features/client/ClientMisPedidos";
+import ClientMisCitas from "../features/client/ClientMisCitas";
+import ClientMiPerfil from "../features/client/ClientMiPerfil";
 
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
-/*       (Se reemplazarán cuando programemos Ventas y Configuración)          */
 /* -------------------------------------------------------------------------- */
-
 const ModuloVentas = () => (
   <div className="p-4">
-    <h1 className="text-xl font-bold text-gray-800">Panel de Ventas</h1>
-    <p className="text-sm text-gray-500">Métricas y flujo de caja.</p>
+    <h1 className="text-xl font-bold">Panel de Ventas</h1>
   </div>
 );
 
 const ModuloServicios = () => (
   <div className="p-4">
-    <h1 className="text-xl font-bold text-gray-800">Gestión de Servicios</h1>
-    <p className="text-sm text-gray-500">Selecciona una opción del menú desplegable.</p>
+    <h1 className="text-xl font-bold">Gestión de Servicios</h1>
   </div>
 );
 
-const Pedidos = () => <h1 className="text-lg font-bold p-4">Gestión de Pedidos</h1>;
-const Configuracion = () => <h1 className="text-lg font-bold p-4">Configuración del Sistema</h1>;
+const Pedidos = () => <h1 className="p-4 font-bold">Gestión de Pedidos</h1>;
+const Configuracion = () => <h1 className="p-4 font-bold">Configuración</h1>;
 
 export const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        
-        {/* =================================================================
-            ZONA PÚBLICA
-           ================================================================= */}
+
+        {/* ============================ ZONA PÚBLICA ============================ */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/productos" element={<CatalogPage />} />
         <Route path="/servicios" element={<ServicesPage />} />
         <Route path="/contacto" element={<ContactPage />} />
 
-        {/* =================================================================
-            ZONA DE ACCESO
-           ================================================================= */}
+        {/* ============================ AUTENTICACIÓN ============================ */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
 
-        {/* =================================================================
-            ZONA PRIVADA (Dashboard Admin)
-           ================================================================= */}
-        <Route path="/admin" element={<DashboardLayout />}>
-          
-          {/* Redirección inicial */}
+        {/* ============================ ADMIN ============================ */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="Administrador">
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="dashboard" replace />} />
-          
-          {/* Dashboard General */}
           <Route path="dashboard" element={<DashboardPage />} />
-          
-          {/* Gestión de Usuarios */}
           <Route path="usuarios" element={<UsersPage />} />
-          
-          {/* --- MÓDULO DE COMPRAS / INVENTARIO --- */}
-          <Route path="compras" element={<PurchasesPage />} /> 
+
+          <Route path="compras" element={<PurchasesPage />} />
           <Route path="productos" element={<ProductsPage />} />
           <Route path="categorias" element={<CategoriesPage />} />
           <Route path="proveedores" element={<ProvidersPage />} />
-          
-          {/* --- MÓDULO DE VENTAS --- */}
+
           <Route path="ventas" element={<ModuloVentas />} />
           <Route path="pedidos" element={<Pedidos />} />
-          
-          {/* --- MÓDULO DE SERVICIOS --- */}
-          <Route path="servicios" element={<ModuloServicios />} />
-          <Route path="citas" element={<AppointmentsPage />} /> {/* <--- RUTA DE CITAS CONECTADA */}
-          
-          {/* --- SISTEMA --- */}
-          <Route path="configuracion" element={<Configuracion />} />
 
+          <Route path="servicios" element={<ModuloServicios />} />
+          <Route path="citas" element={<AppointmentsPage />} />
+
+          <Route path="configuracion" element={<Configuracion />} />
         </Route>
 
-        {/* =================================================================
-            Ruta 404
-           ================================================================= */}
+        {/* ============================ EMPLEADO ============================ */}
+        <Route
+          path="/employee"
+          element={
+            <ProtectedRoute requiredRole="Empleado">
+              <EmployeeLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="inicio" replace />} />
+          <Route path="inicio" element={<EmployeeInicio />} />
+          <Route path="compras" element={<EmployeeCompras />} />
+          <Route path="ventas" element={<EmployeeSalesPage />} />
+          <Route path="productos" element={<EmployeeProductos />} />
+          <Route path="pedidos" element={<EmployeePedidos />} />
+          <Route path="citas" element={<EmployeeCitas />} />
+        </Route>
+
+        {/* ============================ CLIENTE ============================ */}
+        <Route
+          path="/client"
+          element={
+            <ProtectedRoute requiredRole="Cliente">
+              <ClientLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="catalogo" replace />} />
+          <Route path="catalogo" element={<ClientCatalogo />} />
+          <Route path="productos" element={<ClientProductos />} />
+          <Route path="mis-pedidos" element={<ClientMisPedidos />} />
+          <Route path="mis-citas" element={<ClientMisCitas />} />
+          <Route path="mi-perfil" element={<ClientMiPerfil />} />
+        </Route>
+
+        {/* ============================ 404 ============================ */}
         <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>
