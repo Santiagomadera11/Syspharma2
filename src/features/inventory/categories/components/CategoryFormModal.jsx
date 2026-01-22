@@ -1,44 +1,81 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React from "react";
+import { X, Save, Tag, FileText, Activity } from "lucide-react";
 
-export const CategoryFormModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
-  const [formData, setFormData] = useState({ nombre: '', descripcion: '', estado: true });
-
-  useEffect(() => {
-    if (itemToEdit) setFormData(itemToEdit);
-    else setFormData({ nombre: '', descripcion: '', estado: true });
-  }, [itemToEdit, isOpen]);
-
+const CategoryFormModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => { e.preventDefault(); onSave(formData); onClose(); };
-
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm animate-fade-in-up flex flex-col">
-        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
-          <h2 className="text-sm font-bold text-gray-800">{itemToEdit ? 'Editar' : 'Nueva'} Categoría</h2>
-          <button onClick={onClose}><X size={18} className="text-gray-400 hover:text-red-500" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+        
+        {/* Header */}
+        <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+          <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+            <Tag size={16} className="text-emerald-600"/> Nueva Categoría
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+            <X size={18} />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-3">
+
+        {/* Body */}
+        <div className="p-6 space-y-4">
+          
+          {/* Nombre */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-600 mb-1 uppercase">Nombre *</label>
-            <input type="text" value={formData.nombre} onChange={(e) => setFormData({...formData, nombre: e.target.value})} className="w-full px-3 py-1.5 border rounded-lg text-xs outline-none focus:border-primary-400" required />
+            <label className="block text-xs font-bold text-gray-700 mb-1">Nombre de la Categoría</label>
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input 
+                type="text" 
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
+                placeholder="Ej: Antibióticos" 
+              />
+            </div>
           </div>
+
+          {/* Descripción */}
           <div>
-            <label className="block text-[10px] font-bold text-gray-600 mb-1 uppercase">Descripción</label>
-            <textarea rows="3" value={formData.descripcion} onChange={(e) => setFormData({...formData, descripcion: e.target.value})} className="w-full px-3 py-1.5 border rounded-lg text-xs outline-none focus:border-primary-400 resize-none" />
+            <label className="block text-xs font-bold text-gray-700 mb-1">Descripción</label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-3 text-gray-400" size={16} />
+              <textarea 
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 h-24 resize-none" 
+                placeholder="Descripción breve de la categoría..." 
+              />
+            </div>
           </div>
-          <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-            <span className="text-[10px] font-bold text-gray-600 uppercase">Activa</span>
-            <input type="checkbox" checked={formData.estado} onChange={(e) => setFormData({...formData, estado: e.target.checked})} className="accent-primary-600 w-4 h-4" />
+
+          {/* Estado */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Estado</label>
+            <div className="relative">
+              <Activity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <select className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 bg-white appearance-none cursor-pointer">
+                <option value="Activo">Activo</option>
+                <option value="Inactivo">Inactivo</option>
+              </select>
+            </div>
           </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 bg-gray-100 text-gray-700 font-bold py-2 rounded-lg text-xs">Cancelar</button>
-            <button type="submit" className="flex-1 bg-[#34D399] hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-xs">Guardar</button>
-          </div>
-        </form>
+
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
+          <button 
+            onClick={onClose} 
+            className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+          >
+            Cancelar
+          </button>
+          <button className="px-4 py-2 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded-md flex items-center gap-1 shadow-sm transition-colors">
+            <Save size={16} /> Guardar
+          </button>
+        </div>
+
       </div>
     </div>
   );
 };
+
+export default CategoryFormModal;

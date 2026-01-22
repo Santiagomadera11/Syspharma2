@@ -1,62 +1,117 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React from "react";
+import { X, Save, Building2, User, Phone, Mail, MapPin } from "lucide-react";
 
-export const ProviderFormModal = ({ isOpen, onClose, onSave, itemToEdit }) => {
-  const [formData, setFormData] = useState({ nit: '', nombre: '', contacto: '', telefono: '', email: '', estado: true });
-
-  useEffect(() => {
-    if (itemToEdit) setFormData(itemToEdit);
-    else setFormData({ nit: '', nombre: '', contacto: '', telefono: '', email: '', estado: true });
-  }, [itemToEdit, isOpen]);
-
+const ProviderFormModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => { e.preventDefault(); onSave(formData); onClose(); };
-  const inputClass = "w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:border-primary-400 bg-gray-50 focus:bg-white";
-  const labelClass = "block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide";
-
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-fade-in-up flex flex-col">
-        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
-          <h2 className="text-sm font-bold text-gray-800">{itemToEdit ? 'Editar' : 'Nuevo'} Proveedor</h2>
-          <button onClick={onClose}><X size={18} className="text-gray-400 hover:text-red-500" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
+        
+        {/* Header */}
+        <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+          <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+            <Building2 size={16} className="text-emerald-600"/> Nuevo Proveedor
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+            <X size={18} />
+          </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-3 overflow-y-auto no-scrollbar max-h-[70vh]">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-1">
-              <label className={labelClass}>NIT *</label>
-              <input type="text" value={formData.nit} onChange={(e) => setFormData({...formData, nit: e.target.value})} className={inputClass} required />
-            </div>
-            <div className="col-span-2">
-              <label className={labelClass}>Razón Social *</label>
-              <input type="text" value={formData.nombre} onChange={(e) => setFormData({...formData, nombre: e.target.value})} className={inputClass} required />
+
+        {/* Body */}
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Nombre Empresa */}
+          <div className="col-span-2">
+            <label className="block text-xs font-bold text-gray-700 mb-1">Nombre de la Empresa</label>
+            <div className="relative">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input 
+                type="text" 
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
+                placeholder="Ej: Farmacéutica Global S.A." 
+              />
             </div>
           </div>
+
+          {/* Contacto */}
           <div>
-            <label className={labelClass}>Persona de Contacto</label>
-            <input type="text" value={formData.contacto} onChange={(e) => setFormData({...formData, contacto: e.target.value})} className={inputClass} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Teléfono</label>
-              <input type="tel" value={formData.telefono} onChange={(e) => setFormData({...formData, telefono: e.target.value})} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Email</label>
-              <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className={inputClass} />
+            <label className="block text-xs font-bold text-gray-700 mb-1">Nombre de Contacto</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input 
+                type="text" 
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500" 
+                placeholder="Ej: Juan Pérez" 
+              />
             </div>
           </div>
-          <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-            <span className="text-[10px] font-bold text-gray-600 uppercase">Activo</span>
-            <input type="checkbox" checked={formData.estado} onChange={(e) => setFormData({...formData, estado: e.target.checked})} className="accent-primary-600 w-4 h-4" />
+
+          {/* Teléfono */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Teléfono</label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input 
+                type="tel" 
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500" 
+                placeholder="+506 0000-0000" 
+              />
+            </div>
           </div>
-          <div className="pt-2 flex gap-2">
-            <button type="button" onClick={onClose} className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-2 rounded-lg text-xs hover:bg-gray-50">Cancelar</button>
-            <button type="submit" className="flex-1 bg-[#34D399] hover:bg-emerald-500 text-white font-bold py-2 rounded-lg text-xs">Guardar</button>
+
+          {/* Email */}
+          <div className="col-span-2 md:col-span-1">
+            <label className="block text-xs font-bold text-gray-700 mb-1">Correo Electrónico</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input 
+                type="email" 
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500" 
+                placeholder="contacto@empresa.com" 
+              />
+            </div>
           </div>
-        </form>
+
+          {/* Estado */}
+          <div className="col-span-2 md:col-span-1">
+            <label className="block text-xs font-bold text-gray-700 mb-1">Estado</label>
+            <select className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500 bg-white">
+              <option value="Activo">Activo</option>
+              <option value="Inactivo">Inactivo</option>
+            </select>
+          </div>
+
+          {/* Dirección */}
+          <div className="col-span-2">
+            <label className="block text-xs font-bold text-gray-700 mb-1">Dirección Física</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-3 text-gray-400" size={16} />
+              <textarea 
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 h-20 resize-none" 
+                placeholder="Provincia, Cantón, Distrito, Señas exactas..." 
+              />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
+          <button 
+            onClick={onClose} 
+            className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+          >
+            Cancelar
+          </button>
+          <button className="px-4 py-2 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded-md flex items-center gap-1 shadow-sm transition-colors">
+            <Save size={16} /> Guardar Proveedor
+          </button>
+        </div>
+
       </div>
     </div>
   );
 };
+
+export default ProviderFormModal;

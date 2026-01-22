@@ -16,27 +16,24 @@ import { LoginPage } from "../features/auth/LoginPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
 
 /* -------------------------------------------------------------------------- */
-/*                               LAYOUTS Y SEGURIDAD                          */
+/*                          SISTEMA ADMINISTRATIVO                            */
 /* -------------------------------------------------------------------------- */
 import DashboardLayout from "../layouts/DashboardLayout";
 import EmployeeLayout from "../layouts/EmployeeLayout";
 import ClientLayout from "../layouts/ClientLayout";
 import ProtectedRoute from "./ProtectedRoute";
 
-/* -------------------------------------------------------------------------- */
-/*                          SISTEMA ADMINISTRATIVO                            */
-/* -------------------------------------------------------------------------- */
+// --- PÁGINAS GENERALES ADMIN ---
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { UsersPage } from "../features/users/UsersPage";
+import SettingsPage from "../features/settings/SettingsPage";
+import SalesPage from "../features/sales/SalesPage";
 
-/* --- INVENTARIO / COMPRAS --- */
-import { PurchasesPage } from "../features/inventory/purchases/PurchasesPage";
+// --- PÁGINAS DE INVENTARIO (YA CONECTADAS) ---
 import { ProductsPage } from "../features/inventory/products/ProductsPage";
+import { PurchasesPage } from "../features/inventory/purchases/PurchasesPage"; 
 import { CategoriesPage } from "../features/inventory/categories/CategoriesPage";
 import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
-
-/* --- SERVICIOS --- */
-import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
 
 /* -------------------------------------------------------------------------- */
 /*                       SISTEMA DE EMPLEADO                                  */
@@ -60,37 +57,49 @@ import ClientMiPerfil from "../features/client/ClientMiPerfil";
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
 /* -------------------------------------------------------------------------- */
-const ModuloVentas = () => (
-  <div className="p-4">
-    <h1 className="text-xl font-bold">Panel de Ventas</h1>
-  </div>
-);
-
+// Estos módulos aún no los hemos creado completos, así que se mantienen como placeholders
 const ModuloServicios = () => (
-  <div className="p-4">
-    <h1 className="text-xl font-bold">Gestión de Servicios</h1>
+  <div className="p-6">
+    <h1 className="text-xl font-bold text-gray-800">Gestión de Servicios</h1>
+    <p className="text-sm text-gray-500">Control de procedimientos médicos y enfermería.</p>
   </div>
 );
 
-const Pedidos = () => <h1 className="p-4 font-bold">Gestión de Pedidos</h1>;
-const Configuracion = () => <h1 className="p-4 font-bold">Configuración</h1>;
+const Pedidos = () => (
+  <div className="p-6">
+    <h1 className="text-xl font-bold text-gray-800">Gestión de Pedidos</h1>
+    <p className="text-sm text-gray-500">Bandeja de entrada de pedidos web.</p>
+  </div>
+);
+
+const Citas = () => (
+  <div className="p-6">
+    <h1 className="text-xl font-bold text-gray-800">Agenda de Citas</h1>
+    <p className="text-sm text-gray-500">Calendario de citas médicas.</p>
+  </div>
+);
 
 export const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* ============================ ZONA PÚBLICA ============================ */}
+        {/* =================================================================
+            ZONA PÚBLICA
+           ================================================================= */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/productos" element={<CatalogPage />} />
         <Route path="/servicios" element={<ServicesPage />} />
         <Route path="/contacto" element={<ContactPage />} />
 
-        {/* ============================ AUTENTICACIÓN ============================ */}
+        {/* =================================================================
+            ZONA DE ACCESO
+           ================================================================= */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegisterPage />} />
 
-        {/* ============================ ADMIN ============================ */}
+        {/* =================================================================
+            ZONA PRIVADA (Dashboard Admin)
+           ================================================================= */}
         <Route
           path="/admin"
           element={
@@ -99,25 +108,38 @@ export const AppRouter = () => {
             </ProtectedRoute>
           }
         >
+          {/* Redirección inicial */}
           <Route index element={<Navigate to="dashboard" replace />} />
+          
+          {/* Dashboard General */}
           <Route path="dashboard" element={<DashboardPage />} />
+          
+          {/* Gestión de Usuarios */}
           <Route path="usuarios" element={<UsersPage />} />
 
+          {/* --- MÓDULO DE COMPRAS (Nuevo) --- */}
           <Route path="compras" element={<PurchasesPage />} />
+          
+          {/* --- MÓDULO DE VENTAS --- */}
+          <Route path="ventas" element={<SalesPage />} />
+          <Route path="pedidos" element={<Pedidos />} />
+          
+          {/* --- MÓDULO DE INVENTARIO (Completo) --- */}
           <Route path="productos" element={<ProductsPage />} />
           <Route path="categorias" element={<CategoriesPage />} />
           <Route path="proveedores" element={<ProvidersPage />} />
-
-          <Route path="ventas" element={<ModuloVentas />} />
-          <Route path="pedidos" element={<Pedidos />} />
-
+          
+          {/* --- MÓDULO DE SERVICIOS --- */}
           <Route path="servicios" element={<ModuloServicios />} />
-          <Route path="citas" element={<AppointmentsPage />} />
-
-          <Route path="configuracion" element={<Configuracion />} />
+          <Route path="citas" element={<Citas />} />
+          
+          {/* --- SISTEMA --- */}
+          <Route path="configuracion" element={<SettingsPage />} />
         </Route>
 
-        {/* ============================ EMPLEADO ============================ */}
+        {/* =================================================================
+            ZONA PRIVADA (Panel Empleado)
+           ================================================================= */}
         <Route
           path="/employee"
           element={
@@ -135,7 +157,9 @@ export const AppRouter = () => {
           <Route path="citas" element={<EmployeeCitas />} />
         </Route>
 
-        {/* ============================ CLIENTE ============================ */}
+        {/* =================================================================
+            ZONA PRIVADA (Panel Cliente)
+           ================================================================= */}
         <Route
           path="/client"
           element={
@@ -152,10 +176,11 @@ export const AppRouter = () => {
           <Route path="mi-perfil" element={<ClientMiPerfil />} />
         </Route>
 
-        {/* ============================ 404 ============================ */}
+        {/* =================================================================
+            Ruta 404 (Catch all)
+           ================================================================= */}
         <Route path="*" element={<Navigate to="/" />} />
-
       </Routes>
     </BrowserRouter>
   );
-};
+};   
