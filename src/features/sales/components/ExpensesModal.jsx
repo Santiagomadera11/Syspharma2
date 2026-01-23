@@ -1,16 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { X, Trash2, Plus } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import { expensesService } from "../services/expensesService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 export const ExpensesModal = ({ isOpen, onClose }) => {
   const [expenses, setExpenses] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    descripcion: "",
-    monto: "",
-    categoria: "Otro",
-  });
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -21,31 +15,6 @@ export const ExpensesModal = ({ isOpen, onClose }) => {
 
   const loadExpenses = () => {
     setExpenses(expensesService.getTodayExpenses());
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value }));
-  };
-
-  const handleAddExpense = () => {
-    if (!formData.descripcion || !formData.monto) {
-      setToast({
-        message: "Completa descripción y monto",
-        type: "error",
-        zIndex: 70,
-      });
-      return;
-    }
-    expensesService.create({
-      descripcion: formData.descripcion,
-      monto: parseFloat(formData.monto),
-      categoria: formData.categoria,
-    });
-    setFormData({ descripcion: "", monto: "", categoria: "Otro" });
-    setShowForm(false);
-    loadExpenses();
-    setToast({ message: "Gasto registrado", type: "success", zIndex: 70 });
   };
 
   const handleDeleteExpense = (id) => {
@@ -71,7 +40,7 @@ export const ExpensesModal = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-4 max-h-[60vh] overflow-auto">
-          {expenses.length === 0 && !showForm ? (
+          {expenses.length === 0 ? (
             <div className="text-center py-6 text-gray-400">
               No hay gastos registrados
             </div>
@@ -105,68 +74,12 @@ export const ExpensesModal = ({ isOpen, onClose }) => {
               ))}
             </div>
           )}
-
-          {showForm && (
-            <div className="mt-4 p-3 border rounded-lg bg-orange-50">
-              <input
-                type="text"
-                name="descripcion"
-                placeholder="Descripción del gasto"
-                value={formData.descripcion}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded mb-2 text-sm"
-              />
-              <input
-                type="number"
-                name="monto"
-                placeholder="Monto"
-                value={formData.monto}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded mb-2 text-sm"
-              />
-              <select
-                name="categoria"
-                value={formData.categoria}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded mb-2 text-sm"
-              >
-                <option value="Otro">Otro</option>
-                <option value="Transporte">Transporte</option>
-                <option value="Comida">Comida</option>
-                <option value="Mantenimiento">Mantenimiento</option>
-              </select>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleAddExpense}
-                  className="flex-1 bg-orange-600 text-white py-1.5 rounded text-sm font-semibold hover:bg-orange-700"
-                >
-                  Guardar
-                </button>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 border py-1.5 rounded text-sm hover:bg-gray-100"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        <div className="border-t p-4 bg-gray-50 flex items-center justify-between">
-          {!showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-orange-600 text-white rounded text-sm hover:bg-orange-700"
-            >
-              <Plus size={16} /> Agregar gasto
-            </button>
-          )}
-          <div className="text-right">
-            <div className="text-xs text-gray-500">Total gastos:</div>
-            <div className="text-2xl font-bold text-orange-600">
-              ${total.toLocaleString()}
-            </div>
+        <div className="border-t p-4 bg-gray-50 text-right">
+          <div className="text-xs text-gray-500">Total gastos:</div>
+          <div className="text-2xl font-bold text-orange-600">
+            ${total.toLocaleString()}
           </div>
         </div>
 
