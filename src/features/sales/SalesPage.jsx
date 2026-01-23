@@ -12,6 +12,8 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
+import { RegisterExpenseModal } from "./components/RegisterExpenseModal";
+import { ExpensesModal } from "./components/ExpensesModal";
 
 // Mock de 20 ventas para prueba
 const mockSales = [
@@ -225,6 +227,8 @@ export const SalesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
+  const [isRegisterExpenseModalOpen, setIsRegisterExpenseModalOpen] =
+    useState(false);
   const [isSaleDetailOpen, setIsSaleDetailOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
 
@@ -293,11 +297,11 @@ export const SalesPage = () => {
 
         <div className="flex gap-2">
           <button
-            onClick={() => setIsExpensesModalOpen(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
+            onClick={() => setIsRegisterExpenseModalOpen(true)}
+            className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
           >
-            <AlertCircle size={16} />
-            Gastos de caja
+            <Plus size={16} />
+            Registrar gasto
           </button>
           <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all">
             <DollarSign size={16} />
@@ -389,7 +393,7 @@ export const SalesPage = () => {
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
         <div className="overflow-auto custom-scrollbar no-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-blue-600 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
+            <thead className="bg-emerald-600 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
               <tr>
                 <th className="px-3 py-3 font-semibold">Código</th>
                 <th className="px-3 py-3 font-semibold">Hora</th>
@@ -511,6 +515,21 @@ export const SalesPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modal para registrar gasto */}
+      <RegisterExpenseModal
+        isOpen={isRegisterExpenseModalOpen}
+        onClose={() => setIsRegisterExpenseModalOpen(false)}
+        onSaveSuccess={() => {
+          // Aquí puedes agregar lógica adicional si es necesaria
+        }}
+      />
+
+      {/* Modal para ver gastos */}
+      <ExpensesModal
+        isOpen={isExpensesModalOpen}
+        onClose={() => setIsExpensesModalOpen(false)}
+      />
     </div>
   );
 };

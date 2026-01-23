@@ -28,10 +28,11 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { UsersPage } from "../features/users/UsersPage";
 import SettingsPage from "../features/settings/SettingsPage";
 import SalesPage from "../features/sales/SalesPage";
+import { OrdersPage } from "../features/sales/orders/OrdersPage";
 
 // --- PÁGINAS DE INVENTARIO (YA CONECTADAS) ---
 import { ProductsPage } from "../features/inventory/products/ProductsPage";
-import { PurchasesPage } from "../features/inventory/purchases/PurchasesPage"; 
+import { PurchasesPage } from "../features/inventory/purchases/PurchasesPage";
 import { CategoriesPage } from "../features/inventory/categories/CategoriesPage";
 import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
 
@@ -61,7 +62,9 @@ import ClientMiPerfil from "../features/client/ClientMiPerfil";
 const ModuloServicios = () => (
   <div className="p-6">
     <h1 className="text-xl font-bold text-gray-800">Gestión de Servicios</h1>
-    <p className="text-sm text-gray-500">Control de procedimientos médicos y enfermería.</p>
+    <p className="text-sm text-gray-500">
+      Control de procedimientos médicos y enfermería.
+    </p>
   </div>
 );
 
@@ -110,29 +113,29 @@ export const AppRouter = () => {
         >
           {/* Redirección inicial */}
           <Route index element={<Navigate to="dashboard" replace />} />
-          
+
           {/* Dashboard General */}
           <Route path="dashboard" element={<DashboardPage />} />
-          
+
           {/* Gestión de Usuarios */}
           <Route path="usuarios" element={<UsersPage />} />
 
           {/* --- MÓDULO DE COMPRAS (Nuevo) --- */}
           <Route path="compras" element={<PurchasesPage />} />
-          
+
           {/* --- MÓDULO DE VENTAS --- */}
           <Route path="ventas" element={<SalesPage />} />
-          <Route path="pedidos" element={<Pedidos />} />
-          
+          <Route path="pedidos" element={<OrdersPage />} />
+
           {/* --- MÓDULO DE INVENTARIO (Completo) --- */}
           <Route path="productos" element={<ProductsPage />} />
           <Route path="categorias" element={<CategoriesPage />} />
           <Route path="proveedores" element={<ProvidersPage />} />
-          
+
           {/* --- MÓDULO DE SERVICIOS --- */}
           <Route path="servicios" element={<ModuloServicios />} />
           <Route path="citas" element={<Citas />} />
-          
+
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />
         </Route>
@@ -183,4 +186,4 @@ export const AppRouter = () => {
       </Routes>
     </BrowserRouter>
   );
-};   
+};
