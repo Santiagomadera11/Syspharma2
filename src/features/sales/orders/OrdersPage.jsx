@@ -8,10 +8,12 @@ import {
   ChevronRight,
   Calendar,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 export const OrdersPage = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState(ordersService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -109,7 +111,10 @@ export const OrdersPage = () => {
           </p>
         </div>
 
-        <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all">
+        <button
+          onClick={() => navigate("/admin/pedidos/crear")}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all"
+        >
           <Plus size={16} />
           Crear pedido
         </button>

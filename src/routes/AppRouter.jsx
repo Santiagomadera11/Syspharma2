@@ -29,6 +29,7 @@ import { UsersPage } from "../features/users/UsersPage";
 import SettingsPage from "../features/settings/SettingsPage";
 import SalesPage from "../features/sales/SalesPage";
 import { OrdersPage } from "../features/sales/orders/OrdersPage";
+import { CreateOrderPage } from "../features/sales/orders/CreateOrderPage";
 
 // --- PÁGINAS DE INVENTARIO (YA CONECTADAS) ---
 import { ProductsPage } from "../features/inventory/products/ProductsPage";
@@ -126,6 +127,7 @@ export const AppRouter = () => {
           {/* --- MÓDULO DE VENTAS --- */}
           <Route path="ventas" element={<SalesPage />} />
           <Route path="pedidos" element={<OrdersPage />} />
+          <Route path="pedidos/crear" element={<CreateOrderPage />} />
 
           {/* --- MÓDULO DE INVENTARIO (Completo) --- */}
           <Route path="productos" element={<ProductsPage />} />
