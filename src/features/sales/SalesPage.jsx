@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Plus,
@@ -222,6 +223,7 @@ const mockExpenses = [
 ];
 
 export const SalesPage = () => {
+  const navigate = useNavigate();
   const [sales] = useState(mockSales);
   const [expenses] = useState(mockExpenses);
   const [searchTerm, setSearchTerm] = useState("");
@@ -235,7 +237,7 @@ export const SalesPage = () => {
   const itemsPerPage = 20;
 
   const handleNewSale = () => {
-    alert("Funcionalidad de nueva venta en desarrollo");
+    navigate("/admin/ventas/nueva");
   };
 
   const handleDeleteSale = (id) => {

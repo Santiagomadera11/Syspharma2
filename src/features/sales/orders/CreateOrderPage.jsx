@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { Search, Plus, Trash2, ArrowLeft, Package } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { productService } from "../../inventory/products/services/productService";
 import { ordersService } from "./services/ordersService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 export const CreateOrderPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isSale = location.pathname === "/admin/ventas/nueva";
   const [products] = useState(productService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState([]);
@@ -78,6 +80,16 @@ export const CreateOrderPage = () => {
     [cart]
   );
 
+  // Llenar información de consumidor final
+  const handleConsumerFinal = () => {
+    setClientInfo({
+      documento: "222222222222",
+      nombre: "Consumidor Final",
+      telefono: "-",
+      correo: "-",
+    });
+  };
+
   // Confirmar pedido
   const handleConfirmOrder = () => {
     if (!clientInfo.documento || !clientInfo.nombre) {
@@ -107,20 +119,22 @@ export const CreateOrderPage = () => {
         precio: p.precio,
       })),
       total: cartTotal,
-      estado: "Pendiente",
+      estado: isSale ? "Entregada" : "Pendiente",
       notas: `Teléfono: ${clientInfo.telefono}${
         clientInfo.correo ? ` | Correo: ${clientInfo.correo}` : ""
       }`,
     });
 
     setNotification({
-      message: "Pedido creado exitosamente",
+      message: isSale
+        ? "Venta registrada exitosamente"
+        : "Pedido creado exitosamente",
       type: "success",
       zIndex: 50,
     });
 
     setTimeout(() => {
-      navigate("/admin/pedidos");
+      navigate(isSale ? "/admin/ventas" : "/admin/pedidos");
     }, 1500);
   };
 
@@ -143,17 +157,21 @@ export const CreateOrderPage = () => {
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/admin/pedidos")}
+            onClick={() =>
+              navigate(isSale ? "/admin/ventas" : "/admin/pedidos")
+            }
             className="text-gray-600 hover:text-gray-800 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Crear nuevo pedido
+              {isSale ? "Registrar Venta Directa" : "Crear nuevo pedido"}
             </h1>
             <p className="text-gray-500 text-xs mt-0.5">
-              Selecciona productos y completa los datos del cliente
+              {isSale
+                ? "Completa la venta con los datos del cliente"
+                : "Selecciona productos y completa los datos del cliente"}
             </p>
           </div>
         </div>
@@ -235,9 +253,17 @@ export const CreateOrderPage = () => {
             <div className="overflow-y-auto no-scrollbar flex flex-col flex-1">
               {/* Información del Cliente */}
               <div className="p-4 border-b border-gray-100">
-                <h3 className="text-sm font-bold text-gray-800 mb-3">
-                  Datos del cliente
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-gray-800">
+                    Datos del cliente
+                  </h3>
+                  <button
+                    onClick={handleConsumerFinal}
+                    className="text-[10px] font-bold px-2 py-1 rounded bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
+                  >
+                    Consumidor Final
+                  </button>
+                </div>
 
                 <div className="space-y-2">
                   <div>
@@ -400,7 +426,7 @@ export const CreateOrderPage = () => {
                     : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                 }`}
               >
-                Confirmar Pedido
+                {isSale ? "Finalizar Venta / Cobrar" : "Confirmar Pedido"}
               </button>
             </div>
           </div>
