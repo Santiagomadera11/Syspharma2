@@ -126,6 +126,7 @@ export const AppRouter = () => {
 
           {/* --- MÓDULO DE VENTAS --- */}
           <Route path="ventas" element={<SalesPage />} />
+          <Route path="ventas/nueva" element={<CreateOrderPage />} />
           <Route path="pedidos" element={<OrdersPage />} />
           <Route path="pedidos/crear" element={<CreateOrderPage />} />
 
@@ -157,6 +158,7 @@ export const AppRouter = () => {
           <Route path="inicio" element={<EmployeeInicio />} />
           <Route path="compras" element={<EmployeeCompras />} />
           <Route path="ventas" element={<EmployeeSalesPage />} />
+          <Route path="ventas/nueva" element={<CreateOrderPage />} />
           <Route path="productos" element={<EmployeeProductos />} />
           <Route path="pedidos" element={<EmployeePedidos />} />
           <Route path="citas" element={<EmployeeCitas />} />

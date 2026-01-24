@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
+import { OrderDetailModal } from "./components/OrderDetailModal";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 export const OrdersPage = () => {
@@ -21,6 +22,8 @@ export const OrdersPage = () => {
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [notification, setNotification] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const itemsPerPage = 10;
 
@@ -37,6 +40,11 @@ export const OrdersPage = () => {
         setCurrentPage(currentPage - 1);
       }
     }
+  };
+
+  const handleOpenDetail = (order) => {
+    setSelectedOrder(order);
+    setIsDetailOpen(true);
   };
 
   // Filtrado
@@ -261,6 +269,7 @@ export const OrdersPage = () => {
                     <td className="px-3 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
+                          onClick={() => handleOpenDetail(order)}
                           className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200"
                           title="Ver detalle"
                         >
@@ -319,6 +328,13 @@ export const OrdersPage = () => {
           onClose={() => setNotification(null)}
         />
       )}
+
+      {/* Modal de Detalle */}
+      <OrderDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        order={selectedOrder}
+      />
     </div>
   );
 };
