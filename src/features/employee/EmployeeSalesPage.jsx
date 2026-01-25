@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -8,7 +8,14 @@ import {
   ChevronRight,
   ShoppingCart,
   AlertCircle,
+  DollarSign,
+  Clock,
+  User,
 } from "lucide-react";
+import { turnService } from "../sales/services/turnService";
+import { OpenShiftModal } from "../sales/components/OpenShiftModal";
+import { CloseShiftModal } from "../sales/components/CloseShiftModal";
+import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 // Mock de 20 ventas para prueba
 const mockSales = [
@@ -216,39 +223,75 @@ const mockExpenses = [
   },
 ];
 
+/**
+ * EmployeeSalesPage - Vista AZUL de Ventas para Empleados
+ * - Apertura/Cierre de turno
+ * - Listado de ventas del día
+ * - Cierre con comparación de efectivo
+ */
 export const EmployeeSalesPage = () => {
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+
+  // Estados principales
   const [sales] = useState(mockSales);
   const [expenses] = useState(mockExpenses);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [currentTurn, setCurrentTurn] = useState(null);
+  const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
-  const [isSaleDetailOpen, setIsSaleDetailOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState(null);
 
   const itemsPerPage = 20;
 
-  const handleNewSale = () => {
-    navigate("/employee/ventas/nueva");
+  // Verificar turno activo al cargar
+  useEffect(() => {
+    const activeTurn = turnService.getActiveTurn();
+    if (activeTurn) {
+      setCurrentTurn(activeTurn);
+    } else {
+      setShowOpenShiftModal(true);
+    }
+  }, []);
+
+  const handleShiftOpened = (newTurn) => {
+    setCurrentTurn(newTurn);
+    setShowOpenShiftModal(false);
+    setToast({
+      message: `Turno abierto con $${newTurn.montoBase.toLocaleString()}`,
+      type: "success",
+      zIndex: 70,
+    });
   };
 
-  const handleOpenSaleDetail = (sale) => {
-    setSelectedSale(sale);
-    setIsSaleDetailOpen(true);
+  const handleShiftClosed = (closedTurn) => {
+    setCurrentTurn(null);
+    setShowCloseShiftModal(false);
+    setToast({
+      message: `Turno cerrado. Diferencia: $${closedTurn.diferencia.toLocaleString()}`,
+      type: closedTurn.diferencia === 0 ? "success" : "warning",
+      zIndex: 70,
+    });
+    // Redirige al login después de 2 segundos
+    setTimeout(() => {
+      navigate("/login");
+    }, 2000);
   };
 
   // Métricas
   const totalSales = useMemo(
     () => sales.reduce((sum, s) => sum + (s.total || 0), 0),
-    [sales]
+    [sales],
   );
   const totalProductsSold = useMemo(
     () => sales.reduce((sum, s) => sum + (s.cantidadProductos || 0), 0),
-    [sales]
+    [sales],
   );
   const totalExpenses = useMemo(
     () => expenses.reduce((sum, e) => sum + (e.monto || 0), 0),
-    [expenses]
+    [expenses],
   );
 
   // Filtrado y paginación
@@ -264,32 +307,47 @@ export const EmployeeSalesPage = () => {
   const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
   const displayedSales = filteredSales.slice(
     currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+    (currentPage + 1) * itemsPerPage,
   );
 
   return (
     <div className="h-full flex flex-col gap-4 font-sans">
       {/* Header */}
-      <div className="flex items-start justify-between flex-shrink-0">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Punto de venta</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Mis Ventas</h1>
           <p className="text-gray-500 text-xs mt-0.5">
-            Selecciona productos para agregar a la venta
+            Panel de ventas del empleado {user.nombre}
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setIsExpensesModalOpen(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
+            onClick={() => setShowCloseShiftModal(true)}
+            disabled={!currentTurn}
+            className={`px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all ${
+              currentTurn
+                ? "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
           >
-            <AlertCircle size={16} />
-            Gastos de caja
+            <DollarSign size={16} />
+            Cerrar Turno
           </button>
+
+          <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
+            <Clock size={16} className="text-blue-600" />
+            <div>
+              <p className="text-xs text-gray-600">Estado Turno</p>
+              <p className="text-sm font-bold text-blue-600">
+                {currentTurn ? "✓ Activo" : "✗ Cerrado"}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Cards - KPIs (Solo 2: Ventas y Gastos) */}
+      {/* Cards - KPIs */}
       <div className="grid grid-cols-2 gap-3 flex-shrink-0">
         {/* Card 1: Ventas brutas */}
         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-cyan-200 shadow-sm">
@@ -320,18 +378,12 @@ export const EmployeeSalesPage = () => {
             <div className="text-xs text-gray-500">
               {expenses.length} gastos realizados
             </div>
-            <button
-              onClick={() => setIsExpensesModalOpen(true)}
-              className="text-[10px] text-orange-600 hover:text-orange-700 font-semibold hover:underline"
-            >
-              Detalle
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Búsqueda y botón nueva venta */}
-      <div className="flex gap-2 flex-shrink-0">
+      {/* Botones de Acción y Búsqueda */}
+      <div className="flex gap-2 flex-shrink-0 items-center">
         <div className="flex-1 relative">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -339,44 +391,48 @@ export const EmployeeSalesPage = () => {
           />
           <input
             type="text"
-            placeholder="Buscar por cliente, código o método de pago..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-300 text-xs bg-white"
+            placeholder="Buscar cliente, código o método de pago..."
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-xs bg-white"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(0);
+            }}
           />
         </div>
-        <button
-          onClick={handleNewSale}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
-        >
-          <Plus size={16} />
-          Nueva venta
-        </button>
+
+        <div className="flex gap-2">
+          <select
+            className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-xs bg-white"
+            defaultValue="todos"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="completada">Completadas</option>
+            <option value="devolucion">Devoluciones</option>
+          </select>
+        </div>
       </div>
 
       {/* Tabla de ventas */}
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
-        <div className="overflow-auto custom-scrollbar no-scrollbar">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-blue-600 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
+        <div className="overflow-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead className="bg-blue-600 text-white uppercase sticky top-0 z-10">
               <tr>
                 <th className="px-3 py-3 font-semibold">Código</th>
                 <th className="px-3 py-3 font-semibold">Hora</th>
                 <th className="px-3 py-3 font-semibold">Cliente</th>
-                <th className="px-3 py-3 font-semibold text-center">
-                  Productos
-                </th>
-                <th className="px-3 py-3 font-semibold">Método pago</th>
+                <th className="px-3 py-3 font-semibold text-center">Piezas</th>
+                <th className="px-3 py-3 font-semibold">Método</th>
                 <th className="px-3 py-3 font-semibold text-right">Total</th>
                 <th className="px-3 py-3 font-semibold text-center">Estado</th>
-                <th className="px-3 py-3 font-semibold text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-xs">
+            <tbody className="divide-y divide-gray-100">
               {displayedSales.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="8"
+                    colSpan="7"
                     className="px-3 py-8 text-center text-gray-400"
                   >
                     No hay ventas registradas
@@ -388,13 +444,15 @@ export const EmployeeSalesPage = () => {
                     key={sale.id}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-3 py-2.5 text-xs font-mono font-semibold text-gray-700">
+                    <td className="px-3 py-2.5 font-mono text-gray-700">
                       {sale.id}
                     </td>
                     <td className="px-3 py-2.5">{sale.hora}</td>
                     <td className="px-3 py-2.5 font-medium">{sale.cliente}</td>
                     <td className="px-3 py-2.5 text-center font-semibold">
-                      {sale.cantidadProductos}
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                        {sale.cantidadProductos}
+                      </span>
                     </td>
                     <td className="px-3 py-2.5 text-gray-600">
                       {sale.metodoPago}
@@ -408,23 +466,12 @@ export const EmployeeSalesPage = () => {
                           sale.estado === "completada"
                             ? "bg-green-100 text-green-700"
                             : sale.estado === "devolucion"
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-red-100 text-red-700"
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-red-100 text-red-700"
                         }`}
                       >
                         {sale.estado}
                       </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenSaleDetail(sale)}
-                          className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200"
-                          title="Ver detalle"
-                        >
-                          <Eye size={14} />
-                        </button>
-                      </div>
                     </td>
                   </tr>
                 ))
@@ -437,14 +484,13 @@ export const EmployeeSalesPage = () => {
         {filteredSales.length > 0 && (
           <div className="border-t border-gray-100 p-3 bg-gray-50 flex items-center justify-between flex-shrink-0">
             <span className="text-[10px] text-gray-500 font-medium">
-              Mostrando página {currentPage + 1} de {totalPages} (
-              {filteredSales.length} ventas)
+              Página {currentPage + 1} de {totalPages}
             </span>
             <div className="flex gap-2">
               <button
                 onClick={() => currentPage > 0 && setCurrentPage((p) => p - 1)}
                 disabled={currentPage === 0}
-                className="p-1 rounded bg-white border border-gray-200 disabled:opacity-50"
+                className="p-1 rounded bg-white border border-gray-200 disabled:opacity-50 hover:bg-gray-100"
               >
                 <ChevronLeft size={14} />
               </button>
@@ -453,7 +499,7 @@ export const EmployeeSalesPage = () => {
                   currentPage < totalPages - 1 && setCurrentPage((p) => p + 1)
                 }
                 disabled={currentPage === totalPages - 1}
-                className="p-1 rounded bg-white border border-gray-200 disabled:opacity-50"
+                className="p-1 rounded bg-white border border-gray-200 disabled:opacity-50 hover:bg-gray-100"
               >
                 <ChevronRight size={14} />
               </button>
@@ -461,6 +507,30 @@ export const EmployeeSalesPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modales */}
+      <OpenShiftModal
+        isOpen={showOpenShiftModal}
+        onShiftOpened={handleShiftOpened}
+        user={user}
+      />
+
+      <CloseShiftModal
+        isOpen={showCloseShiftModal}
+        onShiftClosed={handleShiftClosed}
+        onClose={() => setShowCloseShiftModal(false)}
+        user={user}
+      />
+
+      {/* Toast Notification */}
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          zIndex={toast.zIndex}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

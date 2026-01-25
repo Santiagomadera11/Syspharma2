@@ -161,6 +161,7 @@ export const AppRouter = () => {
           <Route path="ventas/nueva" element={<CreateOrderPage />} />
           <Route path="productos" element={<EmployeeProductos />} />
           <Route path="pedidos" element={<EmployeePedidos />} />
+          <Route path="pedidos/crear" element={<CreateOrderPage />} />
           <Route path="citas" element={<EmployeeCitas />} />
         </Route>
 

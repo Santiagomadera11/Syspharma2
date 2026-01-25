@@ -8,7 +8,10 @@ import { ToastNotification } from "../../../shared/ui/ToastNotification";
 export const CreateOrderPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isSale = location.pathname === "/admin/ventas/nueva";
+  const isSale =
+    location.pathname === "/admin/ventas/nueva" ||
+    location.pathname === "/employee/ventas/nueva";
+  const isEmployee = location.pathname.startsWith("/employee");
   const [products] = useState(productService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState([]);
@@ -134,7 +137,11 @@ export const CreateOrderPage = () => {
     });
 
     setTimeout(() => {
-      navigate(isSale ? "/admin/ventas" : "/admin/pedidos");
+      if (isSale) {
+        navigate(isEmployee ? "/employee/ventas" : "/admin/ventas");
+      } else {
+        navigate(isEmployee ? "/employee/pedidos" : "/admin/pedidos");
+      }
     }, 1500);
   };
 
@@ -157,9 +164,13 @@ export const CreateOrderPage = () => {
       <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
           <button
-            onClick={() =>
-              navigate(isSale ? "/admin/ventas" : "/admin/pedidos")
-            }
+            onClick={() => {
+              if (isSale) {
+                navigate(isEmployee ? "/employee/ventas" : "/admin/ventas");
+              } else {
+                navigate(isEmployee ? "/employee/pedidos" : "/admin/pedidos");
+              }
+            }}
             className="text-gray-600 hover:text-gray-800 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft size={20} />

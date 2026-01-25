@@ -1,10 +1,19 @@
 import React, { useState, useMemo } from "react";
-import { Search, Eye, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import {
+  Search,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Plus,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ordersService } from "../sales/orders/services/ordersService";
 import { OrderDetailModal } from "../sales/orders/components/OrderDetailModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 export const EmployeePedidos = () => {
+  const navigate = useNavigate();
   const [orders] = useState(ordersService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -93,6 +102,14 @@ export const EmployeePedidos = () => {
             Visualiza y realiza seguimiento de todos los pedidos
           </p>
         </div>
+
+        <button
+          onClick={() => navigate("/employee/pedidos/crear")}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all"
+        >
+          <Plus size={16} />
+          Crear pedido
+        </button>
       </div>
 
       {/* Filtros */}
