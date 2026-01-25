@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -12,9 +12,15 @@ import {
   ShoppingCart,
   TrendingUp,
   AlertCircle,
+  History,
 } from "lucide-react";
 import { RegisterExpenseModal } from "./components/RegisterExpenseModal";
 import { ExpensesModal } from "./components/ExpensesModal";
+import { ShiftsHistory } from "./components/ShiftsHistory";
+import { turnService } from "./services/turnService";
+import { OpenShiftModal } from "./components/OpenShiftModal";
+import { CloseShiftModal } from "./components/CloseShiftModal";
+import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 // Mock de 20 ventas para prueba
 const mockSales = [
@@ -224,6 +230,7 @@ const mockExpenses = [
 
 export const SalesPage = () => {
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
   const [sales] = useState(mockSales);
   const [expenses] = useState(mockExpenses);
   const [searchTerm, setSearchTerm] = useState("");
@@ -233,10 +240,54 @@ export const SalesPage = () => {
     useState(false);
   const [isSaleDetailOpen, setIsSaleDetailOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [showShiftsHistory, setShowShiftsHistory] = useState(false);
+  const [currentTurn, setCurrentTurn] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const itemsPerPage = 20;
 
+  // Verificar turno activo al cargar
+  useEffect(() => {
+    const activeTurn = turnService.getActiveTurn();
+    if (activeTurn) {
+      setCurrentTurn(activeTurn);
+    } else {
+      setShowOpenShiftModal(true);
+    }
+  }, []);
+
+  const handleShiftOpened = (newTurn) => {
+    setCurrentTurn(newTurn);
+    setShowOpenShiftModal(false);
+  };
+
+  const handleShiftClosed = (closedTurn) => {
+    setCurrentTurn(null);
+    setShowCloseShiftModal(false);
+    setToast({
+      message: `Turno cerrado. Diferencia: $${closedTurn.diferencia}`,
+      type: closedTurn.diferencia === 0 ? "success" : "warning",
+      zIndex: 70,
+    });
+    // Redirige al login después de 2 segundos
+    setTimeout(() => {
+      navigate("/login");
+    }, 2000);
+  };
+
   const handleNewSale = () => {
+    // Validar turno antes de crear venta
+    const validation = turnService.validateOperationAllowed();
+    if (!validation.valid) {
+      setToast({
+        message: validation.message,
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
     navigate("/admin/ventas/nueva");
   };
 
@@ -258,15 +309,15 @@ export const SalesPage = () => {
   // Métricas
   const totalSales = useMemo(
     () => sales.reduce((sum, s) => sum + (s.total || 0), 0),
-    [sales]
+    [sales],
   );
   const totalProductsSold = useMemo(
     () => sales.reduce((sum, s) => sum + (s.cantidadProductos || 0), 0),
-    [sales]
+    [sales],
   );
   const totalExpenses = useMemo(
     () => expenses.reduce((sum, e) => sum + (e.monto || 0), 0),
-    [expenses]
+    [expenses],
   );
   const netProfit = totalSales - totalExpenses;
 
@@ -283,7 +334,7 @@ export const SalesPage = () => {
   const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
   const displayedSales = filteredSales.slice(
     currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+    (currentPage + 1) * itemsPerPage,
   );
 
   return (
@@ -299,13 +350,35 @@ export const SalesPage = () => {
 
         <div className="flex gap-2">
           <button
-            onClick={() => setIsRegisterExpenseModalOpen(true)}
+            onClick={() => {
+              // Validar turno antes de registrar gasto
+              const validation = turnService.validateOperationAllowed();
+              if (!validation.valid) {
+                setToast({
+                  message: validation.message,
+                  type: "error",
+                  zIndex: 70,
+                });
+                return;
+              }
+              setIsRegisterExpenseModalOpen(true);
+            }}
             className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
           >
             <Plus size={16} />
             Registrar gasto
           </button>
-          <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all">
+          <button
+            onClick={() => setShowShiftsHistory(true)}
+            className="bg-blue-400 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
+          >
+            <History size={16} />
+            Ver turnos
+          </button>
+          <button
+            onClick={() => setShowCloseShiftModal(true)}
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
+          >
             <DollarSign size={16} />
             Cerrar caja
           </button>
@@ -445,8 +518,8 @@ export const SalesPage = () => {
                           sale.estado === "completada"
                             ? "bg-green-100 text-green-700"
                             : sale.estado === "devolucion"
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-red-100 text-red-700"
+                              ? "bg-orange-100 text-orange-700"
+                              : "bg-red-100 text-red-700"
                         }`}
                       >
                         {sale.estado}
@@ -532,6 +605,37 @@ export const SalesPage = () => {
         isOpen={isExpensesModalOpen}
         onClose={() => setIsExpensesModalOpen(false)}
       />
+
+      {/* Modal de Apertura de Turno */}
+      <OpenShiftModal
+        isOpen={showOpenShiftModal}
+        onShiftOpened={handleShiftOpened}
+        user={user}
+      />
+
+      {/* Modal de Cierre de Turno */}
+      <CloseShiftModal
+        isOpen={showCloseShiftModal}
+        onShiftClosed={handleShiftClosed}
+        onClose={() => setShowCloseShiftModal(false)}
+        user={user}
+      />
+
+      {/* Modal de Auditoría de Turnos */}
+      <ShiftsHistory
+        isOpen={showShiftsHistory}
+        onClose={() => setShowShiftsHistory(false)}
+      />
+
+      {/* Toast Notification */}
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          zIndex={toast.zIndex}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };
