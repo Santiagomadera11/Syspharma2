@@ -20,7 +20,8 @@ export const RegisterPage = () => {
   const [formData, setFormData] = useState({
     tipoDocumento: "",
     documento: "",
-    nombre: "",
+    nombres: "",
+    apellidos: "",
     email: "",
     telefono: "",
     password: "",
@@ -45,7 +46,7 @@ export const RegisterPage = () => {
       return;
     }
     const exists = existing.some(
-      (u) => (u.email || "").toLowerCase() === email
+      (u) => (u.email || "").toLowerCase() === email,
     );
     if (exists) {
       setToast({
@@ -69,11 +70,12 @@ export const RegisterPage = () => {
     }
 
     const payload = {
-      nombre: formData.nombre,
+      nombres: formData.nombres,
+      apellidos: formData.apellidos,
       email: email,
       telefono: formData.telefono || "",
       password: formData.password,
-      rol: "Cliente",
+      rol: "cliente",
       documento: formData.documento || "",
       tipoDocumento: formData.tipoDocumento || "",
       estado: true,
@@ -154,11 +156,18 @@ export const RegisterPage = () => {
                 placeholder: "Ej: 12345678",
               },
               {
-                label: "Nombre Completo",
+                label: "Nombres",
                 icon: User,
-                name: "nombre",
+                name: "nombres",
                 type: "text",
-                placeholder: "Ej: Juan Pérez",
+                placeholder: "Ej: Juan",
+              },
+              {
+                label: "Apellidos",
+                icon: User,
+                name: "apellidos",
+                type: "text",
+                placeholder: "Ej: Pérez",
               },
               {
                 label: "Correo Electrónico",
