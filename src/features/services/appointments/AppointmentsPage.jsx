@@ -1,205 +1,195 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar as CalIcon, Clock, User, Plus, Settings, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
-import { appointmentService } from './services/appointmentService';
-import { DoctorScheduleModal } from './components/DoctorScheduleModal';
-import { ToastNotification } from '../../../shared/ui/ToastNotification';
+import React, { useState } from "react";
+import { 
+  Plus, Search, Eye, Edit, Trash2, 
+  ChevronLeft, ChevronRight, Filter, Calendar, User, Clock
+} from "lucide-react";
+import AppointmentFormModal from "./components/AppointmentFormModal";
+import { useCrud } from "../../../shared/hooks/useCrud"; // Ajusta la ruta a tu hook
+
+const INITIAL_APPOINTMENTS = [
+  { id: "CIT-001", paciente: "Roberto Gómez", servicio: "Consulta General", profesional: "Dr. Juan Pérez", fecha: "2024-02-15", hora: "09:00", estado: "Confirmada" },
+  { id: "CIT-002", paciente: "Ana Torres", servicio: "Inyectable", profesional: "Enf. María Gómez", fecha: "2024-02-15", hora: "10:30", estado: "Pendiente" },
+  { id: "CIT-003", paciente: "Carlos Ruiz", servicio: "Toma de Presión", profesional: "Enf. María Gómez", fecha: "2024-02-16", hora: "08:00", estado: "Completada" },
+  { id: "CIT-004", paciente: "Lucía Méndez", servicio: "Consulta General", profesional: "Dr. Juan Pérez", fecha: "2024-02-16", hora: "11:00", estado: "Cancelada" },
+  { id: "CIT-005", paciente: "Sofía Castro", servicio: "Curación", profesional: "Enf. María Gómez", fecha: "2024-02-17", hora: "14:00", estado: "Pendiente" }
+];
 
 export const AppointmentsPage = () => {
-  const [doctors, setDoctors] = useState([]);
-  const [appointments, setAppointments] = useState([]);
-  const [selectedDoctorId, setSelectedDoctorId] = useState(1);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const { items: appointments, addItem, updateItem, deleteItem } = useCrud("sys_appointments", INITIAL_APPOINTMENTS);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
   
-  // Modales y Notificaciones
-  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
-  const [notification, setNotification] = useState(null);
+  // Estados Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [isViewMode, setIsViewMode] = useState(false);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5; 
 
-  useEffect(() => {
-    setDoctors(appointmentService.getDoctors());
-    setAppointments(appointmentService.getAppointments());
-  }, []);
+  // --- CRUD ACTIONS ---
+  const handleCreate = () => {
+    setEditingItem(null);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
 
-  const selectedDoctor = doctors.find(d => d.id === selectedDoctorId);
+  const handleEdit = (cita) => {
+    setEditingItem(cita);
+    setIsViewMode(false);
+    setIsModalOpen(true);
+  };
 
-  // --- LÓGICA DE CALENDARIO ---
-  const generateTimeSlots = () => {
-    if (!selectedDoctor) return [];
-    
-    // Verificar si el doctor trabaja este día de la semana
-    const dayOfWeek = selectedDate.getDay(); // 0-6
-    if (!selectedDoctor.diasLaborales.includes(dayOfWeek)) return []; // No trabaja
+  const handleView = (cita) => {
+    setEditingItem(cita);
+    setIsViewMode(true);
+    setIsModalOpen(true);
+  };
 
-    const slots = [];
-    let currentTime = new Date(`2000-01-01T${selectedDoctor.horaInicio}`);
-    const endTime = new Date(`2000-01-01T${selectedDoctor.horaFin}`);
+  const handleDelete = (id) => {
+    deleteItem(id);
+  };
 
-    while (currentTime < endTime) {
-      const timeString = currentTime.toTimeString().substring(0, 5);
-      
-      // Verificar si ya está ocupado
-      const isTaken = appointments.some(a => 
-        a.doctorId === selectedDoctorId && 
-        a.fecha === selectedDate.toISOString().split('T')[0] && 
-        a.hora === timeString &&
-        a.estado !== 'Cancelada'
-      );
+  const handleSave = (formData) => {
+    if (editingItem) updateItem(editingItem.id, formData);
+    else addItem({ ...formData, id: `CIT-${Date.now().toString().slice(-4)}` });
+  };
 
-      slots.push({ time: timeString, taken: isTaken });
-      currentTime.setMinutes(currentTime.getMinutes() + selectedDoctor.intervalo);
+  // Filtros
+  const filteredItems = appointments.filter((cita) => {
+    const texto = searchTerm.toLowerCase();
+    const matchTexto = cita.paciente.toLowerCase().includes(texto) || cita.servicio.toLowerCase().includes(texto);
+    const matchEstado = statusFilter === "Todos" || cita.estado === statusFilter;
+    return matchTexto && matchEstado;
+  });
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredItems.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+
+  const nextPage = () => { if (currentPage < totalPages) setCurrentPage(currentPage + 1); };
+  const prevPage = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
+
+  const getStatusBadge = (estado) => {
+    const base = "px-2 py-0.5 rounded text-[10px] font-bold border";
+    switch(estado) {
+        case "Confirmada": return <span className={`${base} bg-blue-50 text-blue-700 border-blue-200`}>Confirmada</span>;
+        case "Completada": return <span className={`${base} bg-green-50 text-green-700 border-green-200`}>Completada</span>;
+        case "Pendiente": return <span className={`${base} bg-yellow-50 text-yellow-700 border-yellow-200`}>Pendiente</span>;
+        case "Cancelada": return <span className={`${base} bg-red-50 text-red-700 border-red-200`}>Cancelada</span>;
+        default: return <span className={`${base} bg-gray-100 text-gray-700`}>{estado}</span>;
     }
-    return slots;
   };
-
-  const handleBook = (time) => {
-    const patientName = prompt("Nombre del paciente:"); // Por ahora simple
-    if (!patientName) return;
-
-    const newAppt = {
-      doctorId: selectedDoctorId,
-      paciente: patientName,
-      fecha: selectedDate.toISOString().split('T')[0],
-      hora: time,
-      servicio: selectedDoctor.especialidad
-    };
-
-    const updatedList = appointmentService.createAppointment(newAppt);
-    setAppointments(updatedList);
-    setNotification("Cita agendada exitosamente");
-  };
-
-  const handleUpdateSchedule = (updatedDoctor) => {
-    const list = appointmentService.updateDoctorSchedule(updatedDoctor);
-    setDoctors(list);
-    setNotification("Horario actualizado");
-  };
-
-  // Filtrar citas del día para el historial derecho
-  const todayAppointments = appointments.filter(a => 
-    a.fecha === selectedDate.toISOString().split('T')[0] && 
-    a.doctorId === selectedDoctorId
-  );
 
   return (
-    <div className="h-full flex flex-col gap-3 font-sans relative">
-      {notification && <ToastNotification message={notification} onClose={() => setNotification(null)} />}
-
-      {/* Header */}
-      <div className="flex justify-between items-center flex-shrink-0">
+    <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
+      
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-3 flex-shrink-0">
         <div>
-          <h1 className="text-lg font-bold text-gray-800">Citas Médicas</h1>
-          <p className="text-gray-500 text-xs">Gestión de agenda y disponibilidad</p>
+          <h1 className="text-lg font-bold text-gray-800">Agenda de Citas</h1>
+          <p className="text-xs text-gray-500">Programación de servicios médicos</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setIsScheduleOpen(true)} className="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all">
-            <Settings size={14} /> Configurar Horario
-          </button>
+        <button onClick={handleCreate} className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors">
+          <Plus size={16} /> Nueva Cita
+        </button>
+      </div>
+
+      {/* FILTROS */}
+      <div className="flex gap-3 mb-3 flex-shrink-0">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input type="text" placeholder="Buscar paciente o servicio..." className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 text-sm focus:outline-none focus:border-emerald-500" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        </div>
+        <div className="relative w-36">
+          <select 
+            className="w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 text-sm bg-white appearance-none cursor-pointer focus:outline-none focus:border-emerald-500"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="Todos">Todos</option>
+            <option value="Confirmada">Confirmada</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Completada">Completada</option>
+            <option value="Cancelada">Cancelada</option>
+          </select>
+          <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
         </div>
       </div>
 
-      {/* Contenedor Principal (Split View) */}
-      <div className="flex-1 flex gap-4 overflow-hidden">
-        
-        {/* PANEL IZQUIERDO: Calendario y Disponibilidad (60%) */}
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
-          
-          {/* Selector de Médico y Fecha */}
-          <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-            <div className="flex items-center gap-3">
-              <select 
-                className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg p-2 focus:ring-2 focus:ring-primary-300 outline-none font-bold"
-                value={selectedDoctorId}
-                onChange={(e) => setSelectedDoctorId(Number(e.target.value))}
-              >
-                {doctors.map(d => <option key={d.id} value={d.id}>{d.nombre} - {d.especialidad}</option>)}
-              </select>
-            </div>
-            
-            <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1">
-              <button onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))} className="p-1 hover:bg-gray-100 rounded"><ChevronLeft size={16}/></button>
-              <span className="text-xs font-bold w-24 text-center">
-                {selectedDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </span>
-              <button onClick={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))} className="p-1 hover:bg-gray-100 rounded"><ChevronRight size={16}/></button>
-            </div>
-          </div>
-
-          {/* Grilla de Horarios (Slots) */}
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <h3 className="text-xs font-bold text-gray-500 uppercase mb-3">Disponibilidad</h3>
-            
-            {generateTimeSlots().length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                {generateTimeSlots().map((slot, index) => (
-                  <button
-                    key={index}
-                    disabled={slot.taken}
-                    onClick={() => !slot.taken && handleBook(slot.time)}
-                    className={`
-                      py-3 rounded-xl border flex flex-col items-center justify-center transition-all
-                      ${slot.taken 
-                        ? 'bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed' 
-                        : 'bg-white border-primary-100 hover:border-primary-400 hover:shadow-md cursor-pointer text-primary-600'
-                      }
-                    `}
-                  >
-                    <Clock size={16} className="mb-1" />
-                    <span className="text-sm font-bold">{slot.time}</span>
-                    <span className="text-[10px] uppercase font-bold mt-1">
-                      {slot.taken ? 'Ocupado' : 'Disponible'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                <XCircle size={40} className="mb-2 opacity-20" />
-                <p className="text-sm font-bold">No disponible</p>
-                <p className="text-xs">El médico no trabaja este día.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* PANEL DERECHO: Agenda del Día (40%) */}
-        <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden hidden md:flex">
-          <div className="p-4 border-b border-gray-100 bg-gray-50">
-            <h3 className="font-bold text-gray-700 text-sm">Agenda del Día</h3>
-            <p className="text-[10px] text-gray-500">Pacientes programados</p>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3">
-            {todayAppointments.length === 0 ? (
-              <p className="text-center text-xs text-gray-400 mt-10">No hay citas para hoy</p>
-            ) : (
-              todayAppointments.map(appt => (
-                <div key={appt.id} className="p-3 border border-gray-100 rounded-xl shadow-sm bg-white hover:border-primary-200 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="bg-primary-50 text-primary-700 font-bold px-2 py-0.5 rounded text-[10px]">
-                      {appt.hora}
+      {/* TABLA */}
+      <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-[#5F9EA0] text-white sticky top-0 z-10"> 
+              <tr>
+                <th className="py-2 px-3 text-[10px] font-bold uppercase">ID</th>
+                <th className="py-2 px-3 text-[10px] font-bold uppercase">Paciente</th>
+                <th className="py-2 px-3 text-[10px] font-bold uppercase">Servicio</th>
+                <th className="py-2 px-3 text-[10px] font-bold uppercase">Fecha / Hora</th>
+                <th className="py-2 px-3 text-[10px] font-bold uppercase">Profesional</th>
+                <th className="py-2 px-3 text-[10px] font-bold uppercase text-center">Estado</th>
+                <th className="py-2 px-3 text-[10px] font-bold uppercase text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {currentItems.map((cita) => (
+                <tr key={cita.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-1.5 px-3 text-xs font-medium text-gray-900">{cita.id}</td>
+                  
+                  <td className="py-1.5 px-3">
+                    <div className="flex items-center gap-2">
+                        <User size={12} className="text-gray-400"/>
+                        <span className="text-xs font-bold text-gray-700">{cita.paciente}</span>
                     </div>
-                    <span className={`text-[10px] font-bold px-1.5 rounded ${appt.estado === 'Cancelada' ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'}`}>
-                      {appt.estado}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <User size={14} className="text-gray-400" />
-                    <span className="text-xs font-bold text-gray-700">{appt.paciente}</span>
-                  </div>
-                  <p className="text-[10px] text-gray-500 ml-6">{appt.servicio}</p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                  </td>
 
+                  <td className="py-1.5 px-3 text-xs text-gray-600">{cita.servicio}</td>
+                  
+                  <td className="py-1.5 px-3 text-xs text-gray-500">
+                    <div className="flex items-center gap-1">
+                        <Calendar size={10}/> {cita.fecha} <Clock size={10} className="ml-1"/> {cita.hora}
+                    </div>
+                  </td>
+
+                  <td className="py-1.5 px-3 text-xs text-gray-600">{cita.profesional}</td>
+                  
+                  <td className="py-1.5 px-3 text-center">{getStatusBadge(cita.estado)}</td>
+
+                  <td className="py-1.5 px-3">
+                    <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => handleView(cita)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Ver"><Eye size={14} /></button>
+                      <button onClick={() => handleEdit(cita)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar"><Edit size={14} /></button>
+                      <button onClick={() => handleDelete(cita.id)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Footer */}
+        <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
+            <span className="text-[10px] text-gray-500">Pág {currentPage} de {totalPages || 1}</span>
+            <div className="flex gap-1">
+                <button onClick={prevPage} disabled={currentPage === 1} className="p-1 rounded border border-gray-300 bg-white disabled:opacity-50"><ChevronLeft size={14}/></button>
+                <button onClick={nextPage} disabled={currentPage === totalPages} className="p-1 rounded border border-gray-300 bg-white disabled:opacity-50"><ChevronRight size={14}/></button>
+            </div>
+        </div>
       </div>
 
-      <DoctorScheduleModal 
-        isOpen={isScheduleOpen} 
-        onClose={() => setIsScheduleOpen(false)} 
-        doctor={selectedDoctor}
-        onSave={handleUpdateSchedule}
+      <AppointmentFormModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSave={handleSave} 
+        initialData={editingItem}
+        isViewMode={isViewMode} 
       />
     </div>
   );
 };
+
+export default AppointmentsPage;

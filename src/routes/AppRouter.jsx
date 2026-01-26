@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 /* -------------------------------------------------------------------------- */
 import { LandingPage } from "../features/landing/LandingPage";
 import { CatalogPage } from "../features/landing/CatalogPage";
-import { ServicesPage } from "../features/landing/ServicesPage";
+// Renombramos la pública para no confundirla con la de admin
+import { ServicesPage as PublicServicesPage } from "../features/landing/ServicesPage";
 import { ContactPage } from "../features/landing/ContactPage";
 
 /* -------------------------------------------------------------------------- */
@@ -28,14 +29,16 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { UsersPage } from "../features/users/UsersPage";
 import SettingsPage from "../features/settings/SettingsPage";
 import SalesPage from "../features/sales/SalesPage";
-import { OrdersPage } from "../features/sales/orders/OrdersPage";
-import { CreateOrderPage } from "../features/sales/orders/CreateOrderPage";
 
-// --- PÁGINAS DE INVENTARIO (YA CONECTADAS) ---
+// --- PÁGINAS DE INVENTARIO (COMPLETAS) ---
 import { ProductsPage } from "../features/inventory/products/ProductsPage";
 import { PurchasesPage } from "../features/inventory/purchases/PurchasesPage";
 import { CategoriesPage } from "../features/inventory/categories/CategoriesPage";
 import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
+
+// --- PÁGINAS DE SERVICIOS (COMPLETAS) ---
+import { ServicesPage } from "../features/services/ServicesPage";
+import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
 
 /* -------------------------------------------------------------------------- */
 /*                       SISTEMA DE EMPLEADO                                  */
@@ -59,27 +62,10 @@ import ClientMiPerfil from "../features/client/ClientMiPerfil";
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
 /* -------------------------------------------------------------------------- */
-// Estos módulos aún no los hemos creado completos, así que se mantienen como placeholders
-const ModuloServicios = () => (
-  <div className="p-6">
-    <h1 className="text-xl font-bold text-gray-800">Gestión de Servicios</h1>
-    <p className="text-sm text-gray-500">
-      Control de procedimientos médicos y enfermería.
-    </p>
-  </div>
-);
-
 const Pedidos = () => (
   <div className="p-6">
     <h1 className="text-xl font-bold text-gray-800">Gestión de Pedidos</h1>
-    <p className="text-sm text-gray-500">Bandeja de entrada de pedidos web.</p>
-  </div>
-);
-
-const Citas = () => (
-  <div className="p-6">
-    <h1 className="text-xl font-bold text-gray-800">Agenda de Citas</h1>
-    <p className="text-sm text-gray-500">Calendario de citas médicas.</p>
+    <p className="text-sm text-gray-500">Bandeja de entrada de pedidos web (Módulo pendiente).</p>
   </div>
 );
 
@@ -92,7 +78,7 @@ export const AppRouter = () => {
            ================================================================= */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/productos" element={<CatalogPage />} />
-        <Route path="/servicios" element={<ServicesPage />} />
+        <Route path="/servicios" element={<PublicServicesPage />} />
         <Route path="/contacto" element={<ContactPage />} />
 
         {/* =================================================================
@@ -114,31 +100,25 @@ export const AppRouter = () => {
         >
           {/* Redirección inicial */}
           <Route index element={<Navigate to="dashboard" replace />} />
-
+          
           {/* Dashboard General */}
           <Route path="dashboard" element={<DashboardPage />} />
-
-          {/* Gestión de Usuarios */}
           <Route path="usuarios" element={<UsersPage />} />
 
-          {/* --- MÓDULO DE COMPRAS (Nuevo) --- */}
+          {/* --- MÓDULO DE COMPRAS & INVENTARIO --- */}
           <Route path="compras" element={<PurchasesPage />} />
-
-          {/* --- MÓDULO DE VENTAS --- */}
-          <Route path="ventas" element={<SalesPage />} />
-          <Route path="ventas/nueva" element={<CreateOrderPage />} />
-          <Route path="pedidos" element={<OrdersPage />} />
-          <Route path="pedidos/crear" element={<CreateOrderPage />} />
-
-          {/* --- MÓDULO DE INVENTARIO (Completo) --- */}
           <Route path="productos" element={<ProductsPage />} />
           <Route path="categorias" element={<CategoriesPage />} />
           <Route path="proveedores" element={<ProvidersPage />} />
-
-          {/* --- MÓDULO DE SERVICIOS --- */}
-          <Route path="servicios" element={<ModuloServicios />} />
-          <Route path="citas" element={<Citas />} />
-
+          
+          {/* --- MÓDULO DE VENTAS --- */}
+          <Route path="ventas" element={<SalesPage />} />
+          <Route path="pedidos" element={<Pedidos />} />
+          
+          {/* --- MÓDULO DE SERVICIOS & CITAS --- */}
+          <Route path="servicios" element={<ServicesPage />} />
+          <Route path="citas" element={<AppointmentsPage />} />
+          
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />
         </Route>
@@ -158,10 +138,8 @@ export const AppRouter = () => {
           <Route path="inicio" element={<EmployeeInicio />} />
           <Route path="compras" element={<EmployeeCompras />} />
           <Route path="ventas" element={<EmployeeSalesPage />} />
-          <Route path="ventas/nueva" element={<CreateOrderPage />} />
           <Route path="productos" element={<EmployeeProductos />} />
           <Route path="pedidos" element={<EmployeePedidos />} />
-          <Route path="pedidos/crear" element={<CreateOrderPage />} />
           <Route path="citas" element={<EmployeeCitas />} />
         </Route>
 

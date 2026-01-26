@@ -1,287 +1,97 @@
-import React, { useState, useEffect } from "react";
-import {
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  Package,
-} from "lucide-react";
-import { productService } from "./services/productService";
-import { ProductFormModal } from "./components/ProductFormModal";
-import { ToastNotification } from "../../../shared/ui/ToastNotification";
+import React, { useState } from "react";
+import { Plus, Search, Edit, Trash2, ChevronLeft, ChevronRight, Filter, Package } from "lucide-react";
+import ProductModal from "./components/ProductFormModal";
+import { useCrud } from "../../../shared/hooks/useCrud"; // Importa el hook
+
+const INITIAL_PRODS = [
+  { id: "PROD-001", nombre: "Amoxicilina 500mg", categoria: "Antibióticos", stock: 150, precio: 2500, estado: "Activo" },
+  { id: "PROD-002", nombre: "Paracetamol 500mg", categoria: "Analgésicos", stock: 300, precio: 500, estado: "Activo" },
+];
 
 export const ProductsPage = () => {
-  const [products, setProducts] = useState([]);
+  const { items: products, addItem, updateItem, deleteItem } = useCrud("sys_products", INITIAL_PRODS);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [notification, setNotification] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; 
 
-  // Paginación
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 7;
-
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = () => {
-    setProducts(productService.getAll());
-  };
-
-  const showToast = (msg) => {
-    // If modal is open, show toast above modal
-    const z = isFormOpen ? 60 : 50;
-    setNotification({ message: msg, type: "success", zIndex: z });
-  };
-
-  // --- HANDLERS ---
-  const handleOpenCreate = () => {
-    setEditingProduct(null);
-    setIsFormOpen(true);
-  };
-
-  const handleOpenEdit = (prod) => {
-    setEditingProduct(prod);
-    setIsFormOpen(true);
-  };
-
+  const handleCreate = () => { setEditingItem(null); setIsModalOpen(true); };
+  const handleEdit = (item) => { setEditingItem(item); setIsModalOpen(true); };
   const handleSave = (data) => {
-    if (editingProduct) {
-      const newList = productService.update({ ...editingProduct, ...data });
-      setProducts(newList);
-      showToast("Producto actualizado correctamente");
-    } else {
-      const newList = productService.create(data);
-      setProducts(newList);
-      showToast("Producto creado con éxito");
-    }
-    setIsFormOpen(false);
+    if(editingItem) updateItem(editingItem.id, data);
+    else addItem({ ...data, id: `PROD-${Date.now()}` });
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm("¿Borrar producto del inventario?")) {
-      const newList = productService.delete(id);
-      setProducts(newList);
-      if (newList.length <= currentPage * itemsPerPage && currentPage > 0)
-        setCurrentPage(currentPage - 1);
-      showToast("Producto eliminado");
-    }
+  const filtered = products.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()));
+  const currentItems = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+  const getStatusBadge = (estado) => {
+    // Lógica simple para badge
+    return <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-gray-100 text-gray-700">{estado || 'Activo'}</span>;
   };
-
-  const handleToggleStatus = (id) => {
-    const newList = productService.toggleStatus(id);
-    setProducts(newList);
-  };
-
-  // --- FILTROS ---
-  const filteredProducts = products.filter(
-    (p) =>
-      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.laboratorio.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // --- PAGINACIÓN ---
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const displayedProducts = filteredProducts.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
-  );
-
-  // Helper para formato moneda
-  const formatCurrency = (val) =>
-    new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      maximumFractionDigits: 0,
-    }).format(val);
 
   return (
-    <div className="h-full flex flex-col gap-3 font-sans relative">
-      {notification && (
-        <ToastNotification
-          message={notification.message}
-          type={notification.type}
-          zIndex={notification.zIndex}
-          onClose={() => setNotification(null)}
-        />
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <div>
-          <h1 className="text-lg font-bold text-gray-800">Inventario</h1>
-          <p className="text-gray-500 text-xs">
-            Gestión de productos farmacéuticos
-          </p>
-        </div>
-        <button
-          onClick={handleOpenCreate}
-          className="bg-[#34D399] hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
-        >
-          <Plus size={16} /> Nuevo
-        </button>
+    <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <div><h1 className="text-xl font-bold">Productos</h1><p className="text-xs text-gray-500">Inventario</p></div>
+        <button onClick={handleCreate} className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm font-medium"><Plus size={16} /> Nuevo</button>
       </div>
 
-      {/* Buscador */}
-      <div className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100 flex-shrink-0">
-        <div className="relative w-full">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={16}
-          />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, código o laboratorio..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-300 text-xs bg-gray-50 focus:bg-white"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex gap-3 mb-4 flex-shrink-0">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input type="text" placeholder="Buscar..." className="w-full pl-9 pr-3 py-2 rounded-md border border-gray-300 text-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
       </div>
 
-      {/* Tabla */}
-      <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
-        <div className="overflow-auto custom-scrollbar no-scrollbar">
+      <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#5D9C96] text-white text-xs uppercase tracking-wider sticky top-0 z-10">
+            <thead className="bg-[#5F9EA0] text-white sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3 font-semibold">Producto</th>
-                <th className="px-4 py-3 font-semibold">Laboratorio</th>
-                <th className="px-4 py-3 font-semibold">Categoría</th>
-                <th className="px-4 py-3 font-semibold">Precio</th>
-                <th className="px-4 py-3 font-semibold text-center">Stock</th>
-                <th className="px-4 py-3 font-semibold text-center">Estado</th>
-                <th className="px-4 py-3 font-semibold text-right">Acciones</th>
+                <th className="py-2 px-3 text-[10px]">ID</th>
+                <th className="py-2 px-3 text-[10px]">Nombre</th>
+                <th className="py-2 px-3 text-[10px]">Categoría</th>
+                <th className="py-2 px-3 text-[10px] text-center">Stock</th>
+                <th className="py-2 px-3 text-[10px] text-right">Precio</th>
+                <th className="py-2 px-3 text-[10px] text-center">Estado</th>
+                <th className="py-2 px-3 text-[10px] text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 text-xs">
-              {displayedProducts.map((prod) => (
-                <tr
-                  key={prod.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-gray-100 rounded text-gray-500">
-                        <Package size={14} />
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-700">{prod.nombre}</p>
-                        <p className="text-[10px] text-gray-400 font-mono">
-                          {prod.codigo}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-600">
-                    {prod.laboratorio}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-bold">
-                      {prod.categoria}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 font-bold text-gray-800">
-                    {formatCurrency(prod.precio)}
-                  </td>
-
-                  {/* Stock con Colores */}
-                  <td className="px-4 py-2.5 text-center">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        prod.stock <= 5
-                          ? "bg-red-100 text-red-600"
-                          : prod.stock <= 20
-                          ? "bg-orange-100 text-orange-600"
-                          : "bg-green-100 text-green-600"
-                      }`}
-                    >
-                      {prod.stock} un.
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-2.5 text-center">
-                    <button
-                      onClick={() => handleToggleStatus(prod.id)}
-                      className={`relative w-8 h-4 rounded-full transition-colors duration-200 focus:outline-none ${
-                        prod.estado ? "bg-gray-700" : "bg-gray-300"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full shadow transition-transform duration-200 ${
-                          prod.estado ? "translate-x-4" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </td>
-
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => handleOpenEdit(prod)}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(prod.id)}
-                        className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+            <tbody className="divide-y divide-gray-100">
+              {currentItems.map((prod) => (
+                <tr key={prod.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-1.5 px-3 text-xs font-medium">{prod.id}</td>
+                  <td className="py-1.5 px-3"><div className="flex items-center gap-2"><Package size={14} className="text-gray-400"/><span className="text-xs font-bold">{prod.nombre}</span></div></td>
+                  <td className="py-1.5 px-3 text-xs text-gray-600">{prod.categoria}</td>
+                  <td className="py-1.5 px-3 text-xs text-center font-bold">{prod.stock}</td>
+                  <td className="py-1.5 px-3 text-xs text-right font-bold text-emerald-600">₡ {prod.precio}</td>
+                  <td className="py-1.5 px-3 text-center">{getStatusBadge(prod.estado)}</td>
+                  <td className="py-1.5 px-3">
+                    <div className="flex justify-center gap-1.5">
+                      <button onClick={() => handleEdit(prod)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50"><Edit size={14} /></button>
+                      <button onClick={() => deleteItem(prod.id)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          {filteredProducts.length === 0 && (
-            <div className="h-40 flex flex-col items-center justify-center text-gray-400">
-              <Package size={40} className="mb-2 opacity-20" />
-              <p className="text-sm">No se encontraron productos</p>
-            </div>
-          )}
         </div>
-
-        {/* Paginación */}
-        {filteredProducts.length > 0 && (
-          <div className="border-t border-gray-100 p-2.5 bg-gray-50 flex items-center justify-between flex-shrink-0">
-            <span className="text-[10px] text-gray-500 font-medium">
-              Página {currentPage + 1} de {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => currentPage > 0 && setCurrentPage((p) => p - 1)}
-                disabled={currentPage === 0}
-                className="p-1 rounded bg-white border border-gray-200"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                onClick={() =>
-                  currentPage < totalPages - 1 && setCurrentPage((p) => p + 1)
-                }
-                disabled={currentPage === totalPages - 1}
-                className="p-1 rounded bg-white border border-gray-200"
-              >
-                <ChevronRight size={14} />
-              </button>
+        {/* Paginación simple igual que antes... */}
+        <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
+            <span className="text-[10px] text-gray-500">Pág {currentPage}</span>
+            <div className="flex gap-1">
+                <button onClick={() => setCurrentPage(c => Math.max(1, c-1))} disabled={currentPage===1} className="p-1 border rounded bg-white disabled:opacity-50"><ChevronLeft size={14}/></button>
+                <button onClick={() => setCurrentPage(c => Math.min(totalPages, c+1))} disabled={currentPage===totalPages} className="p-1 border rounded bg-white disabled:opacity-50"><ChevronRight size={14}/></button>
             </div>
-          </div>
-        )}
+        </div>
       </div>
 
-      <ProductFormModal
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSave={handleSave}
-        productToEdit={editingProduct}
-      />
+      <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} initialData={editingItem} />
     </div>
   );
 };
+export default ProductsPage;
