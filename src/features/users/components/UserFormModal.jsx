@@ -8,7 +8,8 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   const [formData, setFormData] = useState({
     tipoDocumento: "",
     documento: "",
-    nombre: "",
+    nombres: "",
+    apellidos: "",
     email: "",
     rol: "",
     password: "",
@@ -26,7 +27,8 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       setFormData({
         tipoDocumento: "",
         documento: "",
-        nombre: "",
+        nombres: "",
+        apellidos: "",
         email: "",
         rol: "",
         password: "",
@@ -53,7 +55,8 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       const required = [
         "tipoDocumento",
         "documento",
-        "nombre",
+        "nombres",
+        "apellidos",
         "email",
         "rol",
         "password",
@@ -155,18 +158,32 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
             </div>
           </div>
 
-          {/* Nombre */}
-          <div>
-            <label className={labelClass}>Nombre Completo *</label>
-            <input
-              type="text"
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              placeholder="Juan Pérez"
-              className={inputClass}
-              required
-            />
+          {/* Nombres y Apellidos */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Nombres *</label>
+              <input
+                type="text"
+                name="nombres"
+                value={formData.nombres}
+                onChange={handleChange}
+                placeholder="Juan"
+                className={inputClass}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Apellidos *</label>
+              <input
+                type="text"
+                name="apellidos"
+                value={formData.apellidos}
+                onChange={handleChange}
+                placeholder="Pérez"
+                className={inputClass}
+                required
+              />
+            </div>
           </div>
 
           {/* Fila 2: Email y Teléfono (Mitad y mitad) */}
