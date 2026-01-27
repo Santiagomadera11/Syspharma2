@@ -14,6 +14,7 @@ import { UserFormModal } from "./components/UserFormModal";
 import UserDetailModal from "./components/UserDetailModal";
 import { rolesService } from "../settings/rolesService";
 import { useMemo } from "react";
+import StatusNotification from "../../shared/ui/StatusNotification";
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -26,6 +27,9 @@ export const UsersPage = () => {
   // detalle
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailUser, setDetailUser] = useState(null);
+
+  // --- ESTADO PARA NOTIFICACIONES ---
+  const [notification, setNotification] = useState(null);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(0);
@@ -77,8 +81,17 @@ export const UsersPage = () => {
   };
 
   const handleToggleStatus = (id) => {
+    const user = users.find((u) => u.id === id);
     const updatedList = userService.toggleStatus(id);
     setUsers(updatedList);
+
+    // Mostrar notificación con el nuevo estado
+    const newStatus = !user.estado;
+    setNotification({
+      message: `${user.nombre} ahora está ${newStatus ? "Activo" : "Inactivo"}`,
+      type: newStatus ? "success" : "warning",
+      duration: 3000,
+    });
   };
 
   const handleDelete = (id) => {
@@ -115,7 +128,7 @@ export const UsersPage = () => {
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const displayedUsers = filteredUsers.slice(
     currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+    (currentPage + 1) * itemsPerPage,
   );
 
   // map role name -> color hex
@@ -369,6 +382,16 @@ export const UsersPage = () => {
         user={detailUser}
         onUpdate={handleUpdateUser}
       />
+
+      {/* --- NOTIFICACIÓN DE ESTADO --- */}
+      {notification && (
+        <StatusNotification
+          message={notification.message}
+          type={notification.type}
+          duration={notification.duration}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   );
 };

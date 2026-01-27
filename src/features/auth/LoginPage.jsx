@@ -20,7 +20,7 @@ export const LoginPage = () => {
     e.preventDefault();
     const user = authService.login(
       credentials.email.trim(),
-      credentials.password
+      credentials.password,
     );
     if (!user) {
       setToast({
@@ -30,6 +30,17 @@ export const LoginPage = () => {
       });
       return;
     }
+
+    // Validar si hay error (cuenta inactiva)
+    if (user.error) {
+      setToast({
+        message: user.message,
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
     // Redireccionar según el rol
     if (user.rol === "Administrador") {
       navigate("/admin/dashboard");

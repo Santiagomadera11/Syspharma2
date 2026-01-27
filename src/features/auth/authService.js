@@ -62,9 +62,18 @@ export const authService = {
     ensureDefaultUsersExist();
     const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
     const found = users.find(
-      (u) => u.email === email && u.password === password
+      (u) => u.email === email && u.password === password,
     );
     if (!found) return null;
+
+    // Validar si el usuario está inactivo
+    if (found.estado === false || found.estado === "Inactivo") {
+      return {
+        error: true,
+        message: "Tu cuenta está inactiva. Contacta al administrador.",
+      };
+    }
+
     const safe = {
       id: found.id,
       nombre: found.nombre,
