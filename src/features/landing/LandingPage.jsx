@@ -1,28 +1,56 @@
-import React from 'react';
-import { PublicNavbar } from './components/PublicNavbar';
-import { HeroCarousel } from './components/HeroCarousel';
+import React from "react";
+import { PublicNavbar } from "./components/PublicNavbar";
+import { HeroCarousel } from "./components/HeroCarousel";
+import { DailyOffersCarousel } from "./components/DailyOffersCarousel";
+import { PromotionalCarousel } from "./components/PromotionalCarousel";
 // Importamos MapPin para la ubicación y quitamos FileText
-import { Clock, CalendarCheck, Truck, MapPin } from 'lucide-react';
+import { Clock, CalendarCheck, Truck, MapPin } from "lucide-react";
 
 export const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-sans overflow-x-hidden flex flex-col">
       <PublicNavbar />
-      
+
       <HeroCarousel />
+
+      <div className="py-10 px-4 md:px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <DailyOffersCarousel />
+        </div>
+      </div>
+
+      <div className="py-10 px-4 md:px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <PromotionalCarousel />
+        </div>
+      </div>
 
       <div className="py-6 bg-white border-b border-gray-100 shadow-sm relative z-20">
         <div className="max-w-6xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          
-          <FeatureItem icon={Clock} title="06:00 AM - 10:00 PM" desc="Todos los días" />
-          
-          <FeatureItem icon={CalendarCheck} title="Agendar Cita" desc="Sin filas" />
-          
-          <FeatureItem icon={Truck} title="Domicilios" desc="Rápidos y seguros" />
-          
+          <FeatureItem
+            icon={Clock}
+            title="06:00 AM - 10:00 PM"
+            desc="Todos los días"
+          />
+
+          <FeatureItem
+            icon={CalendarCheck}
+            title="Agendar Cita"
+            desc="Sin filas"
+          />
+
+          <FeatureItem
+            icon={Truck}
+            title="Domicilios"
+            desc="Rápidos y seguros"
+          />
+
           {/* CAMBIO: Ahora mostramos la ubicación */}
-          <FeatureItem icon={MapPin} title="Estamos Ubicados" desc="Barrio Galán" />
-          
+          <FeatureItem
+            icon={MapPin}
+            title="Estamos Ubicados"
+            desc="Barrio Galán"
+          />
         </div>
       </div>
 
