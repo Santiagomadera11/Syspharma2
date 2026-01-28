@@ -63,7 +63,7 @@ export const EmployeePedidos = () => {
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const displayedOrders = filteredOrders.slice(
     currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+    (currentPage + 1) * itemsPerPage,
   );
 
   // Helper para formato moneda
@@ -244,7 +244,7 @@ export const EmployeePedidos = () => {
                     <td className="px-3 py-2.5 text-center">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold ${getStatusColor(
-                          order.estado
+                          order.estado,
                         )}`}
                       >
                         {order.estado}

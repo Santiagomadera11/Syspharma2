@@ -64,9 +64,9 @@ export const ProductsPage = () => {
   };
 
   const filtered = products.filter((p) => {
-    const matchSearch = p.nombre
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const matchSearch =
+      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.categoria.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = filterStatus === "todos" || p.estado === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -302,14 +302,18 @@ export const ProductsPage = () => {
 
       {/* Modal de Detalle del Producto */}
       {detailProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             {/* Header */}
-            <div className="sticky top-0 bg-emerald-700 text-white px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Detalle del Producto</h2>
+            <div className="sticky top-0 px-6 py-5 flex items-center justify-between border-b border-emerald-100 bg-emerald-50">
+              <div>
+                <h2 className="text-lg font-semibold text-emerald-900">
+                  Detalle del Producto
+                </h2>
+              </div>
               <button
                 onClick={() => setDetailProduct(null)}
-                className="p-1 hover:bg-emerald-600 rounded-lg transition-colors"
+                className="p-1 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-600"
               >
                 <X size={20} />
               </button>
@@ -449,7 +453,7 @@ export const ProductsPage = () => {
             </div>
 
             {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-2">
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button
                 onClick={() => setDetailProduct(null)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
@@ -461,7 +465,7 @@ export const ProductsPage = () => {
                   setDetailProduct(null);
                   handleEdit(detailProduct);
                 }}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 Editar
               </button>
@@ -472,21 +476,23 @@ export const ProductsPage = () => {
 
       {/* Modal de Confirmación de Eliminación */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-sm w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl">
             {/* Header */}
-            <div className="bg-red-600 text-white px-6 py-4 flex items-center justify-between rounded-t-lg">
-              <h2 className="text-lg font-bold">Confirmar Eliminación</h2>
+            <div className="px-6 py-5 border-b border-red-100 flex items-center justify-between bg-red-50">
+              <h2 className="text-lg font-semibold text-red-900">
+                Confirmar Eliminación
+              </h2>
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="p-1 hover:bg-red-700 rounded-lg transition-colors"
+                className="p-1 hover:bg-red-100 rounded-lg transition-colors text-red-600"
               >
                 <X size={20} />
               </button>
             </div>
 
             {/* Content */}
-            <div className="px-6 py-4">
+            <div className="px-6 py-5">
               <p className="text-gray-700 text-sm">
                 ¿Estás seguro de que deseas eliminar el producto{" "}
                 <strong>"{showDeleteConfirm.nombre}"</strong>? Esta acción no se
@@ -495,7 +501,7 @@ export const ProductsPage = () => {
             </div>
 
             {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-2 rounded-b-lg">
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
               <button
                 onClick={() => setShowDeleteConfirm(null)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"

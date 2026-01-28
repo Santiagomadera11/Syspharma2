@@ -39,6 +39,7 @@ import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
 // --- PÁGINAS DE SERVICIOS Y CITAS (ADMIN) ---
 import { ServicesPage } from "../features/services/ServicesPage";
 import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
+import { CreateOrderPage } from "../features/sales/orders/CreateOrderPage";
 
 /* -------------------------------------------------------------------------- */
 /*                       SISTEMA DE EMPLEADO                                  */
@@ -67,7 +68,9 @@ import ClientMiPerfil from "../features/client/ClientMiPerfil";
 const PedidosAdmin = () => (
   <div className="p-6">
     <h1 className="text-xl font-bold text-gray-800">Gestión de Pedidos</h1>
-    <p className="text-sm text-gray-500">Bandeja de entrada de pedidos web (Módulo pendiente).</p>
+    <p className="text-sm text-gray-500">
+      Bandeja de entrada de pedidos web (Módulo pendiente).
+    </p>
   </div>
 );
 
@@ -102,7 +105,7 @@ export const AppRouter = () => {
         >
           {/* Redirección inicial */}
           <Route index element={<Navigate to="dashboard" replace />} />
-          
+
           {/* Dashboard General */}
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="usuarios" element={<UsersPage />} />
@@ -112,15 +115,17 @@ export const AppRouter = () => {
           <Route path="productos" element={<ProductsPage />} />
           <Route path="categorias" element={<CategoriesPage />} />
           <Route path="proveedores" element={<ProvidersPage />} />
-          
+
           {/* --- MÓDULO DE VENTAS --- */}
           <Route path="ventas" element={<SalesPage />} />
+          <Route path="ventas/nueva" element={<CreateOrderPage />} />
           <Route path="pedidos" element={<PedidosAdmin />} />
-          
+          <Route path="pedidos/crear" element={<CreateOrderPage />} />
+
           {/* --- MÓDULO DE SERVICIOS & CITAS --- */}
           <Route path="servicios" element={<ServicesPage />} />
           <Route path="citas" element={<AppointmentsPage />} />
-          
+
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />
         </Route>
@@ -138,16 +143,17 @@ export const AppRouter = () => {
         >
           <Route index element={<Navigate to="inicio" replace />} />
           <Route path="inicio" element={<EmployeeInicio />} />
-          
+
           {/* Operaciones */}
           <Route path="compras" element={<EmployeeCompras />} />
           <Route path="ventas" element={<EmployeeSalesPage />} />
           <Route path="productos" element={<EmployeeProductos />} />
           <Route path="pedidos" element={<EmployeePedidos />} />
-          
+          <Route path="pedidos/crear" element={<CreateOrderPage />} />
+
           {/* ✅ NUEVA RUTA: Servicios del Empleado */}
           <Route path="servicios" element={<EmployeeServicesPage />} />
-          
+
           <Route path="citas" element={<EmployeeCitas />} />
         </Route>
 

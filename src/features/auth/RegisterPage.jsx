@@ -113,11 +113,11 @@ export const RegisterPage = () => {
       </div>
 
       {/* --- LADO DERECHO (30%) --- */}
-      <div className="w-full lg:w-[30%] flex items-center justify-center bg-white px-6 shadow-2xl z-20 overflow-y-auto relative">
+      <div className="w-full lg:w-[30%] flex items-center justify-center bg-white px-6 shadow-2xl z-20 relative overflow-y-auto max-h-screen">
         {/* --- BOTÓN VOLVER AL INICIO --- */}
         <Link
           to="/"
-          className="absolute top-6 left-6 flex items-center gap-1 text-gray-400 hover:text-primary-600 transition-colors text-sm font-medium group z-30"
+          className="absolute top-4 left-6 flex items-center gap-1 text-gray-400 hover:text-primary-600 transition-colors text-xs font-medium group z-30"
         >
           <ChevronLeft
             size={16}
@@ -126,15 +126,15 @@ export const RegisterPage = () => {
           Volver
         </Link>
 
-        <div className="w-full py-8 mt-6">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Crear Cuenta</h2>
-            <p className="text-gray-500 text-xs mt-1">
+        <div className="w-full py-4">
+          <div className="text-center mb-3">
+            <h2 className="text-xl font-bold text-gray-900">Crear Cuenta</h2>
+            <p className="text-gray-500 text-xs mt-0.5">
               Registro exclusivo para clientes.
             </p>
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-2.5">
             {[
               {
                 label: "Tipo Documento",
@@ -198,14 +198,14 @@ export const RegisterPage = () => {
                 placeholder: "••••••••",
               },
             ].map((field, idx) => (
-              <div key={idx}>
-                <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">
+              <div key={idx} className="pt-0">
+                <label className="block text-xs font-bold text-gray-700 mb-0.5 ml-1">
                   {field.label}
                 </label>
                 <div className="relative group">
                   <field.icon
-                    size={16}
-                    className="absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors"
+                    size={14}
+                    className="absolute left-3 top-2 text-gray-400 group-focus-within:text-primary-500 transition-colors"
                   />
                   {field.type === "select" ? (
                     <select
@@ -213,7 +213,7 @@ export const RegisterPage = () => {
                       onChange={handleChange}
                       value={formData[field.name]}
                       required
-                      className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all bg-gray-50"
+                      className="w-full pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all bg-gray-50"
                     >
                       {field.options.map((o) => (
                         <option key={o.value} value={o.value}>
@@ -227,7 +227,7 @@ export const RegisterPage = () => {
                       name={field.name}
                       onChange={handleChange}
                       value={formData[field.name]}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all bg-gray-50"
+                      className="w-full pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all bg-gray-50"
                       placeholder={field.placeholder}
                       required={field.name !== "telefono"}
                     />
@@ -238,9 +238,9 @@ export const RegisterPage = () => {
 
             <button
               type="submit"
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-lg transition-all shadow-md mt-4 flex items-center justify-center gap-2 text-sm"
+              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 rounded-lg transition-all shadow-md mt-2 flex items-center justify-center gap-2 text-xs"
             >
-              Registrarme <ArrowRight size={16} />
+              Registrarme <ArrowRight size={14} />
             </button>
 
             {toast && (
@@ -252,7 +252,7 @@ export const RegisterPage = () => {
               />
             )}
 
-            <div className="text-center pt-2">
+            <div className="text-center pt-1">
               <p className="text-xs text-gray-500">
                 ¿Ya tienes cuenta?{" "}
                 <Link
