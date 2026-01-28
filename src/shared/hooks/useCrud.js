@@ -29,15 +29,15 @@ export const useCrud = (storageKey, initialData) => {
   // EDITAR
   const updateItem = (id, updatedFields) => {
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updatedFields } : item))
+      prev.map((item) =>
+        item.id === id ? { ...item, ...updatedFields } : item,
+      ),
     );
   };
 
   // ELIMINAR
   const deleteItem = (id) => {
-    if (window.confirm("¿Estás seguro de eliminar este registro?")) {
-      setItems((prev) => prev.filter((item) => item.id !== id));
-    }
+    setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   return { items, addItem, updateItem, deleteItem };

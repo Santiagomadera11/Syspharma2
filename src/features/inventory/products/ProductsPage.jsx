@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -9,28 +9,11 @@ import {
   ChevronRight,
   Filter,
   Package,
+  X,
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
-import { useCrud } from "../../../shared/hooks/useCrud"; // Importa el hook
-
-const INITIAL_PRODS = [
-  {
-    id: "PROD-001",
-    nombre: "Amoxicilina 500mg",
-    categoria: "Antibióticos",
-    stock: 150,
-    precio: 2500,
-    estado: "Activo",
-  },
-  {
-    id: "PROD-002",
-    nombre: "Paracetamol 500mg",
-    categoria: "Analgésicos",
-    stock: 300,
-    precio: 500,
-    estado: "Activo",
-  },
-];
+import { useCrud } from "../../../shared/hooks/useCrud";
+import StatusNotification from "../../../shared/ui/StatusNotification";
 
 export const ProductsPage = () => {
   const {
@@ -38,12 +21,34 @@ export const ProductsPage = () => {
     addItem,
     updateItem,
     deleteItem,
-  } = useCrud("sys_products", INITIAL_PRODS);
+  } = useCrud("sys_products", []);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("todos");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const [notification, setNotification] = useState(null);
+  const [detailProduct, setDetailProduct] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const itemsPerPage = 20;
+
+  // Limpiar datos de prueba al cargar por primera vez
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("sys_products");
+      if (stored) {
+        const allProducts = JSON.parse(stored);
+        const testIds = ["PROD-1769574449240", "PROD-001", "PROD-002"];
+        const filtered = allProducts.filter((p) => !testIds.includes(p.id));
+        if (filtered.length < allProducts.length) {
+          localStorage.setItem("sys_products", JSON.stringify(filtered));
+          window.location.reload();
+        }
+      }
+    } catch (error) {
+      console.error("Error limpiando datos de prueba", error);
+    }
+  }, []);
 
   const handleCreate = () => {
     setEditingItem(null);
@@ -58,9 +63,13 @@ export const ProductsPage = () => {
     else addItem({ ...data, id: `PROD-${Date.now()}` });
   };
 
-  const filtered = products.filter((p) =>
-    p.nombre.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filtered = products.filter((p) => {
+    const matchSearch = p.nombre
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchStatus = filterStatus === "todos" || p.estado === filterStatus;
+    return matchSearch && matchStatus;
+  });
   const currentItems = filtered.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
@@ -81,12 +90,18 @@ export const ProductsPage = () => {
     if (product) {
       const newStatus = currentStatus === "Activo" ? "Inactivo" : "Activo";
       updateItem(productId, { ...product, estado: newStatus });
+
+      // Mostrar notificación
+      setNotification({
+        message: `${product.nombre} ahora está ${newStatus}`,
+        type: newStatus === "Activo" ? "success" : "warning",
+        duration: 3000,
+      });
     }
   };
 
   const handleViewDetail = (product) => {
-    console.log("Ver detalle de:", product);
-    // TODO: Abrir modal de detalle del producto
+    setDetailProduct(product);
   };
 
   // Componente Toggle/Switch
@@ -105,7 +120,7 @@ export const ProductsPage = () => {
       >
         <span
           className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-            isActive ? "translate-x-5.5" : "translate-x-0.5"
+            isActive ? "translate-x-6" : "translate-x-0.5"
           }`}
         />
         <span className="sr-only">{estado}</span>
@@ -142,6 +157,16 @@ export const ProductsPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-3 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+        >
+          <option value="todos">Todos</option>
+          <option value="Activo">Activos</option>
+          <option value="Inactivo">Inactivos</option>
+        </select>
       </div>
 
       <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
@@ -169,61 +194,71 @@ export const ProductsPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {currentItems.map((prod) => (
-                <tr
-                  key={prod.id}
-                  className="hover:bg-emerald-50 transition-colors"
-                >
-                  <td className="py-3 px-4 text-xs font-medium text-gray-900">
-                    {prod.id}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <Package size={14} className="text-emerald-500" />
-                      <span className="text-xs font-semibold text-gray-900">
-                        {prod.nombre}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-xs text-gray-600">
-                    {prod.categoria}
-                  </td>
-                  <td className="py-3 px-4 text-xs text-center font-semibold text-gray-900">
-                    {prod.stock}
-                  </td>
-                  <td className="py-3 px-4 text-xs text-right font-semibold text-emerald-600">
-                    ₡ {prod.precio}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <StatusToggle estado={prod.estado} productId={prod.id} />
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex justify-center gap-2">
-                      <button
-                        onClick={() => handleViewDetail(prod)}
-                        className="p-2 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors"
-                        title="Ver detalle"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(prod)}
-                        className="p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={() => deleteItem(prod.id)}
-                        className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+              {currentItems.length > 0 ? (
+                currentItems.map((prod) => (
+                  <tr
+                    key={prod.id}
+                    className="hover:bg-emerald-50 transition-colors"
+                  >
+                    <td className="py-3 px-4 text-xs font-medium text-gray-900">
+                      {prod.id}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <Package size={14} className="text-emerald-500" />
+                        <span className="text-xs font-semibold text-gray-900">
+                          {prod.nombre}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-600">
+                      {prod.categoria}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-center font-semibold text-gray-900">
+                      {prod.stock}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-right font-semibold text-emerald-600">
+                      $ {prod.precio}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <StatusToggle estado={prod.estado} productId={prod.id} />
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => handleViewDetail(prod)}
+                          className="p-2 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          title="Ver detalle"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(prod)}
+                          className="p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => setShowDeleteConfirm(prod)}
+                          className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="py-8 px-4 text-center">
+                    <p className="text-gray-400 text-sm">
+                      No hay productos que coincidan con los filtros aplicados
+                    </p>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -255,6 +290,236 @@ export const ProductsPage = () => {
         onSave={handleSave}
         initialData={editingItem}
       />
+
+      {notification && (
+        <StatusNotification
+          message={notification.message}
+          type={notification.type}
+          duration={notification.duration}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
+      {/* Modal de Detalle del Producto */}
+      {detailProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Header */}
+            <div className="sticky top-0 bg-emerald-700 text-white px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Detalle del Producto</h2>
+              <button
+                onClick={() => setDetailProduct(null)}
+                className="p-1 hover:bg-emerald-600 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">
+                    ID
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {detailProduct.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">
+                    Nombre
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {detailProduct.nombre}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">
+                    Categoría
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {detailProduct.categoria}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">
+                    Tipo de Producto
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {detailProduct.tipoProducto}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">
+                    Stock
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {detailProduct.stock}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">
+                    Precio
+                  </label>
+                  <p className="text-sm text-emerald-600 font-bold">
+                    $ {detailProduct.precio}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase">
+                    Estado
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {detailProduct.estado}
+                  </p>
+                </div>
+              </div>
+
+              {/* Si es medicamento, mostrar más detalles */}
+              {detailProduct.tipoProducto === "Medicamento" && (
+                <div className="border-t pt-4 space-y-4">
+                  <h3 className="font-semibold text-gray-800">
+                    Información del Medicamento
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {detailProduct.presentacion && (
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                          Presentación
+                        </label>
+                        <p className="text-sm text-gray-900">
+                          {detailProduct.presentacion}
+                        </p>
+                      </div>
+                    )}
+                    {detailProduct.viaAdministracion && (
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                          Vía de Administración
+                        </label>
+                        <p className="text-sm text-gray-900">
+                          {detailProduct.viaAdministracion}
+                        </p>
+                      </div>
+                    )}
+                    {detailProduct.concentracion && (
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                          Concentración
+                        </label>
+                        <p className="text-sm text-gray-900">
+                          {detailProduct.concentracion}
+                        </p>
+                      </div>
+                    )}
+                    {detailProduct.composicion && (
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                          Composición
+                        </label>
+                        <p className="text-sm text-gray-900">
+                          {detailProduct.composicion}
+                        </p>
+                      </div>
+                    )}
+                    {detailProduct.registroSanitario && (
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                          Registro Sanitario
+                        </label>
+                        <p className="text-sm text-gray-900">
+                          {detailProduct.registroSanitario}
+                        </p>
+                      </div>
+                    )}
+                    {detailProduct.requiereFormula !== undefined && (
+                      <div>
+                        <label className="text-xs font-semibold text-gray-600 uppercase">
+                          Requiere Fórmula
+                        </label>
+                        <p className="text-sm text-gray-900">
+                          {detailProduct.requiereFormula ? "Sí" : "No"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-2">
+              <button
+                onClick={() => setDetailProduct(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={() => {
+                  setDetailProduct(null);
+                  handleEdit(detailProduct);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Editar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación de Eliminación */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-sm w-full shadow-2xl">
+            {/* Header */}
+            <div className="bg-red-600 text-white px-6 py-4 flex items-center justify-between rounded-t-lg">
+              <h2 className="text-lg font-bold">Confirmar Eliminación</h2>
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="p-1 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-4">
+              <p className="text-gray-700 text-sm">
+                ¿Estás seguro de que deseas eliminar el producto{" "}
+                <strong>"{showDeleteConfirm.nombre}"</strong>? Esta acción no se
+                puede deshacer.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t flex justify-end gap-2 rounded-b-lg">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  deleteItem(showDeleteConfirm.id);
+                  setNotification({
+                    message: `${showDeleteConfirm.nombre} eliminado correctamente`,
+                    type: "success",
+                    duration: 3000,
+                  });
+                  setShowDeleteConfirm(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
