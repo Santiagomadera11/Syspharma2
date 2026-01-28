@@ -8,21 +8,15 @@ import {
   Package,
   ClipboardList,
   Calendar,
-  Stethoscope,
-  ChevronDown,
-  ChevronRight,
+  Stethoscope, // Usaremos este para Servicios
   LogOut,
   X,
 } from "lucide-react";
 
 const EmployeeSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
-  const [openMenus, setOpenMenus] = useState({});
   const navigate = useNavigate();
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
-
-  const toggleMenu = (menu) =>
-    setOpenMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
 
   const isActive = (path) => location.pathname === path;
 
@@ -110,6 +104,14 @@ const EmployeeSidebar = ({ isOpen, onClose }) => {
             icon={ClipboardList}
             label="Pedidos"
             active={isActive("/employee/pedidos")}
+          />
+
+          {/* --- NUEVA OPCIÓN AGREGADA --- */}
+          <MenuItem
+            to="/employee/servicios"
+            icon={Stethoscope}
+            label="Servicios"
+            active={isActive("/employee/servicios")}
           />
 
           <MenuItem

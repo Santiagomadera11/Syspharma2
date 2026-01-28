@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 /* -------------------------------------------------------------------------- */
 import { LandingPage } from "../features/landing/LandingPage";
 import { CatalogPage } from "../features/landing/CatalogPage";
-// Renombramos la pública para no confundirla con la de admin
+// Renombramos la pública para no confundirla con la de gestión interna
 import { ServicesPage as PublicServicesPage } from "../features/landing/ServicesPage";
 import { ContactPage } from "../features/landing/ContactPage";
 
@@ -30,13 +30,13 @@ import { UsersPage } from "../features/users/UsersPage";
 import SettingsPage from "../features/settings/SettingsPage";
 import SalesPage from "../features/sales/SalesPage";
 
-// --- PÁGINAS DE INVENTARIO (COMPLETAS) ---
+// --- PÁGINAS DE INVENTARIO (ADMIN) ---
 import { ProductsPage } from "../features/inventory/products/ProductsPage";
 import { PurchasesPage } from "../features/inventory/purchases/PurchasesPage";
 import { CategoriesPage } from "../features/inventory/categories/CategoriesPage";
 import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
 
-// --- PÁGINAS DE SERVICIOS (COMPLETAS) ---
+// --- PÁGINAS DE SERVICIOS Y CITAS (ADMIN) ---
 import { ServicesPage } from "../features/services/ServicesPage";
 import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
 
@@ -49,6 +49,8 @@ import EmployeeSalesPage from "../features/employee/EmployeeSalesPage";
 import EmployeeProductos from "../features/employee/EmployeeProductos";
 import EmployeePedidos from "../features/employee/EmployeePedidos";
 import EmployeeCitas from "../features/employee/EmployeeCitas";
+// ✅ Importamos la nueva página de servicios para empleados
+import { EmployeeServicesPage } from "../features/employee/EmployeeServicesPage";
 
 /* -------------------------------------------------------------------------- */
 /*                         SISTEMA DE CLIENTE                                 */
@@ -62,7 +64,7 @@ import ClientMiPerfil from "../features/client/ClientMiPerfil";
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
 /* -------------------------------------------------------------------------- */
-const Pedidos = () => (
+const PedidosAdmin = () => (
   <div className="p-6">
     <h1 className="text-xl font-bold text-gray-800">Gestión de Pedidos</h1>
     <p className="text-sm text-gray-500">Bandeja de entrada de pedidos web (Módulo pendiente).</p>
@@ -113,7 +115,7 @@ export const AppRouter = () => {
           
           {/* --- MÓDULO DE VENTAS --- */}
           <Route path="ventas" element={<SalesPage />} />
-          <Route path="pedidos" element={<Pedidos />} />
+          <Route path="pedidos" element={<PedidosAdmin />} />
           
           {/* --- MÓDULO DE SERVICIOS & CITAS --- */}
           <Route path="servicios" element={<ServicesPage />} />
@@ -136,10 +138,16 @@ export const AppRouter = () => {
         >
           <Route index element={<Navigate to="inicio" replace />} />
           <Route path="inicio" element={<EmployeeInicio />} />
+          
+          {/* Operaciones */}
           <Route path="compras" element={<EmployeeCompras />} />
           <Route path="ventas" element={<EmployeeSalesPage />} />
           <Route path="productos" element={<EmployeeProductos />} />
           <Route path="pedidos" element={<EmployeePedidos />} />
+          
+          {/* ✅ NUEVA RUTA: Servicios del Empleado */}
+          <Route path="servicios" element={<EmployeeServicesPage />} />
+          
           <Route path="citas" element={<EmployeeCitas />} />
         </Route>
 

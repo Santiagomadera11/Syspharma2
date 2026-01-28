@@ -17,33 +17,27 @@ export const ServicesPage = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
-  
-  // Estados Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [isViewMode, setIsViewMode] = useState(false); // <--- NUEVO ESTADO
-  
+  const [isViewMode, setIsViewMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5; 
 
-  // --- ACCIONES ---
-
   const handleCreate = () => {
     setEditingItem(null);
-    setIsViewMode(false); // Aseguramos que NO sea modo ver
+    setIsViewMode(false);
     setIsModalOpen(true);
   };
 
   const handleEdit = (service) => {
     setEditingItem(service);
-    setIsViewMode(false); // Aseguramos que NO sea modo ver
+    setIsViewMode(false);
     setIsModalOpen(true);
   };
 
-  // ✅ NUEVA FUNCIÓN PARA VER DETALLE
   const handleView = (service) => {
     setEditingItem(service);
-    setIsViewMode(true); // Activamos modo lectura
+    setIsViewMode(true);
     setIsModalOpen(true);
   };
 
@@ -56,7 +50,6 @@ export const ServicesPage = () => {
     else addItem({ ...formData, id: `SRV-${Date.now().toString().slice(-4)}` });
   };
 
-  // Filtros y Paginación
   const filteredItems = services.filter((srv) => {
     const texto = searchTerm.toLowerCase();
     const matchTexto = srv.nombre.toLowerCase().includes(texto) || srv.categoria.toLowerCase().includes(texto);
@@ -78,7 +71,6 @@ export const ServicesPage = () => {
 
   return (
     <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
-      
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
         <div>
           <h1 className="text-lg font-bold text-gray-800">Servicios</h1>
@@ -124,20 +116,12 @@ export const ServicesPage = () => {
                   <td className="py-1.5 px-3 text-xs font-medium text-gray-900">{srv.id}</td>
                   <td className="py-1.5 px-3"><div className="flex items-center gap-2"><Stethoscope size={12} className="text-emerald-600"/><span className="text-xs font-bold text-gray-700">{srv.nombre}</span></div></td>
                   <td className="py-1.5 px-3 text-xs text-gray-600">{srv.categoria}</td>
-                  <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">₡ {Number(srv.precio).toLocaleString()}</td>
+                  <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">$ {Number(srv.precio).toLocaleString()}</td>
                   <td className="py-1.5 px-3 text-xs text-center text-gray-500"><div className="flex items-center justify-center gap-1"><Clock size={10} /> {srv.duracion} min</div></td>
                   <td className="py-1.5 px-3 text-center">{getStatusBadge(srv.estado)}</td>
                   <td className="py-1.5 px-3">
                     <div className="flex items-center justify-center gap-1">
-                      {/* BOTÓN VER (OJO) - AHORA SÍ FUNCIONA */}
-                      <button 
-                        onClick={() => handleView(srv)}
-                        className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" 
-                        title="Ver detalle"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      
+                      <button onClick={() => handleView(srv)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Ver detalle"><Eye size={14} /></button>
                       <button onClick={() => handleEdit(srv)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar"><Edit size={14} /></button>
                       <button onClick={() => handleDelete(srv.id)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
                     </div>
@@ -147,7 +131,6 @@ export const ServicesPage = () => {
             </tbody>
           </table>
         </div>
-        
         <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
             <span className="text-[10px] text-gray-500">Pág {currentPage} de {totalPages || 1}</span>
             <div className="flex gap-1">
@@ -162,7 +145,7 @@ export const ServicesPage = () => {
         onClose={() => setIsModalOpen(false)} 
         onSave={handleSave}
         initialData={editingItem}
-        isViewMode={isViewMode} // ✅ PASAMOS EL ESTADO DE SOLO LECTURA
+        isViewMode={isViewMode} 
       />
     </div>
   );
