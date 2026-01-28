@@ -1,6 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Stethoscope, User, Lock, ArrowRight, ChevronLeft } from "lucide-react"; // <--- Agregamos ChevronLeft
+import {
+  Stethoscope,
+  User,
+  Lock,
+  ArrowRight,
+  ChevronLeft,
+  X,
+  Key,
+} from "lucide-react"; // <--- Agregamos ChevronLeft
 import { authService } from "../auth/authService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 
@@ -11,9 +19,156 @@ export const LoginPage = () => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [toast, setToast] = useState(null);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [recoveryStep, setRecoveryStep] = useState("email"); // email, code, password
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [codeInputs, setCodeInputs] = useState(["", "", "", "", "", ""]);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutos
+  const [codeExpired, setCodeExpired] = useState(false);
+  const codeInputRefs = useRef([]);
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
+  };
+
+  // Temporizador para el código de verificación
+  useEffect(() => {
+    if (recoveryStep === "code" && timeLeft > 0) {
+      const timer = setTimeout(() => {
+        setTimeLeft(timeLeft - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && recoveryStep === "code") {
+      setCodeExpired(true);
+    }
+  }, [timeLeft, recoveryStep]);
+
+  const handleSendCode = (e) => {
+    e.preventDefault();
+    if (!recoveryEmail) {
+      setToast({
+        message: "Ingresa tu correo electrónico",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
+    // Generar código de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(code);
+    console.log(`🔐 CÓDIGO DE VERIFICACIÓN: ${code}`);
+
+    setRecoveryStep("code");
+    setTimeLeft(180);
+    setCodeExpired(false);
+    setToast({
+      message: "Código enviado. Revisa tu correo y la consola.",
+      type: "success",
+      zIndex: 70,
+    });
+  };
+
+  const handleCodeInputChange = (index, value) => {
+    if (!/^\d?$/.test(value)) return; // Solo dígitos
+    const newCodeInputs = [...codeInputs];
+    newCodeInputs[index] = value;
+    setCodeInputs(newCodeInputs);
+
+    // Auto-focus al siguiente input
+    if (value && index < 5) {
+      codeInputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleCodeInputKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !codeInputs[index] && index > 0) {
+      codeInputRefs.current[index - 1].focus();
+    }
+  };
+
+  const handleVerifyCode = () => {
+    const enteredCode = codeInputs.join("");
+    if (enteredCode !== verificationCode) {
+      setToast({
+        message: "Código incorrecto",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+    setRecoveryStep("password");
+  };
+
+  const handleChangePassword = (e) => {
+    e.preventDefault();
+    if (!newPassword || !confirmPassword) {
+      setToast({
+        message: "Completa todos los campos",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setToast({
+        message: "Las contraseñas no coinciden",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
+    // Encontrar el usuario y actualizar la contraseña
+    const users = JSON.parse(localStorage.getItem("sys_users") || "[]");
+    const userIndex = users.findIndex(
+      (u) => u.email.toLowerCase() === recoveryEmail.toLowerCase(),
+    );
+
+    if (userIndex === -1) {
+      setToast({
+        message: "Usuario no encontrado",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
+    users[userIndex].password = newPassword;
+    localStorage.setItem("sys_users", JSON.stringify(users));
+
+    setToast({
+      message: "Contraseña actualizada exitosamente",
+      type: "success",
+      zIndex: 70,
+    });
+
+    // Resetear modal
+    setTimeout(() => {
+      setShowRecoveryModal(false);
+      setRecoveryStep("email");
+      setRecoveryEmail("");
+      setCodeInputs(["", "", "", "", "", ""]);
+      setNewPassword("");
+      setConfirmPassword("");
+    }, 800);
+  };
+
+  const handleResendCode = () => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(code);
+    console.log(`🔐 CÓDIGO DE VERIFICACIÓN (REENVÍO): ${code}`);
+    setCodeInputs(["", "", "", "", "", ""]);
+    setTimeLeft(180);
+    setCodeExpired(false);
+    setToast({
+      message: "Nuevo código enviado",
+      type: "success",
+      zIndex: 70,
+    });
   };
 
   const handleLogin = (e) => {
@@ -132,6 +287,10 @@ export const LoginPage = () => {
                 </label>
                 <a
                   href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowRecoveryModal(true);
+                  }}
                   className="text-[10px] text-primary-600 hover:text-primary-800 font-bold hover:underline"
                 >
                   ¿Olvidaste tu contraseña?
@@ -184,6 +343,183 @@ export const LoginPage = () => {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Modal Recuperar Contraseña */}
+      {showRecoveryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 flex items-center justify-between border-b border-cyan-100 bg-cyan-50">
+              <div className="flex items-center gap-2">
+                <Key size={20} className="text-cyan-700" />
+                <h2 className="text-lg font-semibold text-cyan-900">
+                  Recuperar Contraseña
+                </h2>
+              </div>
+              <button
+                onClick={() => {
+                  setShowRecoveryModal(false);
+                  setRecoveryStep("email");
+                  setRecoveryEmail("");
+                  setCodeInputs(["", "", "", "", "", ""]);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+                className="p-1 hover:bg-cyan-100 rounded-lg transition-colors text-cyan-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {recoveryStep === "email" && (
+                <form onSubmit={handleSendCode} className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Ingresa tu correo para recibir el código de verificación.
+                  </p>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">
+                      Correo Electrónico
+                    </label>
+                    <div className="relative group">
+                      <User
+                        size={14}
+                        className="absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors"
+                      />
+                      <input
+                        type="email"
+                        value={recoveryEmail}
+                        onChange={(e) => setRecoveryEmail(e.target.value)}
+                        placeholder="tu@email.com"
+                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all bg-gray-50"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg transition-all text-sm"
+                  >
+                    Enviar Código
+                  </button>
+                </form>
+              )}
+
+              {recoveryStep === "code" && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Ingresa el código de 6 dígitos
+                    </p>
+                    <div className="flex gap-2 justify-between">
+                      {codeInputs.map((digit, idx) => (
+                        <input
+                          key={idx}
+                          ref={(el) => (codeInputRefs.current[idx] = el)}
+                          type="text"
+                          maxLength="1"
+                          value={digit}
+                          onChange={(e) =>
+                            handleCodeInputChange(idx, e.target.value)
+                          }
+                          onKeyDown={(e) => handleCodeInputKeyDown(idx, e)}
+                          disabled={codeExpired}
+                          className="w-12 h-12 text-center text-lg font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-700">
+                      Tiempo restante:
+                    </span>
+                    <span
+                      className={`text-xs font-bold ${
+                        timeLeft <= 60 ? "text-red-600" : "text-primary-600"
+                      }`}
+                    >
+                      {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:
+                      {String(timeLeft % 60).padStart(2, "0")}
+                    </span>
+                  </div>
+
+                  {codeExpired ? (
+                    <button
+                      onClick={handleResendCode}
+                      className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg transition-all text-sm"
+                    >
+                      Reenviar Código
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleVerifyCode}
+                      disabled={codeInputs.join("").length !== 6}
+                      className="w-full bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 text-white font-bold py-2.5 rounded-lg transition-all text-sm disabled:cursor-not-allowed"
+                    >
+                      Verificar Código
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {recoveryStep === "password" && (
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    Ingresa tu nueva contraseña.
+                  </p>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">
+                      Nueva Contraseña
+                    </label>
+                    <div className="relative group">
+                      <Lock
+                        size={14}
+                        className="absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors"
+                      />
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">
+                      Confirmar Contraseña
+                    </label>
+                    <div className="relative group">
+                      <Lock
+                        size={14}
+                        className="absolute left-3 top-2.5 text-gray-400 group-focus-within:text-primary-500 transition-colors"
+                      />
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all bg-gray-50"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg transition-all text-sm"
+                  >
+                    Actualizar Contraseña
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+export default LoginPage;
