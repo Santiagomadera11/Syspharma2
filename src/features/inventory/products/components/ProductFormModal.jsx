@@ -4,70 +4,317 @@ import { X, Save } from "lucide-react";
 const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
   const [formData, setFormData] = useState({
     nombre: "",
+    tipoProducto: "Producto General",
     categoria: "",
     proveedor: "",
     precio: "",
     stock: "",
-    estado: "Activo"
+    estado: "Activo",
+    // Campos técnicos (solo para medicamentos)
+    composicion: "",
+    concentracion: "",
+    presentacion: "",
+    viaAdministracion: "",
+    registroSanitario: "",
+    requiereFormula: false,
   });
 
   useEffect(() => {
     if (initialData) setFormData(initialData);
-    else setFormData({ nombre: "", categoria: "", proveedor: "", precio: "", stock: "", estado: "Activo" });
+    else
+      setFormData({
+        nombre: "",
+        tipoProducto: "Producto General",
+        categoria: "",
+        proveedor: "",
+        precio: "",
+        stock: "",
+        estado: "Activo",
+        composicion: "",
+        concentracion: "",
+        presentacion: "",
+        viaAdministracion: "",
+        registroSanitario: "",
+        requiereFormula: false,
+      });
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    if(!formData.nombre) return alert("Nombre requerido");
+    if (!formData.nombre) return alert("Nombre requerido");
     onSave(formData);
     onClose();
   };
 
+  const isMedicamento = formData.tipoProducto === "Medicamento";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
-        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="font-bold text-gray-800 text-sm">{initialData ? 'Editar Producto' : 'Nuevo Producto'}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-red-500"><X size={18} /></button>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+          <h3 className="font-bold text-gray-800 text-sm">
+            {initialData ? "Editar Producto" : "Nuevo Producto"}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-red-500"
+          >
+            <X size={18} />
+          </button>
         </div>
-        <div className="p-5 grid grid-cols-2 gap-4">
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          {/* Nombre */}
           <div className="col-span-2">
-            <label className="block text-xs font-bold text-gray-700 mb-1">Nombre</label>
-            <input type="text" className="w-full text-sm border border-gray-300 rounded px-3 py-2" 
-              value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} />
+            <label className="block text-xs font-bold text-gray-700 mb-1">
+              Nombre
+            </label>
+            <input
+              type="text"
+              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+              value={formData.nombre}
+              onChange={(e) =>
+                setFormData({ ...formData, nombre: e.target.value })
+              }
+            />
           </div>
+
+          {/* Tipo de Producto */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Categoría</label>
-            <select className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-              value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})}>
+            <label className="block text-xs font-bold text-gray-700 mb-1">
+              Tipo de Producto
+            </label>
+            <select
+              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+              value={formData.tipoProducto}
+              onChange={(e) =>
+                setFormData({ ...formData, tipoProducto: e.target.value })
+              }
+            >
+              <option value="Producto General">Producto General</option>
+              <option value="Medicamento">Medicamento</option>
+            </select>
+          </div>
+
+          {/* Grid de campos básicos */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Categoría
+              </label>
+              <select
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                value={formData.categoria}
+                onChange={(e) =>
+                  setFormData({ ...formData, categoria: e.target.value })
+                }
+              >
                 <option value="">Seleccionar...</option>
                 <option value="Antibióticos">Antibióticos</option>
                 <option value="Analgésicos">Analgésicos</option>
-            </select>
-          </div>
-          <div>
-             <label className="block text-xs font-bold text-gray-700 mb-1">Proveedor</label>
-             <select className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-               value={formData.proveedor} onChange={e => setFormData({...formData, proveedor: e.target.value})}>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Proveedor
+              </label>
+              <select
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                value={formData.proveedor}
+                onChange={(e) =>
+                  setFormData({ ...formData, proveedor: e.target.value })
+                }
+              >
                 <option value="">Seleccionar...</option>
                 <option value="Farmacéutica Global">Farmacéutica Global</option>
-             </select>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Precio (₡)
+              </label>
+              <input
+                type="number"
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                value={formData.precio}
+                onChange={(e) =>
+                  setFormData({ ...formData, precio: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                Stock
+              </label>
+              <input
+                type="number"
+                className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                value={formData.stock}
+                onChange={(e) =>
+                  setFormData({ ...formData, stock: e.target.value })
+                }
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Precio (₡)</label>
-            <input type="number" className="w-full text-sm border border-gray-300 rounded px-3 py-2" 
-              value={formData.precio} onChange={e => setFormData({...formData, precio: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Stock</label>
-            <input type="number" className="w-full text-sm border border-gray-300 rounded px-3 py-2" 
-              value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
-          </div>
+
+          {/* Sección Información Técnica - Medicamentos */}
+          {isMedicamento && (
+            <div className="mt-4 pt-4 border-t border-gray-200 animate-in fade-in duration-300 slide-in-from-top-2">
+              <h4 className="font-bold text-gray-800 text-sm mb-3">
+                Información Técnica
+              </h4>
+              <div className="space-y-3">
+                {/* Composición */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Composición
+                  </label>
+                  <textarea
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                    rows="2"
+                    placeholder="Ej: Amoxicilina trihidratada..."
+                    value={formData.composicion}
+                    onChange={(e) =>
+                      setFormData({ ...formData, composicion: e.target.value })
+                    }
+                  />
+                </div>
+
+                {/* Grid para Concentración y Presentación */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Concentración
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                      placeholder="Ej: 500mg"
+                      value={formData.concentracion}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          concentracion: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                      Presentación
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                      placeholder="Ej: Cápsula, Tableta"
+                      value={formData.presentacion}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          presentacion: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Vía de Administración */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Vía de Administración
+                  </label>
+                  <select
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                    value={formData.viaAdministracion}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        viaAdministracion: e.target.value,
+                      })
+                    }
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="Oral">Oral</option>
+                    <option value="Inyectable">Inyectable</option>
+                    <option value="Tópica">Tópica</option>
+                    <option value="Inhalatoria">Inhalatoria</option>
+                    <option value="Sublingual">Sublingual</option>
+                    <option value="Rectal">Rectal</option>
+                  </select>
+                </div>
+
+                {/* Registro Sanitario */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Registro Sanitario
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+                    placeholder="Ej: M-12345-2024"
+                    value={formData.registroSanitario}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        registroSanitario: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* Switch Requiere Fórmula Médica */}
+                <div
+                  className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                    formData.requiereFormula
+                      ? "bg-blue-100 border-blue-400"
+                      : "bg-gray-50 border-gray-200"
+                  }`}
+                >
+                  <label className="text-xs font-bold text-gray-700">
+                    Requiere Fórmula Médica
+                  </label>
+                  <button
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        requiereFormula: !formData.requiereFormula,
+                      })
+                    }
+                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${
+                      formData.requiereFormula
+                        ? "bg-blue-600 shadow-md shadow-blue-200"
+                        : "bg-gray-300 shadow-md shadow-gray-200"
+                    }`}
+                    role="switch"
+                    aria-checked={formData.requiereFormula}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        formData.requiereFormula
+                          ? "translate-x-5"
+                          : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded">Cancelar</button>
-          <button onClick={handleSubmit} className="px-3 py-1.5 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded flex items-center gap-1"><Save size={14} /> Guardar</button>
+
+        <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="px-3 py-1.5 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded flex items-center gap-1"
+          >
+            <Save size={14} /> Guardar
+          </button>
         </div>
       </div>
     </div>
