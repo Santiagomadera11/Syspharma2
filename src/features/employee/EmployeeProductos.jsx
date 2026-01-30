@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Eye,
@@ -7,42 +7,25 @@ import {
   Package,
   X,
 } from "lucide-react";
-import { useCrud } from "../../shared/hooks/useCrud";
-
-const INITIAL_PRODS = [
-  {
-    id: "PROD-001",
-    nombre: "Amoxicilina 500mg",
-    categoria: "Antibióticos",
-    stock: 150,
-    precio: 2500,
-    estado: "Activo",
-  },
-  {
-    id: "PROD-002",
-    nombre: "Paracetamol 500mg",
-    categoria: "Analgésicos",
-    stock: 0,
-    precio: 500,
-    estado: "Activo",
-  },
-  {
-    id: "PROD-003",
-    nombre: "Ibuprofeno 200mg",
-    categoria: "Analgésicos",
-    stock: 45,
-    precio: 800,
-    estado: "Inactivo",
-  },
-];
+import { productService } from "../inventory/products/services/productService";
 
 export const EmployeeProductos = () => {
-  const { items: products } = useCrud("sys_products", []);
+  const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [detailProduct, setDetailProduct] = useState(null);
   const itemsPerPage = 6;
+
+  // Cargar productos al montar el componente
+  useEffect(() => {
+    setProducts(productService.getAll());
+    // Refrescar cada 2 segundos para sincronizar cambios
+    const interval = setInterval(() => {
+      setProducts(productService.getAll());
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleViewDetail = (product) => {
     setDetailProduct(product);
@@ -50,9 +33,9 @@ export const EmployeeProductos = () => {
 
   const filtered = products.filter((p) => {
     const matchSearch =
-      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.categoria.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = filterStatus === "todos" || p.estado === filterStatus;
+      p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.categoria?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = filterStatus === "todos" || (filterStatus === "Activo" ? p.estado : !p.estado);
     return matchSearch && matchStatus;
   });
   const currentItems = filtered.slice(
@@ -63,7 +46,7 @@ export const EmployeeProductos = () => {
 
   // Badge de Estado (fijo, sin interacción)
   const StateBadge = ({ estado }) => {
-    const isActive = estado === "Activo";
+    const isActive = estado;
     return (
       <span
         className={`inline-block px-3 py-1.5 rounded-full text-[10px] font-bold ${
@@ -72,7 +55,7 @@ export const EmployeeProductos = () => {
             : "bg-gray-200 text-gray-700"
         }`}
       >
-        {estado}
+        {estado ? "Activo" : "Inactivo"}
       </span>
     );
   };

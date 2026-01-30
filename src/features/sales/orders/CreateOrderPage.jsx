@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Search, Plus, Trash2, ArrowLeft, Package } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { productService } from "../../inventory/products/services/productService";
@@ -12,10 +12,15 @@ export const CreateOrderPage = () => {
     location.pathname === "/admin/ventas/nueva" ||
     location.pathname === "/employee/ventas/nueva";
   const isEmployee = location.pathname.startsWith("/employee");
-  const [products] = useState(productService.getAll());
+  const [products, setProducts] = useState(productService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState([]);
   const [notification, setNotification] = useState(null);
+
+  // Guardar carrito en localStorage
+  useEffect(() => {
+    localStorage.setItem("syspharma_cart", JSON.stringify(cart));
+  }, [cart]);
 
   // Información del cliente
   const [clientInfo, setClientInfo] = useState({
@@ -23,6 +28,7 @@ export const CreateOrderPage = () => {
     nombre: "",
     telefono: "",
     correo: "",
+    metodoPago: "Efectivo",
   });
 
   const handleClientChange = (field, value) => {
@@ -34,7 +40,7 @@ export const CreateOrderPage = () => {
     return products.filter(
       (p) =>
         p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+        p.codigo.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [products, searchTerm]);
 
@@ -46,8 +52,8 @@ export const CreateOrderPage = () => {
         cart.map((item) =>
           item.id === product.id
             ? { ...item, cantidad: item.cantidad + 1 }
-            : item
-        )
+            : item,
+        ),
       );
     } else {
       setCart([...cart, { ...product, cantidad: 1 }]);
@@ -61,8 +67,8 @@ export const CreateOrderPage = () => {
     } else {
       setCart(
         cart.map((item) =>
-          item.id === productId ? { ...item, cantidad: newQuantity } : item
-        )
+          item.id === productId ? { ...item, cantidad: newQuantity } : item,
+        ),
       );
     }
   };
@@ -75,12 +81,12 @@ export const CreateOrderPage = () => {
   // Calcular totales
   const cartTotal = useMemo(
     () => cart.reduce((sum, item) => sum + item.precio * item.cantidad, 0),
-    [cart]
+    [cart],
   );
 
   const cartQuantity = useMemo(
     () => cart.reduce((sum, item) => sum + item.cantidad, 0),
-    [cart]
+    [cart],
   );
 
   // Llenar información de consumidor final
@@ -90,6 +96,7 @@ export const CreateOrderPage = () => {
       nombre: "Consumidor Final",
       telefono: "-",
       correo: "-",
+      metodoPago: "Efectivo",
     });
   };
 
@@ -123,10 +130,22 @@ export const CreateOrderPage = () => {
       })),
       total: cartTotal,
       estado: isSale ? "Entregada" : "Pendiente",
+      metodoPago: clientInfo.metodoPago,
       notas: `Teléfono: ${clientInfo.telefono}${
         clientInfo.correo ? ` | Correo: ${clientInfo.correo}` : ""
       }`,
     });
+
+    // Actualizar stock de productos vendidos (solo para ventas)
+    if (isSale) {
+      cart.forEach(item => {
+        const currentProduct = products.find(p => p.id === item.id);
+        if (currentProduct && currentProduct.stock >= item.cantidad) {
+          productService.update(item.id, { stock: currentProduct.stock - item.cantidad });
+        }
+      });
+      setProducts(productService.getAll());
+    }
 
     setNotification({
       message: isSale
@@ -328,82 +347,44 @@ export const CreateOrderPage = () => {
                       className={inputClass}
                     />
                   </div>
+
+                  <div>
+                    <label className={labelClass}>Método de Pago</label>
+                    <select
+                      value={clientInfo.metodoPago}
+                      onChange={(e) =>
+                        handleClientChange("metodoPago", e.target.value)
+                      }
+                      className={inputClass}
+                    >
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Tarjeta Débito">Tarjeta Débito</option>
+                      <option value="Tarjeta Crédito">Tarjeta Crédito</option>
+                      <option value="Transferencia">Transferencia</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
               {/* Resumen del Carrito */}
-              <div className="p-4 flex-1 overflow-y-auto">
-                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <Package size={16} className="text-emerald-600" />
-                  Productos ({cartQuantity})
-                </h3>
+              <div className="p-4 flex-1 flex flex-col justify-center items-center">
+                <div className="text-center mb-4">
+                  <h3 className="text-sm font-bold text-gray-800 mb-2 flex items-center justify-center gap-2">
+                    <Package size={16} className="text-emerald-600" />
+                    Productos ({cartQuantity})
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Total: {formatCurrency(cartTotal)}
+                  </p>
+                </div>
 
-                {cart.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400 text-xs">
-                    No hay productos seleccionados
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {cart.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-2 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        <div className="flex justify-between items-start mb-1.5">
-                          <span className="font-semibold text-xs text-gray-800 truncate pr-2">
-                            {item.nombre}
-                          </span>
-                          <button
-                            onClick={() => handleRemoveFromCart(item.id)}
-                            className="text-red-500 hover:text-red-700 p-0.5"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="text-[10px] text-gray-600">
-                            {formatCurrency(item.precio)} c/u
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() =>
-                                handleChangeQuantity(item.id, item.cantidad - 1)
-                              }
-                              className="w-5 h-5 rounded border border-gray-300 text-xs hover:bg-gray-200"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              value={item.cantidad}
-                              onChange={(e) =>
-                                handleChangeQuantity(
-                                  item.id,
-                                  parseInt(e.target.value) || 1
-                                )
-                              }
-                              className="w-8 text-center text-xs border border-gray-300 rounded py-0.5"
-                              min="1"
-                            />
-                            <button
-                              onClick={() =>
-                                handleChangeQuantity(item.id, item.cantidad + 1)
-                              }
-                              className="w-5 h-5 rounded border border-gray-300 text-xs hover:bg-gray-200"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="text-right text-xs font-bold text-emerald-600 mt-1">
-                          {formatCurrency(item.precio * item.cantidad)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <button
+                  onClick={() => navigate(isEmployee ? "/employee/ventas/nueva/productos" : "/admin/ventas/nueva/productos")}
+                  className="w-full py-2 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium transition-colors"
+                >
+                  Ver detalle productos
+                </button>
               </div>
             </div>
 

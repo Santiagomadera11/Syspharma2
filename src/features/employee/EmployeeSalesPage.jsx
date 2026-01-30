@@ -13,6 +13,9 @@ import {
   User,
 } from "lucide-react";
 import { turnService } from "../sales/services/turnService";
+import { ordersService } from "../sales/orders/services/ordersService";
+import { expensesService } from "../sales/services/expensesService";
+import { RegisterExpenseModal } from "../sales/components/RegisterExpenseModal";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 import { CloseShiftModal } from "../sales/components/CloseShiftModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
@@ -201,28 +204,6 @@ const mockSales = [
   },
 ];
 
-// Mock de gastos
-const mockExpenses = [
-  {
-    id: 2001,
-    descripcion: "Alquiler de local",
-    monto: 500000,
-    categoria: "Arriendo",
-  },
-  {
-    id: 2002,
-    descripcion: "Suministros de limpieza",
-    monto: 50000,
-    categoria: "Mantenimiento",
-  },
-  {
-    id: 2003,
-    descripcion: "Café para el personal",
-    monto: 30000,
-    categoria: "Comida",
-  },
-];
-
 /**
  * EmployeeSalesPage - Vista AZUL de Ventas para Empleados
  * - Apertura/Cierre de turno
@@ -234,8 +215,10 @@ export const EmployeeSalesPage = () => {
   const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
 
   // Estados principales
-  const [sales] = useState(mockSales);
-  const [expenses] = useState(mockExpenses);
+  const [sales, setSales] = useState(() =>
+    ordersService.getAll().filter((o) => o.estado === "Entregada"),
+  );
+  const [expenses, setExpenses] = useState(expensesService.getTodayExpenses());
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
   const [currentTurn, setCurrentTurn] = useState(null);
@@ -243,6 +226,8 @@ export const EmployeeSalesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
+  const [isRegisterExpenseModalOpen, setIsRegisterExpenseModalOpen] =
+    useState(false);
 
   const itemsPerPage = 20;
 
@@ -254,6 +239,18 @@ export const EmployeeSalesPage = () => {
     } else {
       setShowOpenShiftModal(true);
     }
+    // Recargar ventas desde BD
+    setSales(ordersService.getAll().filter((o) => o.estado === "Entregada"));
+    setExpenses(expensesService.getTodayExpenses());
+
+    // Refrescar datos cuando la ventana regresa al foco
+    const handleFocus = () => {
+      setSales(ordersService.getAll().filter((o) => o.estado === "Entregada"));
+      setExpenses(expensesService.getTodayExpenses());
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   const handleShiftOpened = (newTurn) => {
@@ -280,19 +277,37 @@ export const EmployeeSalesPage = () => {
     }, 2000);
   };
 
-  // Métricas
-  const totalSales = useMemo(
-    () => sales.reduce((sum, s) => sum + (s.total || 0), 0),
-    [sales],
-  );
-  const totalProductsSold = useMemo(
-    () => sales.reduce((sum, s) => sum + (s.cantidadProductos || 0), 0),
-    [sales],
-  );
-  const totalExpenses = useMemo(
-    () => expenses.reduce((sum, e) => sum + (e.monto || 0), 0),
-    [expenses],
-  );
+  const handleNewSale = () => {
+    // Validar turno antes de crear venta
+    const validation = turnService.validateOperationAllowed();
+    if (!validation.valid) {
+      setToast({
+        message: validation.message,
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+    navigate("/employee/ventas/nueva");
+  };
+
+  // Métricas dinámicas
+  const totalSales = useMemo(() => {
+    const allSales = ordersService
+      .getAll()
+      .filter((o) => o.estado === "Entregada");
+    return allSales.reduce((sum, s) => sum + (s.total || 0), 0);
+  }, [sales]);
+  const totalProductsSold = useMemo(() => {
+    const allSales = ordersService
+      .getAll()
+      .filter((o) => o.estado === "Entregada");
+    return allSales.reduce((sum, s) => sum + (s.cantidadProductos || 0), 0);
+  }, [sales]);
+  const totalExpenses = useMemo(() => {
+    const todayExpenses = expensesService.getTodayExpenses();
+    return todayExpenses.reduce((sum, e) => sum + (e.monto || 0), 0);
+  }, [expenses]);
 
   // Filtrado y paginación
   const filteredSales = sales.filter((s) => {
@@ -322,18 +337,27 @@ export const EmployeeSalesPage = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowCloseShiftModal(true)}
-            disabled={!currentTurn}
-            className={`px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all ${
-              currentTurn
-                ? "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
-          >
-            <DollarSign size={16} />
-            Cerrar Turno
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsRegisterExpenseModalOpen(true)}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
+            >
+              <Plus size={16} />
+              Registrar gasto
+            </button>
+            <button
+              onClick={() => setShowCloseShiftModal(true)}
+              disabled={!currentTurn}
+              className={`px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all ${
+                currentTurn
+                  ? "bg-purple-600 hover:bg-purple-700 text-white active:scale-95"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              <DollarSign size={16} />
+              Cerrar Turno
+            </button>
+          </div>
 
           <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
             <Clock size={16} className="text-blue-600" />
@@ -410,12 +434,19 @@ export const EmployeeSalesPage = () => {
             <option value="completada">Completadas</option>
             <option value="devolucion">Devoluciones</option>
           </select>
+          <button
+            onClick={handleNewSale}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
+          >
+            <Plus size={16} />
+            Nueva venta
+          </button>
         </div>
       </div>
 
       {/* Tabla de ventas */}
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
-        <div className="overflow-auto">
+        <div className="overflow-hidden">
           <table className="w-full text-left border-collapse text-xs">
             <thead className="bg-blue-600 text-white uppercase sticky top-0 z-10">
               <tr>
@@ -520,6 +551,14 @@ export const EmployeeSalesPage = () => {
         onShiftClosed={handleShiftClosed}
         onClose={() => setShowCloseShiftModal(false)}
         user={user}
+      />
+
+      <RegisterExpenseModal
+        isOpen={isRegisterExpenseModalOpen}
+        onClose={() => setIsRegisterExpenseModalOpen(false)}
+        onSaveSuccess={() => {
+          setExpenses(expensesService.getTodayExpenses());
+        }}
       />
 
       {/* Toast Notification */}

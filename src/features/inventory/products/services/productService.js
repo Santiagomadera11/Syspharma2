@@ -1,4 +1,4 @@
-const DB_KEY = 'syspharma_products';
+const DB_KEY = 'sys_products';
 
 const initialData = [
   { id: 1, codigo: "P001", nombre: "Acetaminofén 500mg", laboratorio: "Genfar", categoria: "Analgésicos", precio: 2500, stock: 120, vencimiento: "2026-12-01", estado: true },

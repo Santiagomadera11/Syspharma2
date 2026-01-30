@@ -18,221 +18,19 @@ import { RegisterExpenseModal } from "./components/RegisterExpenseModal";
 import { ExpensesModal } from "./components/ExpensesModal";
 import { ShiftsHistory } from "./components/ShiftsHistory";
 import { turnService } from "./services/turnService";
+import { ordersService } from "./orders/services/ordersService";
+import { expensesService } from "./services/expensesService";
 import { OpenShiftModal } from "./components/OpenShiftModal";
 import { CloseShiftModal } from "./components/CloseShiftModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 
-// Mock de 20 ventas para prueba
-const mockSales = [
-  {
-    id: 1001,
-    hora: "09:30",
-    cliente: "Juan Pérez",
-    cantidadProductos: 3,
-    metodoPago: "Efectivo",
-    total: 22000,
-    estado: "completada",
-  },
-  {
-    id: 1002,
-    hora: "09:45",
-    cliente: "María García",
-    cantidadProductos: 1,
-    metodoPago: "Tarjeta débito",
-    total: 19500,
-    estado: "completada",
-  },
-  {
-    id: 1003,
-    hora: "10:15",
-    cliente: "Carlos López",
-    cantidadProductos: 2,
-    metodoPago: "Efectivo",
-    total: 27000,
-    estado: "completada",
-  },
-  {
-    id: 1004,
-    hora: "10:45",
-    cliente: "Ana Martínez",
-    cantidadProductos: 1,
-    metodoPago: "Transferencia",
-    total: 35000,
-    estado: "completada",
-  },
-  {
-    id: 1005,
-    hora: "11:20",
-    cliente: "Pedro Rodríguez",
-    cantidadProductos: 3,
-    metodoPago: "Tarjeta crédito",
-    total: 36000,
-    estado: "completada",
-  },
-  {
-    id: 1006,
-    hora: "12:00",
-    cliente: "Laura Sánchez",
-    cantidadProductos: 2,
-    metodoPago: "Efectivo",
-    total: 18500,
-    estado: "completada",
-  },
-  {
-    id: 1007,
-    hora: "12:30",
-    cliente: "Diego Fernández",
-    cantidadProductos: 4,
-    metodoPago: "Tarjeta débito",
-    total: 42000,
-    estado: "completada",
-  },
-  {
-    id: 1008,
-    hora: "13:15",
-    cliente: "Sofía Ruiz",
-    cantidadProductos: 1,
-    metodoPago: "Efectivo",
-    total: 15000,
-    estado: "completada",
-  },
-  {
-    id: 1009,
-    hora: "14:00",
-    cliente: "Alejandro Morales",
-    cantidadProductos: 2,
-    metodoPago: "Transferencia",
-    total: 28500,
-    estado: "devolucion",
-  },
-  {
-    id: 1010,
-    hora: "14:45",
-    cliente: "Isabella Cruz",
-    cantidadProductos: 3,
-    metodoPago: "Tarjeta crédito",
-    total: 31000,
-    estado: "completada",
-  },
-  {
-    id: 1011,
-    hora: "15:20",
-    cliente: "Javier Torres",
-    cantidadProductos: 2,
-    metodoPago: "Efectivo",
-    total: 24000,
-    estado: "completada",
-  },
-  {
-    id: 1012,
-    hora: "15:50",
-    cliente: "Elena Vargas",
-    cantidadProductos: 1,
-    metodoPago: "Tarjeta débito",
-    total: 12500,
-    estado: "completada",
-  },
-  {
-    id: 1013,
-    hora: "16:30",
-    cliente: "Roberto Jiménez",
-    cantidadProductos: 3,
-    metodoPago: "Efectivo",
-    total: 33000,
-    estado: "completada",
-  },
-  {
-    id: 1014,
-    hora: "17:00",
-    cliente: "Carmen López",
-    cantidadProductos: 2,
-    metodoPago: "Transferencia",
-    total: 26000,
-    estado: "completada",
-  },
-  {
-    id: 1015,
-    hora: "17:40",
-    cliente: "Miguel Ángel",
-    cantidadProductos: 1,
-    metodoPago: "Tarjeta crédito",
-    total: 20000,
-    estado: "completada",
-  },
-  {
-    id: 1016,
-    hora: "18:15",
-    cliente: "Patricia Gómez",
-    cantidadProductos: 4,
-    metodoPago: "Efectivo",
-    total: 44000,
-    estado: "completada",
-  },
-  {
-    id: 1017,
-    hora: "18:50",
-    cliente: "Francisco Ramos",
-    cantidadProductos: 2,
-    metodoPago: "Tarjeta débito",
-    total: 29500,
-    estado: "completada",
-  },
-  {
-    id: 1018,
-    hora: "19:20",
-    cliente: "Margarita Soto",
-    cantidadProductos: 1,
-    metodoPago: "Efectivo",
-    total: 17000,
-    estado: "completada",
-  },
-  {
-    id: 1019,
-    hora: "19:50",
-    cliente: "Guillermo Díaz",
-    cantidadProductos: 3,
-    metodoPago: "Transferencia",
-    total: 38500,
-    estado: "completada",
-  },
-  {
-    id: 1020,
-    hora: "20:30",
-    cliente: "Rosario Medina",
-    cantidadProductos: 2,
-    metodoPago: "Tarjeta crédito",
-    total: 25000,
-    estado: "completada",
-  },
-];
-
-// Mock de gastos
-const mockExpenses = [
-  {
-    id: 2001,
-    descripcion: "Alquiler de local",
-    monto: 500000,
-    categoria: "Arriendo",
-  },
-  {
-    id: 2002,
-    descripcion: "Suministros de limpieza",
-    monto: 50000,
-    categoria: "Mantenimiento",
-  },
-  {
-    id: 2003,
-    descripcion: "Café para el personal",
-    monto: 30000,
-    categoria: "Comida",
-  },
-];
-
 export const SalesPage = () => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-  const [sales] = useState(mockSales);
-  const [expenses] = useState(mockExpenses);
+  const [sales, setSales] = useState(() =>
+    ordersService.getAll().filter((o) => o.estado === "Entregada"),
+  );
+  const [expenses, setExpenses] = useState(expensesService.getTodayExpenses());
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
@@ -248,7 +46,7 @@ export const SalesPage = () => {
 
   const itemsPerPage = 20;
 
-  // Verificar turno activo al cargar
+  // Verificar turno activo al cargar y actualizar ventas
   useEffect(() => {
     const activeTurn = turnService.getActiveTurn();
     if (activeTurn) {
@@ -256,6 +54,18 @@ export const SalesPage = () => {
     } else {
       setShowOpenShiftModal(true);
     }
+    // Recargar ventas desde BD
+    setSales(ordersService.getAll().filter((o) => o.estado === "Entregada"));
+    setExpenses(expensesService.getTodayExpenses());
+
+    // Refrescar datos cuando la ventana regresa al foco
+    const handleFocus = () => {
+      setSales(ordersService.getAll().filter((o) => o.estado === "Entregada"));
+      setExpenses(expensesService.getTodayExpenses());
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   const handleShiftOpened = (newTurn) => {
@@ -306,19 +116,23 @@ export const SalesPage = () => {
     setIsSaleDetailOpen(true);
   };
 
-  // Métricas
-  const totalSales = useMemo(
-    () => sales.reduce((sum, s) => sum + (s.total || 0), 0),
-    [sales],
-  );
-  const totalProductsSold = useMemo(
-    () => sales.reduce((sum, s) => sum + (s.cantidadProductos || 0), 0),
-    [sales],
-  );
-  const totalExpenses = useMemo(
-    () => expenses.reduce((sum, e) => sum + (e.monto || 0), 0),
-    [expenses],
-  );
+  // Métricas dinámicas
+  const totalSales = useMemo(() => {
+    const allSales = ordersService
+      .getAll()
+      .filter((o) => o.estado === "Entregada");
+    return allSales.reduce((sum, s) => sum + (s.total || 0), 0);
+  }, [sales]);
+  const totalProductsSold = useMemo(() => {
+    const allSales = ordersService
+      .getAll()
+      .filter((o) => o.estado === "Entregada");
+    return allSales.reduce((sum, s) => sum + (s.cantidadProductos || 0), 0);
+  }, [sales]);
+  const totalExpenses = useMemo(() => {
+    const todayExpenses = expensesService.getTodayExpenses();
+    return todayExpenses.reduce((sum, e) => sum + (e.monto || 0), 0);
+  }, [expenses]);
   const netProfit = totalSales - totalExpenses;
 
   // Filtrado y paginación
@@ -455,6 +269,14 @@ export const SalesPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <select
+          className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-300 text-xs bg-white"
+          defaultValue="todos"
+        >
+          <option value="todos">Todos los estados</option>
+          <option value="completada">Completadas</option>
+          <option value="devolucion">Devoluciones</option>
+        </select>
         <button
           onClick={handleNewSale}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
@@ -466,7 +288,7 @@ export const SalesPage = () => {
 
       {/* Tabla de ventas */}
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
-        <div className="overflow-auto custom-scrollbar no-scrollbar">
+        <div className="overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead className="bg-emerald-600 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
               <tr>
