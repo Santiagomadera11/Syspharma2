@@ -40,6 +40,7 @@ import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
 import { CreateOrderPage } from "../features/sales/orders/CreateOrderPage";
+import { CartProductsPage } from "../features/sales/orders/CartProductsPage";
 
 /* -------------------------------------------------------------------------- */
 /*                       SISTEMA DE EMPLEADO                                  */
@@ -119,6 +120,7 @@ export const AppRouter = () => {
           {/* --- MÓDULO DE VENTAS --- */}
           <Route path="ventas" element={<SalesPage />} />
           <Route path="ventas/nueva" element={<CreateOrderPage />} />
+          <Route path="ventas/nueva/productos" element={<CartProductsPage />} />
           <Route path="pedidos" element={<PedidosAdmin />} />
           <Route path="pedidos/crear" element={<CreateOrderPage />} />
 
@@ -147,6 +149,8 @@ export const AppRouter = () => {
           {/* Operaciones */}
           <Route path="compras" element={<EmployeeCompras />} />
           <Route path="ventas" element={<EmployeeSalesPage />} />
+          <Route path="ventas/nueva" element={<CreateOrderPage />} />
+          <Route path="ventas/nueva/productos" element={<CartProductsPage />} />
           <Route path="productos" element={<EmployeeProductos />} />
           <Route path="pedidos" element={<EmployeePedidos />} />
           <Route path="pedidos/crear" element={<CreateOrderPage />} />

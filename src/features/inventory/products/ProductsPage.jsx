@@ -12,16 +12,11 @@ import {
   X,
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
-import { useCrud } from "../../../shared/hooks/useCrud";
+import { productService } from "./services/productService";
 import StatusNotification from "../../../shared/ui/StatusNotification";
 
 export const ProductsPage = () => {
-  const {
-    items: products,
-    addItem,
-    updateItem,
-    deleteItem,
-  } = useCrud("sys_products", []);
+  const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,22 +27,14 @@ export const ProductsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const itemsPerPage = 20;
 
-  // Limpiar datos de prueba al cargar por primera vez
+  // Cargar productos al montar el componente
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("sys_products");
-      if (stored) {
-        const allProducts = JSON.parse(stored);
-        const testIds = ["PROD-1769574449240", "PROD-001", "PROD-002"];
-        const filtered = allProducts.filter((p) => !testIds.includes(p.id));
-        if (filtered.length < allProducts.length) {
-          localStorage.setItem("sys_products", JSON.stringify(filtered));
-          window.location.reload();
-        }
-      }
-    } catch (error) {
-      console.error("Error limpiando datos de prueba", error);
-    }
+    setProducts(productService.getAll());
+    // Refrescar cada 2 segundos para sincronizar cambios
+    const interval = setInterval(() => {
+      setProducts(productService.getAll());
+    }, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleCreate = () => {
@@ -59,15 +46,33 @@ export const ProductsPage = () => {
     setIsModalOpen(true);
   };
   const handleSave = (data) => {
-    if (editingItem) updateItem(editingItem.id, data);
-    else addItem({ ...data, id: `PROD-${Date.now()}` });
+    if (editingItem) {
+      const updatedProducts = productService.update(editingItem);
+      setProducts(updatedProducts);
+      setNotification({
+        message: `${data.nombre} actualizado correctamente`,
+        type: "success",
+        duration: 3000,
+      });
+    } else {
+      const newProduct = { ...data, id: Date.now() };
+      const updatedProducts = productService.create(newProduct);
+      setProducts(updatedProducts);
+      setNotification({
+        message: `${data.nombre} creado correctamente`,
+        type: "success",
+        duration: 3000,
+      });
+    }
+    setIsModalOpen(false);
+    setEditingItem(null);
   };
 
   const filtered = products.filter((p) => {
     const matchSearch =
-      p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.categoria.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = filterStatus === "todos" || p.estado === filterStatus;
+      p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.categoria?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = filterStatus === "todos" || (filterStatus === "Activo" ? p.estado : !p.estado);
     return matchSearch && matchStatus;
   });
   const currentItems = filtered.slice(
@@ -80,18 +85,17 @@ export const ProductsPage = () => {
     // Lógica simple para badge
     return (
       <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-gray-100 text-gray-700">
-        {estado || "Activo"}
+        {estado ? "Activo" : "Inactivo"}
       </span>
     );
   };
 
   const handleStatusToggle = (productId, currentStatus) => {
-    const product = products.find((p) => p.id === productId);
+    const updatedProducts = productService.toggleStatus(productId);
+    setProducts(updatedProducts);
+    const product = updatedProducts.find((p) => p.id === productId);
     if (product) {
-      const newStatus = currentStatus === "Activo" ? "Inactivo" : "Activo";
-      updateItem(productId, { ...product, estado: newStatus });
-
-      // Mostrar notificación
+      const newStatus = product.estado ? "Activo" : "Inactivo";
       setNotification({
         message: `${product.nombre} ahora está ${newStatus}`,
         type: newStatus === "Activo" ? "success" : "warning",
@@ -106,7 +110,7 @@ export const ProductsPage = () => {
 
   // Componente Toggle/Switch
   const StatusToggle = ({ estado, productId }) => {
-    const isActive = estado === "Activo";
+    const isActive = estado;
     return (
       <button
         onClick={() => handleStatusToggle(productId, estado)}
@@ -123,7 +127,7 @@ export const ProductsPage = () => {
             isActive ? "translate-x-6" : "translate-x-0.5"
           }`}
         />
-        <span className="sr-only">{estado}</span>
+        <span className="sr-only">{estado ? "Activo" : "Inactivo"}</span>
       </button>
     );
   };
@@ -510,7 +514,8 @@ export const ProductsPage = () => {
               </button>
               <button
                 onClick={() => {
-                  deleteItem(showDeleteConfirm.id);
+                  const updatedProducts = productService.delete(showDeleteConfirm.id);
+                  setProducts(updatedProducts);
                   setNotification({
                     message: `${showDeleteConfirm.nombre} eliminado correctamente`,
                     type: "success",
