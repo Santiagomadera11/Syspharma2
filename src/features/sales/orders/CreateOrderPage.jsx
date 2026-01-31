@@ -14,13 +14,63 @@ export const CreateOrderPage = () => {
   const isEmployee = location.pathname.startsWith("/employee");
   const [products, setProducts] = useState(productService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
-  const [cart, setCart] = useState([]);
+
+  // Función para cargar carrito desde localStorage
+  const loadCartFromStorage = () => {
+    const savedCart = localStorage.getItem("syspharma_cart");
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        return Array.isArray(parsedCart) ? parsedCart : [];
+      } catch (error) {
+        console.error("Error parsing saved cart:", error);
+        localStorage.removeItem("syspharma_cart");
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const [cart, setCart] = useState(loadCartFromStorage);
   const [notification, setNotification] = useState(null);
 
   // Guardar carrito en localStorage
   useEffect(() => {
     localStorage.setItem("syspharma_cart", JSON.stringify(cart));
   }, [cart]);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState(null);
+  const [originalProducts, setOriginalProducts] = useState([]);
+
+  // Cargar pedido para editar si existe
+  useEffect(() => {
+    const editOrderData = localStorage.getItem("syspharma_edit_order");
+    if (editOrderData) {
+      const orderData = JSON.parse(editOrderData);
+      setIsEditing(true);
+      setEditingOrderId(orderData.id);
+      setOriginalProducts(orderData.productosOriginales || []);
+
+      // Cargar información del cliente
+      setClientInfo({
+        documento: orderData.documento || "",
+        nombre: orderData.cliente || "",
+        telefono: orderData.telefono || "",
+        correo: orderData.correo || "",
+        metodoPago: orderData.metodoPago || "Efectivo",
+      });
+
+      // Cargar productos al carrito (solo cuando editamos)
+      if (orderData.productos && orderData.productos.length > 0) {
+        setCart(orderData.productos);
+      }
+
+      // Limpiar los datos de edición
+      localStorage.removeItem("syspharma_edit_order");
+    }
+    // Si no estamos editando, el carrito ya se cargó desde localStorage en la inicialización
+  }, []);
 
   // Información del cliente
   const [clientInfo, setClientInfo] = useState({
@@ -46,7 +96,29 @@ export const CreateOrderPage = () => {
 
   // Agregar producto al carrito
   const handleAddToCart = (product) => {
+    // Validar stock disponible
+    if (product.stock <= 0) {
+      setNotification({
+        message: `No hay stock disponible para ${product.nombre}`,
+        type: "error",
+        zIndex: 50,
+      });
+      return;
+    }
+
     const existingItem = cart.find((item) => item.id === product.id);
+    const currentQuantity = existingItem ? existingItem.cantidad : 0;
+    const newQuantity = currentQuantity + 1;
+
+    if (newQuantity > product.stock) {
+      setNotification({
+        message: `Stock insuficiente. Solo hay ${product.stock} unidades disponibles de ${product.nombre}`,
+        type: "error",
+        zIndex: 50,
+      });
+      return;
+    }
+
     if (existingItem) {
       setCart(
         cart.map((item) =>
@@ -65,6 +137,26 @@ export const CreateOrderPage = () => {
     if (newQuantity <= 0) {
       handleRemoveFromCart(productId);
     } else {
+      // Validar stock disponible
+      const product = productService.getById(productId);
+      if (!product) {
+        setNotification({
+          message: `Producto no encontrado: ${productId}`,
+          type: "error",
+          zIndex: 50,
+        });
+        return;
+      }
+
+      if (newQuantity > product.stock) {
+        setNotification({
+          message: `Stock insuficiente. Solo hay ${product.stock} unidades disponibles de ${product.nombre}`,
+          type: "error",
+          zIndex: 50,
+        });
+        return;
+      }
+
       setCart(
         cart.map((item) =>
           item.id === productId ? { ...item, cantidad: newQuantity } : item,
@@ -120,40 +212,113 @@ export const CreateOrderPage = () => {
       return;
     }
 
-    ordersService.create({
-      cliente: clientInfo.nombre,
-      documento: clientInfo.documento,
-      productos: cart.map((p) => ({
-        nombre: p.nombre,
-        cantidad: p.cantidad,
-        precio: p.precio,
-      })),
-      total: cartTotal,
-      estado: isSale ? "Entregada" : "Pendiente",
-      metodoPago: clientInfo.metodoPago,
-      notas: `Teléfono: ${clientInfo.telefono}${
-        clientInfo.correo ? ` | Correo: ${clientInfo.correo}` : ""
-      }`,
-    });
-
-    // Actualizar stock de productos vendidos (solo para ventas)
-    if (isSale) {
-      cart.forEach(item => {
-        const currentProduct = products.find(p => p.id === item.id);
-        if (currentProduct && currentProduct.stock >= item.cantidad) {
-          productService.update(item.id, { stock: currentProduct.stock - item.cantidad });
-        }
+    if (isEditing && editingOrderId) {
+      // Actualizar pedido existente
+      ordersService.update({
+        id: editingOrderId,
+        cliente: clientInfo.nombre,
+        documento: clientInfo.documento,
+        productos: cart.map((p) => ({
+          nombre: p.nombre,
+          cantidad: p.cantidad,
+          precio: p.precio,
+          id: p.id, // Necesario para manejar stock
+        })),
+        cantidadProductos: cart.reduce((sum, p) => sum + p.cantidad, 0),
+        total: cartTotal,
+        metodoPago: clientInfo.metodoPago,
+        notas: `Teléfono: ${clientInfo.telefono}${
+          clientInfo.correo ? ` | Correo: ${clientInfo.correo}` : ""
+        }`,
       });
-      setProducts(productService.getAll());
+    } else {
+      // Crear nuevo pedido
+      ordersService.create({
+        cliente: clientInfo.nombre,
+        documento: clientInfo.documento,
+        productos: cart.map((p) => ({
+          nombre: p.nombre,
+          cantidad: p.cantidad,
+          precio: p.precio,
+          id: p.id, // Necesario para manejar stock
+        })),
+        total: cartTotal,
+        estado: isSale ? "Entregada" : "Pendiente",
+        metodoPago: clientInfo.metodoPago,
+        notas: `Teléfono: ${clientInfo.telefono}${
+          clientInfo.correo ? ` | Correo: ${clientInfo.correo}` : ""
+        }`,
+      });
     }
 
+    // Actualizar stock de productos
+    if (isEditing && editingOrderId) {
+      // Para edición: devolver stock original y reducir stock nuevo
+      originalProducts.forEach((item) => {
+        const currentProduct = products.find((p) => p.id === item.id);
+        if (currentProduct) {
+          productService.update(item.id, {
+            stock: currentProduct.stock + item.cantidad, // Devolver stock original
+          });
+        }
+      });
+
+      // Actualizar la lista de productos con el stock devuelto
+      let updatedProducts = productService.getAll();
+
+      // Después de devolver el stock original, reducir el stock del carrito actualizado
+      cart.forEach((item) => {
+        const currentProduct = updatedProducts.find((p) => p.id === item.id);
+        if (currentProduct && currentProduct.stock >= item.cantidad) {
+          productService.update(item.id, {
+            stock: currentProduct.stock - item.cantidad,
+          });
+        }
+      });
+    } else {
+      // Para creación: reducir stock normalmente
+      console.log("Creando pedido - Descontando stock para productos:", cart);
+      cart.forEach((item) => {
+        const currentProduct = products.find((p) => p.id === item.id);
+        console.log(
+          `Producto ${item.nombre} (ID: ${item.id}): stock actual ${currentProduct?.stock}, cantidad a descontar ${item.cantidad}`,
+        );
+        if (currentProduct && currentProduct.stock >= item.cantidad) {
+          const newStock = currentProduct.stock - item.cantidad;
+          productService.update(item.id, {
+            stock: newStock,
+          });
+          console.log(
+            `Stock actualizado para ${item.nombre}: ${currentProduct.stock} -> ${newStock}`,
+          );
+        } else {
+          console.error(
+            `Error: No hay suficiente stock para ${item.nombre}. Stock actual: ${currentProduct?.stock}, requerido: ${item.cantidad}`,
+          );
+        }
+      });
+    }
+
+    setProducts(productService.getAll());
+
     setNotification({
-      message: isSale
-        ? "Venta registrada exitosamente"
-        : "Pedido creado exitosamente",
+      message: isEditing
+        ? isSale
+          ? "Venta actualizada exitosamente"
+          : "Pedido actualizado exitosamente"
+        : isSale
+          ? "Venta registrada exitosamente"
+          : "Pedido creado exitosamente",
       type: "success",
       zIndex: 50,
     });
+
+    // Limpiar estado de edición y carrito
+    setIsEditing(false);
+    setEditingOrderId(null);
+    setOriginalProducts([]);
+    setCart([]);
+    localStorage.removeItem("syspharma_cart");
 
     setTimeout(() => {
       if (isSale) {
@@ -380,7 +545,13 @@ export const CreateOrderPage = () => {
                 </div>
 
                 <button
-                  onClick={() => navigate(isEmployee ? "/employee/ventas/nueva/productos" : "/admin/ventas/nueva/productos")}
+                  onClick={() =>
+                    navigate(
+                      isEmployee
+                        ? "/employee/ventas/nueva/productos"
+                        : "/admin/ventas/nueva/productos",
+                    )
+                  }
                   className="w-full py-2 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium transition-colors"
                 >
                   Ver detalle productos

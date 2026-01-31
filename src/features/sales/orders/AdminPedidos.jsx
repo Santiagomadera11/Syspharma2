@@ -6,20 +6,26 @@ import {
   ChevronRight,
   Calendar,
   Plus,
+  Download,
   Edit,
+  Trash2,
+  Users,
+  Package,
+  DollarSign,
   Pencil,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { ordersService } from "../sales/orders/services/ordersService";
-import { productService } from "../inventory/products/services/productService";
-import { OrderDetailModal } from "../sales/orders/components/OrderDetailModal";
-import { ToastNotification } from "../../shared/ui/ToastNotification";
+import { ordersService } from "./services/ordersService";
+import { productService } from "../../inventory/products/services/productService";
+import { OrderDetailModal } from "./components/OrderDetailModal";
+import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
-export const EmployeePedidos = () => {
+export const AdminPedidos = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState(ordersService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
+  const [employeeFilter, setEmployeeFilter] = useState("Todos");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -28,6 +34,8 @@ export const EmployeePedidos = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [orderToChangeStatus, setOrderToChangeStatus] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
 
   const itemsPerPage = 10;
 
@@ -39,24 +47,6 @@ export const EmployeePedidos = () => {
   const handleStatusChange = (order) => {
     setOrderToChangeStatus(order);
     setIsStatusModalOpen(true);
-  };
-
-  const handleEditOrder = (order) => {
-    // Guardar datos del pedido en localStorage para que CreateOrderPage los cargue
-    localStorage.setItem(
-      "syspharma_edit_order",
-      JSON.stringify({
-        id: order.id,
-        cliente: order.cliente,
-        documento: order.documento,
-        telefono: order.telefono || "",
-        correo: order.correo || "",
-        metodoPago: order.metodoPago || "Efectivo",
-        productos: order.productos,
-        productosOriginales: [...order.productos], // Copia de productos originales para manejar stock
-      }),
-    );
-    navigate("/employee/pedidos/nuevo");
   };
 
   const confirmStatusChange = (newStatus) => {
@@ -149,6 +139,95 @@ export const EmployeePedidos = () => {
     setOrderToChangeStatus(null);
   };
 
+  const handleDeleteOrder = (order) => {
+    setOrderToDelete(order);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteOrder = () => {
+    if (orderToDelete) {
+      // Devolver productos al stock antes de eliminar
+      orderToDelete.productos.forEach((item) => {
+        if (item && item.id) {
+          const currentProduct = productService.getById(item.id);
+          if (currentProduct) {
+            productService.update(item.id, {
+              stock: currentProduct.stock + (item.cantidad || 0),
+            });
+          }
+        }
+      });
+
+      ordersService.delete(orderToDelete.id);
+      setOrders(ordersService.getAll());
+      setNotification({
+        message: `Pedido ${orderToDelete.id} eliminado correctamente`,
+        type: "success",
+        zIndex: 1000,
+      });
+    }
+    setIsDeleteModalOpen(false);
+    setOrderToDelete(null);
+  };
+
+  const handleEditOrder = (order) => {
+    // Guardar datos del pedido en localStorage para que CreateOrderPage los cargue
+    localStorage.setItem(
+      "syspharma_edit_order",
+      JSON.stringify({
+        id: order.id,
+        cliente: order.cliente,
+        documento: order.documento,
+        telefono: order.telefono || "",
+        correo: order.correo || "",
+        metodoPago: order.metodoPago || "Efectivo",
+        productos: order.productos,
+        productosOriginales: [...order.productos], // Copia de productos originales para manejar stock
+      }),
+    );
+
+    // Limpiar carrito actual y navegar
+    localStorage.removeItem("syspharma_cart");
+    navigate("/admin/pedidos/crear");
+  };
+
+  const exportToExcel = () => {
+    // Simulación de exportación a Excel
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      "Código,Cliente,Documento,Fecha,Productos,Total,Estado\\n" +
+      filteredOrders
+        .map(
+          (order) =>
+            `${order.id},${order.cliente},${order.documento},${order.fecha},${order.cantidadProductos},${order.total},${order.estado}`,
+        )
+        .join("\\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "pedidos_syspharma.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setNotification({
+      message: "Datos exportados correctamente",
+      type: "success",
+      zIndex: 1000,
+    });
+  };
+
+  // Estadísticas para los cards
+  const stats = useMemo(() => {
+    const total = orders.length;
+    const pendientes = orders.filter((o) => o.estado === "Pendiente").length;
+    const entregados = orders.filter((o) => o.estado === "Entregado").length;
+    const totalCartera = orders.reduce((sum, order) => sum + order.total, 0);
+
+    return { total, pendientes, entregados, totalCartera };
+  }, [orders]);
+
   // Filtrado
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -166,6 +245,19 @@ export const EmployeePedidos = () => {
         return false;
       }
 
+      // Filtro de empleado (simulado - en una implementación real vendría de los datos)
+      if (employeeFilter !== "Todos") {
+        // Aquí iría la lógica para filtrar por empleado
+        // Por ahora, simulamos con algunos empleados
+        const employeeMap = {
+          "Juan Pérez": "Empleado 1",
+          "María García": "Empleado 2",
+          "Carlos López": "Empleado 3",
+        };
+        const orderEmployee = employeeMap[order.cliente] || "Empleado 1";
+        if (orderEmployee !== employeeFilter) return false;
+      }
+
       // Filtro de fecha
       if (startDate || endDate) {
         const orderDate = new Date(order.fecha);
@@ -175,7 +267,7 @@ export const EmployeePedidos = () => {
 
       return true;
     });
-  }, [orders, searchTerm, statusFilter, startDate, endDate]);
+  }, [orders, searchTerm, statusFilter, employeeFilter, startDate, endDate]);
 
   // Paginación
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -214,20 +306,71 @@ export const EmployeePedidos = () => {
       <div className="flex items-start justify-between flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">
-            Seguimiento de pedidos
+            Gestión de Pedidos
           </h1>
           <p className="text-gray-500 text-xs mt-0.5">
-            Visualiza y realiza seguimiento de todos los pedidos
+            Control administrativo completo de todos los pedidos del sistema
           </p>
         </div>
 
         <button
-          onClick={() => navigate("/employee/pedidos/crear")}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all"
+          onClick={() => navigate("/admin/pedidos/crear")}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all"
         >
           <Plus size={16} />
           Crear pedido
         </button>
+      </div>
+
+      {/* Cards de Resumen */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Package className="text-yellow-600" size={20} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">
+                Pedidos Pendientes
+              </p>
+              <p className="text-xl font-bold text-gray-800">
+                {stats.pendientes}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Package className="text-green-600" size={20} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">
+                Pedidos Entregados
+              </p>
+              <p className="text-xl font-bold text-gray-800">
+                {stats.entregados}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <DollarSign className="text-emerald-600" size={20} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">
+                Total en Cartera
+              </p>
+              <p className="text-xl font-bold text-gray-800">
+                {formatCurrency(stats.totalCartera)}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -241,7 +384,7 @@ export const EmployeePedidos = () => {
           <input
             type="text"
             placeholder="Buscar por código, nombre del cliente, documento, etc"
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-300 text-xs bg-white"
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-300 text-xs bg-white"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -257,7 +400,7 @@ export const EmployeePedidos = () => {
             setStatusFilter(e.target.value);
             setCurrentPage(0);
           }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-primary-300"
+          className="px-3 py-2 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-300"
         >
           <option value="Todos">Todos los estados</option>
           <option value="Pendiente">Pendiente</option>
@@ -265,6 +408,27 @@ export const EmployeePedidos = () => {
           <option value="Entregado">Entregado</option>
           <option value="Cancelado">Cancelado</option>
         </select>
+
+        {/* Filtro Empleado */}
+        <div className="relative">
+          <Users
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={16}
+          />
+          <select
+            value={employeeFilter}
+            onChange={(e) => {
+              setEmployeeFilter(e.target.value);
+              setCurrentPage(0);
+            }}
+            className="pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-300"
+          >
+            <option value="Todos">Todos los empleados</option>
+            <option value="Empleado 1">Empleado 1</option>
+            <option value="Empleado 2">Empleado 2</option>
+            <option value="Empleado 3">Empleado 3</option>
+          </select>
+        </div>
 
         {/* Filtro Fecha - Rango */}
         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
@@ -292,12 +456,26 @@ export const EmployeePedidos = () => {
           />
         </div>
 
+        {/* Botón Exportar */}
+        <button
+          onClick={exportToExcel}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all"
+        >
+          <Download size={14} />
+          Exportar Excel
+        </button>
+
         {/* Botón limpiar filtros */}
-        {(searchTerm || statusFilter !== "Todos" || startDate || endDate) && (
+        {(searchTerm ||
+          statusFilter !== "Todos" ||
+          employeeFilter !== "Todos" ||
+          startDate ||
+          endDate) && (
           <button
             onClick={() => {
               setSearchTerm("");
               setStatusFilter("Todos");
+              setEmployeeFilter("Todos");
               setStartDate("");
               setEndDate("");
               setCurrentPage(0);
@@ -313,7 +491,7 @@ export const EmployeePedidos = () => {
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
         <div className="overflow-auto custom-scrollbar no-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-blue-600 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
+            <thead className="bg-emerald-600 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
               <tr>
                 <th className="px-3 py-3 font-semibold">Código</th>
                 <th className="px-3 py-3 font-semibold">Cliente</th>
@@ -393,6 +571,13 @@ export const EmployeePedidos = () => {
                         >
                           <Edit size={14} />
                         </button>
+                        <button
+                          onClick={() => handleDeleteOrder(order)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
+                          title="Eliminar pedido"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -440,7 +625,14 @@ export const EmployeePedidos = () => {
         />
       )}
 
-      {/* Modal de Cambio de Estado (Empleado) */}
+      {/* Modal de Detalle */}
+      <OrderDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        order={selectedOrder}
+      />
+
+      {/* Modal de Cambio de Estado */}
       {isStatusModalOpen && orderToChangeStatus && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
@@ -452,34 +644,21 @@ export const EmployeePedidos = () => {
               <span className="font-semibold">{orderToChangeStatus.id}</span>
             </p>
             <div className="space-y-2 mb-6">
-              {(() => {
-                const currentStatus = orderToChangeStatus.estado;
-                let availableStatuses = [];
-
-                if (currentStatus === "Pendiente") {
-                  availableStatuses = ["En proceso", "Entregado", "Cancelado"];
-                } else if (currentStatus === "En proceso") {
-                  availableStatuses = ["Pendiente", "Entregado", "Cancelado"];
-                } else if (currentStatus === "Entregado") {
-                  availableStatuses = ["Cancelado"];
-                } else {
-                  availableStatuses = ["Pendiente", "En proceso", "Entregado"];
-                }
-
-                return availableStatuses.map((status) => (
+              {["Pendiente", "En proceso", "Entregado", "Cancelado"].map(
+                (status) => (
                   <button
                     key={status}
                     onClick={() => confirmStatusChange(status)}
                     className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
                       orderToChangeStatus.estado === status
-                        ? "bg-blue-100 border-blue-300 text-blue-700"
+                        ? "bg-emerald-100 border-emerald-300 text-emerald-700"
                         : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
                     }`}
                   >
                     {status}
                   </button>
-                ));
-              })()}
+                ),
+              )}
             </div>
             <div className="flex gap-3">
               <button
@@ -493,14 +672,39 @@ export const EmployeePedidos = () => {
         </div>
       )}
 
-      {/* Modal de Detalle */}
-      <OrderDetailModal
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        order={selectedOrder}
-      />
+      {/* Modal de Confirmación de Eliminación */}
+      {isDeleteModalOpen && orderToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-red-600 mb-4">
+              Confirmar Eliminación
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              ¿Estás seguro de que deseas eliminar el pedido{" "}
+              <span className="font-semibold">{orderToDelete.id}</span>?
+            </p>
+            <p className="text-xs text-gray-500 mb-6">
+              Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteOrder}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default EmployeePedidos;
+export default AdminPedidos;

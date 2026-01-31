@@ -41,6 +41,7 @@ import { ServicesPage } from "../features/services/ServicesPage";
 import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
 import { CreateOrderPage } from "../features/sales/orders/CreateOrderPage";
 import { CartProductsPage } from "../features/sales/orders/CartProductsPage";
+import { AdminPedidos } from "../features/sales/orders/AdminPedidos";
 
 /* -------------------------------------------------------------------------- */
 /*                       SISTEMA DE EMPLEADO                                  */
@@ -66,14 +67,6 @@ import ClientMiPerfil from "../features/client/ClientMiPerfil";
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
 /* -------------------------------------------------------------------------- */
-const PedidosAdmin = () => (
-  <div className="p-6">
-    <h1 className="text-xl font-bold text-gray-800">Gestión de Pedidos</h1>
-    <p className="text-sm text-gray-500">
-      Bandeja de entrada de pedidos web (Módulo pendiente).
-    </p>
-  </div>
-);
 
 export const AppRouter = () => {
   return (
@@ -121,7 +114,7 @@ export const AppRouter = () => {
           <Route path="ventas" element={<SalesPage />} />
           <Route path="ventas/nueva" element={<CreateOrderPage />} />
           <Route path="ventas/nueva/productos" element={<CartProductsPage />} />
-          <Route path="pedidos" element={<PedidosAdmin />} />
+          <Route path="pedidos" element={<AdminPedidos />} />
           <Route path="pedidos/crear" element={<CreateOrderPage />} />
 
           {/* --- MÓDULO DE SERVICIOS & CITAS --- */}

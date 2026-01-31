@@ -72,7 +72,9 @@ export const ProductsPage = () => {
     const matchSearch =
       p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.categoria?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = filterStatus === "todos" || (filterStatus === "Activo" ? p.estado : !p.estado);
+    const matchStatus =
+      filterStatus === "todos" ||
+      (filterStatus === "Activo" ? p.estado : !p.estado);
     return matchSearch && matchStatus;
   });
   const currentItems = filtered.slice(
@@ -514,7 +516,9 @@ export const ProductsPage = () => {
               </button>
               <button
                 onClick={() => {
-                  const updatedProducts = productService.delete(showDeleteConfirm.id);
+                  const updatedProducts = productService.delete(
+                    showDeleteConfirm.id,
+                  );
                   setProducts(updatedProducts);
                   setNotification({
                     message: `${showDeleteConfirm.nombre} eliminado correctamente`,
