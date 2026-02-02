@@ -18,11 +18,61 @@ export const CartProductsPage = () => {
     }
   };
 
+  // Función para sincronizar stock del carrito con inventario
+  const syncCartStock = (cartItems) => {
+    let hasAdjustments = false;
+    const syncedCart = cartItems.map(cartItem => {
+      const currentProduct = productService.getById(cartItem.id);
+      if (currentProduct) {
+        // Si el stock actual es menor que la cantidad en el carrito, ajustar cantidad
+        if (currentProduct.stock < cartItem.cantidad) {
+          hasAdjustments = true;
+          setStockError(`Stock insuficiente para ${cartItem.nombre}. Cantidad ajustada de ${cartItem.cantidad} a ${currentProduct.stock}.`);
+        }
+        const adjustedQuantity = Math.min(cartItem.cantidad, currentProduct.stock);
+        return { 
+          ...cartItem, 
+          stock: currentProduct.stock,
+          cantidad: adjustedQuantity
+        };
+      }
+      return cartItem;
+    });
+    
+    // Limpiar error después de 5 segundos si no hay ajustes
+    if (!hasAdjustments) {
+      setTimeout(() => setStockError(null), 5000);
+    }
+    
+    return syncedCart;
+  };
+
   useEffect(() => {
     const savedCart = localStorage.getItem("syspharma_cart");
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+          const syncedCart = syncCartStock(parsedCart);
+          setCart(syncedCart);
+        }
+      } catch (error) {
+        console.error("Error parsing saved cart:", error);
+        localStorage.removeItem("syspharma_cart");
+      }
     }
+
+    // Refrescar stock cada 5 segundos
+    const interval = setInterval(() => {
+      setCart(currentCart => {
+        const syncedCart = syncCartStock(currentCart);
+        // Guardar cambios en localStorage si hubo ajustes
+        localStorage.setItem("syspharma_cart", JSON.stringify(syncedCart));
+        return syncedCart;
+      });
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const formatCurrency = (amount) => {

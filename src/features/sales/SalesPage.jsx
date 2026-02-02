@@ -20,6 +20,7 @@ import { ShiftsHistory } from "./components/ShiftsHistory";
 import { turnService } from "./services/turnService";
 import { ordersService } from "./orders/services/ordersService";
 import { expensesService } from "./services/expensesService";
+import { salesService } from "./services/salesService";
 import { OpenShiftModal } from "./components/OpenShiftModal";
 import { CloseShiftModal } from "./components/CloseShiftModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
@@ -27,9 +28,7 @@ import { ToastNotification } from "../../shared/ui/ToastNotification";
 export const SalesPage = () => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-  const [sales, setSales] = useState(() =>
-    ordersService.getAll().filter((o) => o.estado === "Entregada"),
-  );
+  const [sales, setSales] = useState(() => salesService.getAll());
   const [expenses, setExpenses] = useState(expensesService.getTodayExpenses());
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -55,17 +54,27 @@ export const SalesPage = () => {
       setShowOpenShiftModal(true);
     }
     // Recargar ventas desde BD
-    setSales(ordersService.getAll().filter((o) => o.estado === "Entregada"));
+    setSales(salesService.getAll());
     setExpenses(expensesService.getTodayExpenses());
 
     // Refrescar datos cuando la ventana regresa al foco
     const handleFocus = () => {
-      setSales(ordersService.getAll().filter((o) => o.estado === "Entregada"));
+      setSales(salesService.getAll());
       setExpenses(expensesService.getTodayExpenses());
     };
 
     window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
+
+    // Actualizar datos cada 30 segundos para capturar ventas desde otros módulos
+    const interval = setInterval(() => {
+      setSales(salesService.getAll());
+      setExpenses(expensesService.getTodayExpenses());
+    }, 30000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleShiftOpened = (newTurn) => {
@@ -118,15 +127,11 @@ export const SalesPage = () => {
 
   // Métricas dinámicas
   const totalSales = useMemo(() => {
-    const allSales = ordersService
-      .getAll()
-      .filter((o) => o.estado === "Entregada");
+    const allSales = salesService.getAll();
     return allSales.reduce((sum, s) => sum + (s.total || 0), 0);
   }, [sales]);
   const totalProductsSold = useMemo(() => {
-    const allSales = ordersService
-      .getAll()
-      .filter((o) => o.estado === "Entregada");
+    const allSales = salesService.getAll();
     return allSales.reduce((sum, s) => sum + (s.cantidadProductos || 0), 0);
   }, [sales]);
   const totalExpenses = useMemo(() => {
@@ -355,25 +360,6 @@ export const SalesPage = () => {
                           title="Ver detalle"
                         >
                           <Eye size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleReturnSale(sale.id)}
-                          disabled={sale.estado === "devolucion"}
-                          className={`p-1.5 rounded-md border ${
-                            sale.estado === "devolucion"
-                              ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                              : "bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-200"
-                          }`}
-                          title="Procesar devolución"
-                        >
-                          <RotateCcw size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSale(sale.id)}
-                          className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>

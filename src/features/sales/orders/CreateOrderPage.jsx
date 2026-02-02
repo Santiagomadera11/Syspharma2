@@ -15,13 +15,39 @@ export const CreateOrderPage = () => {
   const [products, setProducts] = useState(productService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Cargar productos y refrescar periódicamente
+  useEffect(() => {
+    const loadProducts = () => setProducts(productService.getAll());
+    loadProducts();
+    
+    // Refrescar productos cada 3 segundos para mantener stock actualizado
+    const interval = setInterval(loadProducts, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Función para cargar carrito desde localStorage
   const loadCartFromStorage = () => {
     const savedCart = localStorage.getItem("syspharma_cart");
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        return Array.isArray(parsedCart) ? parsedCart : [];
+        if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+          // Sincronizar stock con inventario actual y ajustar cantidades si es necesario
+          return parsedCart.map(cartItem => {
+            const currentProduct = productService.getById(cartItem.id);
+            if (currentProduct) {
+              // Si el stock actual es menor que la cantidad en el carrito, ajustar cantidad
+              const adjustedQuantity = Math.min(cartItem.cantidad, currentProduct.stock);
+              return { 
+                ...cartItem, 
+                stock: currentProduct.stock,
+                cantidad: adjustedQuantity
+              };
+            }
+            return cartItem;
+          });
+        }
+        return [];
       } catch (error) {
         console.error("Error parsing saved cart:", error);
         localStorage.removeItem("syspharma_cart");
@@ -243,11 +269,12 @@ export const CreateOrderPage = () => {
           id: p.id, // Necesario para manejar stock
         })),
         total: cartTotal,
-        estado: isSale ? "Entregada" : "Pendiente",
+        estado: "Pendiente",
         metodoPago: clientInfo.metodoPago,
         notas: `Teléfono: ${clientInfo.telefono}${
           clientInfo.correo ? ` | Correo: ${clientInfo.correo}` : ""
         }`,
+        creadoPor: isEmployee ? "Empleado" : "Administrador",
       });
     }
 
@@ -255,7 +282,7 @@ export const CreateOrderPage = () => {
     if (isEditing && editingOrderId) {
       // Para edición: devolver stock original y reducir stock nuevo
       originalProducts.forEach((item) => {
-        const currentProduct = products.find((p) => p.id === item.id);
+        const currentProduct = productService.getById(item.id);
         if (currentProduct) {
           productService.update(item.id, {
             stock: currentProduct.stock + item.cantidad, // Devolver stock original
@@ -263,12 +290,9 @@ export const CreateOrderPage = () => {
         }
       });
 
-      // Actualizar la lista de productos con el stock devuelto
-      let updatedProducts = productService.getAll();
-
       // Después de devolver el stock original, reducir el stock del carrito actualizado
       cart.forEach((item) => {
-        const currentProduct = updatedProducts.find((p) => p.id === item.id);
+        const currentProduct = productService.getById(item.id);
         if (currentProduct && currentProduct.stock >= item.cantidad) {
           productService.update(item.id, {
             stock: currentProduct.stock - item.cantidad,
@@ -279,22 +303,16 @@ export const CreateOrderPage = () => {
       // Para creación: reducir stock normalmente
       console.log("Creando pedido - Descontando stock para productos:", cart);
       cart.forEach((item) => {
-        const currentProduct = products.find((p) => p.id === item.id);
-        console.log(
-          `Producto ${item.nombre} (ID: ${item.id}): stock actual ${currentProduct?.stock}, cantidad a descontar ${item.cantidad}`,
-        );
+        const currentProduct = productService.getById(item.id);
+        console.log(`Producto ${item.nombre} (ID: ${item.id}): stock actual ${currentProduct?.stock}, cantidad a descontar ${item.cantidad}`);
         if (currentProduct && currentProduct.stock >= item.cantidad) {
           const newStock = currentProduct.stock - item.cantidad;
           productService.update(item.id, {
             stock: newStock,
           });
-          console.log(
-            `Stock actualizado para ${item.nombre}: ${currentProduct.stock} -> ${newStock}`,
-          );
+          console.log(`✅ Stock actualizado para ${item.nombre}: ${currentProduct.stock} -> ${newStock}`);
         } else {
-          console.error(
-            `Error: No hay suficiente stock para ${item.nombre}. Stock actual: ${currentProduct?.stock}, requerido: ${item.cantidad}`,
-          );
+          console.error(`❌ Error: No hay suficiente stock para ${item.nombre}. Stock actual: ${currentProduct?.stock}, requerido: ${item.cantidad}`);
         }
       });
     }

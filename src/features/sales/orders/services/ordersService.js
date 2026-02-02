@@ -33,6 +33,7 @@ export const ordersService = {
       total: orderData.total || 0,
       estado: orderData.estado || "Pendiente",
       notas: orderData.notas || "",
+      creadoPor: orderData.creadoPor || "Administrador", // Agregar quién creó el pedido
       ...orderData,
     };
     const next = [newOrder, ...orders];
