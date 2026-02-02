@@ -30,10 +30,12 @@ export const ProductsPage = () => {
   // Cargar productos al montar el componente
   useEffect(() => {
     setProducts(productService.getAll());
-    // Refrescar cada 2 segundos para sincronizar cambios
+    // Refrescar cada 1 segundo para sincronizar cambios de stock
     const interval = setInterval(() => {
-      setProducts(productService.getAll());
-    }, 2000);
+      const updatedProducts = productService.getAll();
+      console.log(`🔄 Refrescando productos... Total: ${updatedProducts.length}`);
+      setProducts(updatedProducts);
+    }, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -47,7 +49,9 @@ export const ProductsPage = () => {
   };
   const handleSave = (data) => {
     if (editingItem) {
-      const updatedProducts = productService.update(editingItem);
+      // Actualizar producto existente con los nuevos datos
+      const updatedProduct = { ...editingItem, ...data };
+      const updatedProducts = productService.update(updatedProduct);
       setProducts(updatedProducts);
       setNotification({
         message: `${data.nombre} actualizado correctamente`,

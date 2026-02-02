@@ -116,6 +116,18 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
             </div>
           </div>
 
+          {/* Encargado */}
+          <div>
+            <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-1 block">
+              Encargado
+            </label>
+            <div className="bg-gray-50 rounded-lg p-2">
+              <p className="text-xs font-semibold text-gray-800">
+                {order.creadoPor || "Administrador"}
+              </p>
+            </div>
+          </div>
+
           {/* Productos */}
           <div>
             <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2.5 text-emerald-700">

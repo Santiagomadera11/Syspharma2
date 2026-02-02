@@ -15,9 +15,11 @@ import {
 import { turnService } from "../sales/services/turnService";
 import { ordersService } from "../sales/orders/services/ordersService";
 import { expensesService } from "../sales/services/expensesService";
+import { salesService } from "../sales/services/salesService";
 import { RegisterExpenseModal } from "../sales/components/RegisterExpenseModal";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 import { CloseShiftModal } from "../sales/components/CloseShiftModal";
+import { OrderDetailModal } from "../sales/orders/components/OrderDetailModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 /**
@@ -31,9 +33,7 @@ export const EmployeeSalesPage = () => {
   const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
 
   // Estados principales
-  const [sales, setSales] = useState(() =>
-    ordersService.getAll().filter((o) => o.estado === "Entregada"),
-  );
+  const [sales, setSales] = useState(() => salesService.getAll());
   const [expenses, setExpenses] = useState(expensesService.getTodayExpenses());
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
@@ -44,6 +44,8 @@ export const EmployeeSalesPage = () => {
   const [isExpensesModalOpen, setIsExpensesModalOpen] = useState(false);
   const [isRegisterExpenseModalOpen, setIsRegisterExpenseModalOpen] =
     useState(false);
+  const [isSaleDetailOpen, setIsSaleDetailOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState(null);
 
   const itemsPerPage = 20;
 
@@ -56,12 +58,12 @@ export const EmployeeSalesPage = () => {
       setShowOpenShiftModal(true);
     }
     // Recargar ventas desde BD
-    setSales(ordersService.getAll().filter((o) => o.estado === "Entregada"));
+    setSales(salesService.getAll());
     setExpenses(expensesService.getTodayExpenses());
 
     // Refrescar datos cuando la ventana regresa al foco
     const handleFocus = () => {
-      setSales(ordersService.getAll().filter((o) => o.estado === "Entregada"));
+      setSales(salesService.getAll());
       setExpenses(expensesService.getTodayExpenses());
     };
 
@@ -269,17 +271,18 @@ export const EmployeeSalesPage = () => {
                 <th className="px-3 py-3 font-semibold">Código</th>
                 <th className="px-3 py-3 font-semibold">Hora</th>
                 <th className="px-3 py-3 font-semibold">Cliente</th>
-                <th className="px-3 py-3 font-semibold text-center">Piezas</th>
+                <th className="px-3 py-3 font-semibold text-center">Productos</th>
                 <th className="px-3 py-3 font-semibold">Método</th>
                 <th className="px-3 py-3 font-semibold text-right">Total</th>
                 <th className="px-3 py-3 font-semibold text-center">Estado</th>
+                <th className="px-3 py-3 font-semibold text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {displayedSales.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-3 py-8 text-center text-gray-400"
                   >
                     No hay ventas registradas
@@ -319,6 +322,20 @@ export const EmployeeSalesPage = () => {
                       >
                         {sale.estado}
                       </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setSelectedSale(sale);
+                            setIsSaleDetailOpen(true);
+                          }}
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200"
+                          title="Ver detalle"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -375,6 +392,16 @@ export const EmployeeSalesPage = () => {
         onSaveSuccess={() => {
           setExpenses(expensesService.getTodayExpenses());
         }}
+      />
+
+      {/* Modal de Detalle */}
+      <OrderDetailModal
+        isOpen={isSaleDetailOpen}
+        onClose={() => {
+          setIsSaleDetailOpen(false);
+          setSelectedSale(null);
+        }}
+        order={selectedSale}
       />
 
       {/* Toast Notification */}

@@ -17,6 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
 import { productService } from "../../inventory/products/services/productService";
+import { salesService } from "../services/salesService";
 import { OrderDetailModal } from "./components/OrderDetailModal";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
@@ -36,6 +37,7 @@ export const AdminPedidos = () => {
   const [orderToChangeStatus, setOrderToChangeStatus] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState(null);
+  const [viewMode, setViewMode] = useState("activos"); // "activos" para Pendiente/En proceso, "historial" para Entregado/Cancelado
 
   const itemsPerPage = 10;
 
@@ -119,7 +121,7 @@ export const AdminPedidos = () => {
                 stock: newStock,
               });
               console.log(
-                `Stock actualizado para ${item.nombre || item.id}: ${currentProduct.stock} -> ${newStock}`,
+                `✅ Stock actualizado para ${item.nombre || item.id}: ${currentProduct.stock} -> ${newStock}`,
               );
             }
           }
@@ -129,6 +131,30 @@ export const AdminPedidos = () => {
       ordersService.updateStatus(orderToChangeStatus.id, newStatus);
       setOrders(ordersService.getAll());
       setCurrentPage(0); // Resetear a la primera página para asegurar que se vea el cambio
+
+      // Si el nuevo estado es "Entregado", crear registro en ventas
+      if (newStatus === "Entregado") {
+        // Verificar si ya existe una venta para este pedido
+        const existingSales = salesService.getAll();
+        const saleExists = existingSales.some(sale => sale.pedidoId === orderToChangeStatus.id);
+        
+        if (!saleExists) {
+          salesService.create({
+            id: orderToChangeStatus.id, // Heredar el código del pedido (PED-003)
+            cliente: orderToChangeStatus.cliente,
+            productos: orderToChangeStatus.productos,
+            total: orderToChangeStatus.total,
+            metodoPago: orderToChangeStatus.metodoPago || "Efectivo",
+            notas: `Pedido: ${orderToChangeStatus.id} | ${orderToChangeStatus.notas || ""}`,
+            pedidoId: orderToChangeStatus.id, // Referencia al pedido original
+            fecha: new Date().toLocaleDateString("es-CO"),
+          });
+          console.log(`Venta registrada automáticamente para pedido ${orderToChangeStatus.id}`);
+        } else {
+          console.log(`Venta ya existe para pedido ${orderToChangeStatus.id}, no se duplica`);
+        }
+      }
+
       setNotification({
         message: `Estado del pedido ${orderToChangeStatus.id} actualizado a ${newStatus}`,
         type: "success",

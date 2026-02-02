@@ -12,6 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "../sales/orders/services/ordersService";
 import { productService } from "../inventory/products/services/productService";
+import { salesService } from "../sales/services/salesService";
 import { OrderDetailModal } from "../sales/orders/components/OrderDetailModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 
@@ -28,6 +29,7 @@ export const EmployeePedidos = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [orderToChangeStatus, setOrderToChangeStatus] = useState(null);
+  const [viewMode, setViewMode] = useState("activos"); // "activos" para Pendiente/En proceso, "historial" para Entregado/Cancelado
 
   const itemsPerPage = 10;
 
@@ -139,6 +141,30 @@ export const EmployeePedidos = () => {
       ordersService.updateStatus(orderToChangeStatus.id, newStatus);
       setOrders(ordersService.getAll());
       setCurrentPage(0); // Resetear a la primera página para asegurar que se vea el cambio
+
+      // Si el nuevo estado es "Entregado", crear registro en ventas
+      if (newStatus === "Entregado") {
+        // Verificar si ya existe una venta para este pedido
+        const existingSales = salesService.getAll();
+        const saleExists = existingSales.some(sale => sale.pedidoId === orderToChangeStatus.id);
+        
+        if (!saleExists) {
+          salesService.create({
+            id: orderToChangeStatus.id, // Heredar el código del pedido (PED-003)
+            cliente: orderToChangeStatus.cliente,
+            productos: orderToChangeStatus.productos,
+            total: orderToChangeStatus.total,
+            metodoPago: orderToChangeStatus.metodoPago || "Efectivo",
+            notas: `Pedido: ${orderToChangeStatus.id} | ${orderToChangeStatus.notas || ""}`,
+            pedidoId: orderToChangeStatus.id, // Referencia al pedido original
+            fecha: new Date().toLocaleDateString("es-CO"),
+          });
+          console.log(`Venta registrada automáticamente para pedido ${orderToChangeStatus.id}`);
+        } else {
+          console.log(`Venta ya existe para pedido ${orderToChangeStatus.id}, no se duplica`);
+        }
+      }
+
       setNotification({
         message: `Estado del pedido ${orderToChangeStatus.id} actualizado a ${newStatus}`,
         type: "success",
@@ -161,6 +187,19 @@ export const EmployeePedidos = () => {
 
       if (!matchesSearch) return false;
 
+      // Filtro por viewMode
+      if (viewMode === "activos") {
+        // Mostrar solo Pendiente y En proceso
+        if (!["Pendiente", "En proceso"].includes(order.estado)) {
+          return false;
+        }
+      } else if (viewMode === "historial") {
+        // Mostrar solo Entregado y Cancelado
+        if (!["Entregado", "Cancelado"].includes(order.estado)) {
+          return false;
+        }
+      }
+
       // Filtro de estado
       if (statusFilter !== "Todos" && order.estado !== statusFilter) {
         return false;
@@ -175,7 +214,7 @@ export const EmployeePedidos = () => {
 
       return true;
     });
-  }, [orders, searchTerm, statusFilter, startDate, endDate]);
+  }, [orders, searchTerm, statusFilter, startDate, endDate, viewMode];
 
   // Paginación
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -227,6 +266,36 @@ export const EmployeePedidos = () => {
         >
           <Plus size={16} />
           Crear pedido
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 flex-shrink-0 border-b border-gray-200">
+        <button
+          onClick={() => {
+            setViewMode("activos");
+            setCurrentPage(0);
+          }}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            viewMode === "activos"
+              ? "text-blue-600 border-blue-600"
+              : "text-gray-600 border-transparent hover:text-gray-800"
+          }`}
+        >
+          Pendientes y En Proceso
+        </button>
+        <button
+          onClick={() => {
+            setViewMode("historial");
+            setCurrentPage(0);
+          }}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            viewMode === "historial"
+              ? "text-blue-600 border-blue-600"
+              : "text-gray-600 border-transparent hover:text-gray-800"
+          }`}
+        >
+          Historial
         </button>
       </div>
 
@@ -388,7 +457,7 @@ export const EmployeePedidos = () => {
                         )}
                         <button
                           onClick={() => handleStatusChange(order)}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200"
                           title="Cambiar estado"
                         >
                           <Edit size={14} />
