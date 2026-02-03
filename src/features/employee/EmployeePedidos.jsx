@@ -214,7 +214,7 @@ export const EmployeePedidos = () => {
 
       return true;
     });
-  }, [orders, searchTerm, statusFilter, startDate, endDate, viewMode];
+  }, [orders, searchTerm, statusFilter, startDate, endDate, viewMode]);
 
   // Paginación
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
