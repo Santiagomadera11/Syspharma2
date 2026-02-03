@@ -39,6 +39,7 @@ import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
 // --- PÁGINAS DE SERVICIOS Y CITAS (ADMIN) ---
 import { ServicesPage } from "../features/services/ServicesPage";
 import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
+import { AvailabilityConfigPage } from "../features/services/appointments/AvailabilityConfigPage";
 import { CreateOrderPage } from "../features/sales/orders/CreateOrderPage";
 import { CartProductsPage } from "../features/sales/orders/CartProductsPage";
 import { AdminPedidos } from "../features/sales/orders/AdminPedidos";
@@ -120,6 +121,7 @@ export const AppRouter = () => {
           {/* --- MÓDULO DE SERVICIOS & CITAS --- */}
           <Route path="servicios" element={<ServicesPage />} />
           <Route path="citas" element={<AppointmentsPage />} />
+          <Route path="citas/disponibilidad" element={<AvailabilityConfigPage />} />
 
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />
@@ -151,7 +153,7 @@ export const AppRouter = () => {
           {/* ✅ NUEVA RUTA: Servicios del Empleado */}
           <Route path="servicios" element={<EmployeeServicesPage />} />
 
-          <Route path="citas" element={<EmployeeCitas />} />
+          <Route path="citas" element={<AppointmentsPage />} />
         </Route>
 
         {/* =================================================================

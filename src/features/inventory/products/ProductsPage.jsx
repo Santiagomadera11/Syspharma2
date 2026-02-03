@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
 import { productService } from "./services/productService";
-import StatusNotification from "../../../shared/ui/StatusNotification";
+import { StatusNotification } from "/src/shared/ui/StatusNotification";
 
 export const ProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -33,7 +33,9 @@ export const ProductsPage = () => {
     // Refrescar cada 1 segundo para sincronizar cambios de stock
     const interval = setInterval(() => {
       const updatedProducts = productService.getAll();
-      console.log(`🔄 Refrescando productos... Total: ${updatedProducts.length}`);
+      console.log(
+        `🔄 Refrescando productos... Total: ${updatedProducts.length}`,
+      );
       setProducts(updatedProducts);
     }, 1000);
     return () => clearInterval(interval);

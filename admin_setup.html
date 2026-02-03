@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Establecer Rol Administrador</title>
+</head>
+<body>
+    <h1>Establecer Rol de Administrador</h1>
+    <button onclick="setAdminRole()">Establecer como Administrador</button>
+    <button onclick="setEmployeeRole()">Establecer como Empleado</button>
+    <button onclick="checkRole()">Ver Rol Actual</button>
+    <div id="result"></div>
+
+    <script>
+        function setAdminRole() {
+            const user = { rol: "Administrador", nombre: "Admin Test", id: 1 };
+            localStorage.setItem("syspharma_user", JSON.stringify(user));
+            document.getElementById('result').innerHTML = 'Rol establecido como Administrador';
+            console.log('Rol establecido como Administrador:', user);
+        }
+
+        function setEmployeeRole() {
+            const user = { rol: "Empleado", nombre: "Empleado Test", id: 2 };
+            localStorage.setItem("syspharma_user", JSON.stringify(user));
+            document.getElementById('result').innerHTML = 'Rol establecido como Empleado';
+            console.log('Rol establecido como Empleado:', user);
+        }
+
+        function checkRole() {
+            const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+            document.getElementById('result').innerHTML = `Rol actual: ${user.rol || 'No establecido'}`;
+            console.log('Usuario actual:', user);
+        }
+    </script>
+</body>
+</html>

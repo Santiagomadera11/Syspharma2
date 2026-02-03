@@ -71,14 +71,20 @@ export const productService = {
       p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p,
     );
     localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    console.log(`🔄 Producto ${updatedProduct.id} actualizado. Nuevo stock:`, updatedProduct.stock);
+    console.log(
+      `🔄 Producto ${updatedProduct.id} actualizado. Nuevo stock:`,
+      updatedProduct.stock,
+    );
     return newList;
   },
 
   getById: (id) => {
     const products = productService.getAll();
     const found = products.find((p) => p.id == id); // Usar == en lugar de === para comparación flexible
-    console.log(`🔍 Buscando producto ID: ${id}, encontrado:`, found ? `${found.nombre} (stock: ${found.stock})` : 'NO ENCONTRADO');
+    console.log(
+      `🔍 Buscando producto ID: ${id}, encontrado:`,
+      found ? `${found.nombre} (stock: ${found.stock})` : "NO ENCONTRADO",
+    );
     return found;
   },
 
