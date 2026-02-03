@@ -19,7 +19,7 @@ export const CreateOrderPage = () => {
   useEffect(() => {
     const loadProducts = () => setProducts(productService.getAll());
     loadProducts();
-    
+
     // Refrescar productos cada 3 segundos para mantener stock actualizado
     const interval = setInterval(loadProducts, 3000);
     return () => clearInterval(interval);
@@ -33,15 +33,18 @@ export const CreateOrderPage = () => {
         const parsedCart = JSON.parse(savedCart);
         if (Array.isArray(parsedCart) && parsedCart.length > 0) {
           // Sincronizar stock con inventario actual y ajustar cantidades si es necesario
-          return parsedCart.map(cartItem => {
+          return parsedCart.map((cartItem) => {
             const currentProduct = productService.getById(cartItem.id);
             if (currentProduct) {
               // Si el stock actual es menor que la cantidad en el carrito, ajustar cantidad
-              const adjustedQuantity = Math.min(cartItem.cantidad, currentProduct.stock);
-              return { 
-                ...cartItem, 
+              const adjustedQuantity = Math.min(
+                cartItem.cantidad,
+                currentProduct.stock,
+              );
+              return {
+                ...cartItem,
                 stock: currentProduct.stock,
-                cantidad: adjustedQuantity
+                cantidad: adjustedQuantity,
               };
             }
             return cartItem;
@@ -304,15 +307,21 @@ export const CreateOrderPage = () => {
       console.log("Creando pedido - Descontando stock para productos:", cart);
       cart.forEach((item) => {
         const currentProduct = productService.getById(item.id);
-        console.log(`Producto ${item.nombre} (ID: ${item.id}): stock actual ${currentProduct?.stock}, cantidad a descontar ${item.cantidad}`);
+        console.log(
+          `Producto ${item.nombre} (ID: ${item.id}): stock actual ${currentProduct?.stock}, cantidad a descontar ${item.cantidad}`,
+        );
         if (currentProduct && currentProduct.stock >= item.cantidad) {
           const newStock = currentProduct.stock - item.cantidad;
           productService.update(item.id, {
             stock: newStock,
           });
-          console.log(`✅ Stock actualizado para ${item.nombre}: ${currentProduct.stock} -> ${newStock}`);
+          console.log(
+            `✅ Stock actualizado para ${item.nombre}: ${currentProduct.stock} -> ${newStock}`,
+          );
         } else {
-          console.error(`❌ Error: No hay suficiente stock para ${item.nombre}. Stock actual: ${currentProduct?.stock}, requerido: ${item.cantidad}`);
+          console.error(
+            `❌ Error: No hay suficiente stock para ${item.nombre}. Stock actual: ${currentProduct?.stock}, requerido: ${item.cantidad}`,
+          );
         }
       });
     }

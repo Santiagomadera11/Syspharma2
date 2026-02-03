@@ -61,5 +61,3 @@ export const StatusNotification = ({
     </div>
   );
 };
-
-export default StatusNotification;

@@ -107,7 +107,7 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
               <div className="bg-gray-50 rounded-lg p-2">
                 <span
                   className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${getStatusColor(
-                    order.estado
+                    order.estado,
                   )}`}
                 >
                   {order.estado}
