@@ -14,7 +14,7 @@ import { UserFormModal } from "./components/UserFormModal";
 import UserDetailModal from "./components/UserDetailModal";
 import { rolesService } from "../settings/rolesService";
 import { useMemo } from "react";
-import StatusNotification from "../../shared/ui/StatusNotification";
+import { StatusNotification } from "/src/shared/ui/StatusNotification";
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);

@@ -271,7 +271,9 @@ export const EmployeeSalesPage = () => {
                 <th className="px-3 py-3 font-semibold">Código</th>
                 <th className="px-3 py-3 font-semibold">Hora</th>
                 <th className="px-3 py-3 font-semibold">Cliente</th>
-                <th className="px-3 py-3 font-semibold text-center">Productos</th>
+                <th className="px-3 py-3 font-semibold text-center">
+                  Productos
+                </th>
                 <th className="px-3 py-3 font-semibold">Método</th>
                 <th className="px-3 py-3 font-semibold text-right">Total</th>
                 <th className="px-3 py-3 font-semibold text-center">Estado</th>

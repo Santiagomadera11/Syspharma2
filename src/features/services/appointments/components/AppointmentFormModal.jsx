@@ -1,182 +1,314 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, Calendar, Clock, User, FileText, DollarSign, CreditCard, Stethoscope } from "lucide-react";
+import { X, Save, Calendar, Clock, User, FileText, Phone } from "lucide-react";
+import { appointmentService } from "../services/appointmentService";
 
-// Simulación de Precios de Servicios (Esto vendría de tu base de datos de Servicios)
-const SERVICE_PRICES = {
-  "Consulta General": 25000,
-  "Inyectable": 2500,
-  "Toma de Presión": 1000,
-  "Curación": 8000,
-  "Certificado Médico": 15000
-};
-
-const AppointmentFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) => {
+const AppointmentFormModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  appointment,
+  doctors,
+  availabilityService,
+}) => {
   const [formData, setFormData] = useState({
     paciente: "",
-    servicio: "",
-    profesional: "",
+    documento: "",
+    telefono: "",
+    doctorId: "",
     fecha: "",
     hora: "",
-    estadoCita: "Pendiente", // Programada, Confirmada, Cancelada
-    precio: "",
-    estadoPago: "Pendiente", // Pendiente, Pagado
-    metodoPago: "Efectivo",
-    notas: ""
+    servicio: "",
+    notas: "",
   });
 
+  const [availableSlots, setAvailableSlots] = useState([]);
+
   useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
+    if (appointment) {
+      setFormData({
+        paciente: appointment.paciente || "",
+        documento: appointment.documento || "",
+        telefono: appointment.telefono || "",
+        doctorId: appointment.doctorId || "",
+        fecha: appointment.fecha || "",
+        hora: appointment.hora || "",
+        servicio: appointment.servicio || "",
+        notas: appointment.notas || "",
+      });
     } else {
       setFormData({
-        paciente: "", servicio: "", profesional: "", fecha: "", hora: "",
-        estadoCita: "Pendiente", precio: "", estadoPago: "Pendiente", metodoPago: "Efectivo", notas: ""
+        paciente: "",
+        documento: "",
+        telefono: "",
+        doctorId: "",
+        fecha: "",
+        hora: "",
+        servicio: "",
+        notas: "",
       });
     }
-  }, [initialData, isOpen]);
+  }, [appointment, isOpen, doctors]);
 
-  // Lógica: Al cambiar servicio, actualizar precio sugerido
-  const handleServiceChange = (e) => {
-    const serviceName = e.target.value;
-    const suggestedPrice = SERVICE_PRICES[serviceName] || "";
+  // Cuando cambia el médico o la fecha, actualizar slots disponibles
+  useEffect(() => {
+    if (formData.doctorId && formData.fecha) {
+      const slots = availabilityService.getAvailableSlotsForDate(
+        formData.doctorId,
+        formData.fecha,
+      );
+      setAvailableSlots(slots);
+    } else {
+      setAvailableSlots([]);
+    }
+  }, [formData.doctorId, formData.fecha, availabilityService]);
+
+  const handleDoctorChange = (e) => {
+    const doctorId = parseInt(e.target.value);
+    const doctor = doctors.find((d) => d.id === doctorId);
     setFormData({
       ...formData,
-      servicio: serviceName,
-      precio: suggestedPrice // El admin puede editarlo luego si quiere
+      doctorId: doctorId,
+      servicio: doctor ? `Consulta con ${doctor.especialidad}` : "",
     });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (
+      !formData.paciente ||
+      !formData.doctorId ||
+      !formData.fecha ||
+      !formData.hora
+    ) {
+      alert("Por favor complete todos los campos obligatorios");
+      return;
+    }
+
+    const appointmentData = {
+      ...formData,
+      doctorId: parseInt(formData.doctorId),
+    };
+
+    if (appointment) {
+      // Actualizar cita existente
+      appointmentService.updateAppointment(appointment.id, appointmentData);
+    } else {
+      // Crear nueva cita
+      appointmentService.createAppointment(appointmentData);
+    }
+
+    onSave();
   };
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
-    if (!formData.paciente || !formData.servicio || !formData.precio) {
-      alert("Campos obligatorios: Paciente, Servicio y Precio");
-      return;
-    }
-    onSave({ ...formData, precio: Number(formData.precio) });
-    onClose();
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        
-        {/* Header */}
-        <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-            <Calendar size={16} className="text-emerald-600"/> 
-            {isViewMode ? "Detalle de la Transacción" : (initialData ? "Editar Cita / Venta" : "Nueva Cita")}
-          </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors"><X size={18} /></button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1">
-          
-          {/* SECCIÓN 1: DATOS MÉDICOS */}
-          <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 border-b pb-1">Información de la Cita</h4>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="col-span-2 md:col-span-1">
-                <label className="block text-xs font-bold text-gray-700 mb-1">Paciente</label>
-                <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                    <input type="text" disabled={isViewMode} className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 disabled:bg-gray-100" 
-                      placeholder="Nombre del paciente" value={formData.paciente} onChange={(e) => setFormData({...formData, paciente: e.target.value})} />
-                </div>
-            </div>
-            <div className="col-span-2 md:col-span-1">
-                <label className="block text-xs font-bold text-gray-700 mb-1">Profesional</label>
-                <div className="relative">
-                    <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                    <select disabled={isViewMode} className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 bg-white disabled:bg-gray-100"
-                      value={formData.profesional} onChange={(e) => setFormData({...formData, profesional: e.target.value})}>
-                      <option value="">Asignar Médico...</option>
-                      <option>Dr. Juan Pérez</option>
-                      <option>Enf. María Gómez</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Fecha</label>
-                <input type="date" disabled={isViewMode} className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 disabled:bg-gray-100" 
-                  value={formData.fecha} onChange={(e) => setFormData({...formData, fecha: e.target.value})} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-                <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Hora</label>
-                    <input type="time" disabled={isViewMode} className="w-full px-2 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 disabled:bg-gray-100" 
-                      value={formData.hora} onChange={(e) => setFormData({...formData, hora: e.target.value})} />
-                </div>
-                <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Estado Cita</label>
-                    <select disabled={isViewMode} className="w-full px-2 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 bg-white disabled:bg-gray-100"
-                      value={formData.estadoCita} onChange={(e) => setFormData({...formData, estadoCita: e.target.value})}>
-                      <option>Pendiente</option><option>Confirmada</option><option>Atendida</option><option>Cancelada</option>
-                    </select>
-                </div>
-            </div>
-          </div>
-
-          {/* SECCIÓN 2: DATOS FINANCIEROS (LA VENTA) */}
-          <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 border-b pb-1 mt-6">Información Financiera</h4>
-          <div className="bg-emerald-50/50 p-4 rounded-lg border border-emerald-100 grid grid-cols-2 gap-4">
-             <div className="col-span-2 md:col-span-1">
-                <label className="block text-xs font-bold text-gray-700 mb-1">Servicio (Producto)</label>
-                <select disabled={isViewMode} className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 bg-white disabled:bg-gray-100"
-                  value={formData.servicio} onChange={handleServiceChange}>
-                  <option value="">Seleccionar Servicio...</option>
-                  {Object.keys(SERVICE_PRICES).map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-             </div>
-             
-             <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Precio ($)</label>
-                <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                    <input type="number" disabled={isViewMode} className="w-full pl-8 pr-3 py-2 text-sm font-bold text-gray-800 border border-gray-300 rounded focus:outline-none focus:border-emerald-500 disabled:bg-gray-100" 
-                      placeholder="0.00" value={formData.precio} onChange={(e) => setFormData({...formData, precio: e.target.value})} />
-                </div>
-             </div>
-
-             <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Estado de Pago</label>
-                <select disabled={isViewMode} className={`w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 disabled:bg-gray-100 font-medium ${formData.estadoPago === 'Pagado' ? 'text-green-700 bg-green-50' : 'text-orange-700 bg-orange-50'}`}
-                  value={formData.estadoPago} onChange={(e) => setFormData({...formData, estadoPago: e.target.value})}>
-                  <option value="Pendiente">Pendiente de Cobro</option>
-                  <option value="Pagado">Pagado</option>
-                </select>
-             </div>
-
-             <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Método de Pago</label>
-                <div className="relative">
-                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                    <select disabled={isViewMode} className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 bg-white disabled:bg-gray-100"
-                      value={formData.metodoPago} onChange={(e) => setFormData({...formData, metodoPago: e.target.value})}>
-                      <option>Efectivo</option><option>Tarjeta</option><option>Transferencia</option><option>Seguro</option>
-                    </select>
-                </div>
-             </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-xs font-bold text-gray-700 mb-1">Observaciones</label>
-            <textarea disabled={isViewMode} className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-emerald-500 h-16 resize-none disabled:bg-gray-100" 
-              placeholder="Notas internas..." value={formData.notas} onChange={(e) => setFormData({...formData, notas: e.target.value})} />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors">
-            {isViewMode ? "Cerrar" : "Cancelar"}
+    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-4 max-w-lg w-full mx-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-800">
+            {appointment ? "Editar Cita" : "Nueva Cita"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X size={24} />
           </button>
-          {!isViewMode && (
-            <button onClick={handleSubmit} className="px-4 py-2 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded-md flex items-center gap-1 shadow-sm transition-colors">
-              <Save size={16} /> Guardar Transacción
-            </button>
-          )}
         </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Información del Paciente */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del Paciente *
+              </label>
+              <div className="relative">
+                <User
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={16}
+                />
+                <input
+                  type="text"
+                  required
+                  className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
+                  placeholder="Nombre completo"
+                  value={formData.paciente}
+                  onChange={(e) =>
+                    setFormData({ ...formData, paciente: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Documento *
+              </label>
+              <input
+                type="text"
+                required
+                className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
+                placeholder="Número de documento"
+                value={formData.documento}
+                onChange={(e) =>
+                  setFormData({ ...formData, documento: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Teléfono
+            </label>
+            <div className="relative">
+              <Phone
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={16}
+              />
+              <input
+                type="tel"
+                className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
+                placeholder="Número de teléfono"
+                value={formData.telefono}
+                onChange={(e) =>
+                  setFormData({ ...formData, telefono: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          {/* Profesional Médico */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Profesional Médico *
+            </label>
+            <select
+              required
+              className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
+              value={formData.doctorId}
+              onChange={handleDoctorChange}
+            >
+              <option value="">Seleccionar profesional</option>
+              {doctors.map((doctor) => (
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.nombre} - {doctor.especialidad}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Fecha y Hora */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha *
+              </label>
+              <div className="relative">
+                <Calendar
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={16}
+                />
+                <input
+                  type="date"
+                  required
+                  className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
+                  value={formData.fecha}
+                  onChange={(e) =>
+                    setFormData({ ...formData, fecha: e.target.value })
+                  }
+                  min={new Date().toISOString().split("T")[0]}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Hora *
+              </label>
+              <select
+                required
+                className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
+                value={formData.hora}
+                onChange={(e) =>
+                  setFormData({ ...formData, hora: e.target.value })
+                }
+                disabled={!formData.doctorId || !formData.fecha}
+              >
+                <option value="">
+                  {!formData.doctorId || !formData.fecha
+                    ? "Seleccione médico y fecha primero"
+                    : "Seleccionar hora disponible"}
+                </option>
+                {availableSlots.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Servicio */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Servicio *
+            </label>
+            <div className="relative">
+              <FileText
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={16}
+              />
+              <input
+                type="text"
+                required
+                className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
+                placeholder="Tipo de consulta o servicio"
+                value={formData.servicio}
+                onChange={(e) =>
+                  setFormData({ ...formData, servicio: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Notas Adicionales
+            </label>
+            <textarea
+              className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
+              rows={2}
+              placeholder="Observaciones adicionales..."
+              value={formData.notas}
+              onChange={(e) =>
+                setFormData({ ...formData, notas: e.target.value })
+              }
+            />
+          </div>
+
+          {/* Botones */}
+          <div className="flex gap-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <Save size={16} className="inline mr-2" />
+              {appointment ? "Actualizar Cita" : "Crear Cita"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -146,8 +146,10 @@ export const EmployeePedidos = () => {
       if (newStatus === "Entregado") {
         // Verificar si ya existe una venta para este pedido
         const existingSales = salesService.getAll();
-        const saleExists = existingSales.some(sale => sale.pedidoId === orderToChangeStatus.id);
-        
+        const saleExists = existingSales.some(
+          (sale) => sale.pedidoId === orderToChangeStatus.id,
+        );
+
         if (!saleExists) {
           salesService.create({
             id: orderToChangeStatus.id, // Heredar el código del pedido (PED-003)
@@ -159,9 +161,13 @@ export const EmployeePedidos = () => {
             pedidoId: orderToChangeStatus.id, // Referencia al pedido original
             fecha: new Date().toLocaleDateString("es-CO"),
           });
-          console.log(`Venta registrada automáticamente para pedido ${orderToChangeStatus.id}`);
+          console.log(
+            `Venta registrada automáticamente para pedido ${orderToChangeStatus.id}`,
+          );
         } else {
-          console.log(`Venta ya existe para pedido ${orderToChangeStatus.id}, no se duplica`);
+          console.log(
+            `Venta ya existe para pedido ${orderToChangeStatus.id}, no se duplica`,
+          );
         }
       }
 
@@ -214,7 +220,7 @@ export const EmployeePedidos = () => {
 
       return true;
     });
-  }, [orders, searchTerm, statusFilter, startDate, endDate, viewMode];
+  }, [orders, searchTerm, statusFilter, startDate, endDate, viewMode]);
 
   // Paginación
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
