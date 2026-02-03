@@ -561,14 +561,6 @@ export const AppointmentsPage = () => {
             Sistema completo de agendamiento y seguimiento de citas médicas
           </p>
         </div>
-        {/* Temporalmente visible para testing */}
-        <button
-          onClick={() => navigate("/admin/citas/disponibilidad")}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2"
-        >
-          <Settings size={16} />
-          Configurar Disponibilidad
-        </button>
       </div>
 
       {/* Tabs */}
@@ -594,6 +586,16 @@ export const AppointmentsPage = () => {
         >
           <List size={16} />
           Lista de Citas
+        </button>
+        <button
+          onClick={() => navigate("/admin/citas/disponibilidad")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+            "text-gray-600 border-transparent hover:text-gray-800"
+          } ${currentUserRole !== "Administrador" ? "opacity-50 cursor-not-allowed" : ""}`}
+          disabled={currentUserRole !== "Administrador"}
+        >
+          <Settings size={16} />
+          Configuración de Disponibilidad
         </button>
       </div>
 
