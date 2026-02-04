@@ -121,7 +121,10 @@ export const AppRouter = () => {
           {/* --- MÓDULO DE SERVICIOS & CITAS --- */}
           <Route path="servicios" element={<ServicesPage />} />
           <Route path="citas" element={<AppointmentsPage />} />
-          <Route path="citas/disponibilidad" element={<AvailabilityConfigPage />} />
+          <Route
+            path="citas/disponibilidad"
+            element={<AvailabilityConfigPage />}
+          />
 
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />
