@@ -268,7 +268,9 @@ export const AvailabilityConfigPage = () => {
                               <input
                                 type="time"
                                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                                value={doctorSchedule[dayKey].morning?.start || ""}
+                                value={
+                                  doctorSchedule[dayKey].morning?.start || ""
+                                }
                                 onChange={(e) =>
                                   handleScheduleChange(
                                     dayKey,
@@ -278,11 +280,15 @@ export const AvailabilityConfigPage = () => {
                                   )
                                 }
                               />
-                              <span className="flex items-center text-gray-500">a</span>
+                              <span className="flex items-center text-gray-500">
+                                a
+                              </span>
                               <input
                                 type="time"
                                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                                value={doctorSchedule[dayKey].morning?.end || ""}
+                                value={
+                                  doctorSchedule[dayKey].morning?.end || ""
+                                }
                                 onChange={(e) =>
                                   handleScheduleChange(
                                     dayKey,
@@ -304,7 +310,9 @@ export const AvailabilityConfigPage = () => {
                               <input
                                 type="time"
                                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                                value={doctorSchedule[dayKey].afternoon?.start || ""}
+                                value={
+                                  doctorSchedule[dayKey].afternoon?.start || ""
+                                }
                                 onChange={(e) =>
                                   handleScheduleChange(
                                     dayKey,
@@ -314,11 +322,15 @@ export const AvailabilityConfigPage = () => {
                                   )
                                 }
                               />
-                              <span className="flex items-center text-gray-500">a</span>
+                              <span className="flex items-center text-gray-500">
+                                a
+                              </span>
                               <input
                                 type="time"
                                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                                value={doctorSchedule[dayKey].afternoon?.end || ""}
+                                value={
+                                  doctorSchedule[dayKey].afternoon?.end || ""
+                                }
                                 onChange={(e) =>
                                   handleScheduleChange(
                                     dayKey,
@@ -417,7 +429,9 @@ export const AvailabilityConfigPage = () => {
                           })}
                         </div>
                         {day.reason && (
-                          <div className="text-sm text-red-600">{day.reason}</div>
+                          <div className="text-sm text-red-600">
+                            {day.reason}
+                          </div>
                         )}
                       </div>
                       <button

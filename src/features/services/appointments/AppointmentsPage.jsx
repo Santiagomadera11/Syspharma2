@@ -51,7 +51,8 @@ export const AppointmentsPage = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDaySummaryModalOpen, setIsDaySummaryModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [appointmentToChangeStatus, setAppointmentToChangeStatus] = useState(null);
+  const [appointmentToChangeStatus, setAppointmentToChangeStatus] =
+    useState(null);
   const [editingAppointment, setEditingAppointment] = useState(null);
 
   useEffect(() => {
@@ -366,11 +367,16 @@ export const AppointmentsPage = () => {
   const renderAppointmentsList = () => {
     const filteredAppointments = appointments.filter(
       (apt) =>
-        (apt.paciente?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-        (apt.servicio?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-        (doctors
-          .find((d) => d.id === apt.doctorId)
-          ?.nombre?.toLowerCase() || "").includes(searchTerm.toLowerCase()),
+        (apt.paciente?.toLowerCase() || "").includes(
+          searchTerm.toLowerCase(),
+        ) ||
+        (apt.servicio?.toLowerCase() || "").includes(
+          searchTerm.toLowerCase(),
+        ) ||
+        (
+          doctors.find((d) => d.id === apt.doctorId)?.nombre?.toLowerCase() ||
+          ""
+        ).includes(searchTerm.toLowerCase()),
     );
 
     return (
@@ -586,9 +592,7 @@ export const AppointmentsPage = () => {
         </button>
         <button
           onClick={() => navigate("/admin/citas/disponibilidad")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            "text-gray-600 border-transparent hover:text-gray-800"
-          } ${currentUserRole !== "Administrador" ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${"text-gray-600 border-transparent hover:text-gray-800"} ${currentUserRole !== "Administrador" ? "opacity-50 cursor-not-allowed" : ""}`}
           disabled={currentUserRole !== "Administrador"}
         >
           <Settings size={16} />
