@@ -86,7 +86,7 @@ export const appointmentService = {
     const list = appointmentService.getAppointments();
     const newAppt = {
       ...appt,
-      id: Date.now(),
+      id: Date.now() + Math.random(),
       estado: "Confirmar Asistencia",
       fechaCreacion: new Date().toISOString(),
     };
