@@ -41,7 +41,6 @@ export const AppointmentsPage = () => {
   const [activeTab, setActiveTab] = useState("calendario");
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [availability, setAvailability] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState(null);
@@ -62,7 +61,6 @@ export const AppointmentsPage = () => {
   const loadData = () => {
     setAppointments(appointmentService.getAppointments());
     setDoctors(appointmentService.getDoctors());
-    setAvailability(availabilityService.getAvailability());
   };
 
   // Helper para obtener citas de un día específico
@@ -368,12 +366,11 @@ export const AppointmentsPage = () => {
   const renderAppointmentsList = () => {
     const filteredAppointments = appointments.filter(
       (apt) =>
-        apt.paciente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        apt.servicio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doctors
+        (apt.paciente?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (apt.servicio?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (doctors
           .find((d) => d.id === apt.doctorId)
-          ?.nombre.toLowerCase()
-          .includes(searchTerm.toLowerCase()),
+          ?.nombre?.toLowerCase() || "").includes(searchTerm.toLowerCase()),
     );
 
     return (
@@ -621,45 +618,6 @@ export const AppointmentsPage = () => {
           appointment={editingAppointment}
           doctors={doctors}
           availabilityService={availabilityService}
-        />
-      )}
-
-      {isDetailModalOpen && selectedAppointment && (
-        <AppointmentDetailModal
-          isOpen={isDetailModalOpen}
-          onClose={() => {
-            setIsDetailModalOpen(false);
-            setSelectedAppointment(null);
-          }}
-          appointment={selectedAppointment}
-          doctors={doctors}
-        />
-      )}
-
-      {/* Modales */}
-      {isAppointmentModalOpen && (
-        <AppointmentFormModal
-          isOpen={isAppointmentModalOpen}
-          onClose={() => {
-            setIsAppointmentModalOpen(false);
-            setEditingAppointment(null);
-          }}
-          onSave={(appointmentData) => {
-            if (editingAppointment) {
-              appointmentService.updateAppointment(
-                editingAppointment.id,
-                appointmentData,
-              );
-            } else {
-              appointmentService.createAppointment(appointmentData);
-            }
-            loadData();
-            setIsAppointmentModalOpen(false);
-            setEditingAppointment(null);
-          }}
-          doctors={doctors}
-          availability={availability}
-          editingAppointment={editingAppointment}
         />
       )}
 
