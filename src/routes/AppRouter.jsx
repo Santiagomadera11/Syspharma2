@@ -40,6 +40,7 @@ import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { AppointmentsPage } from "../features/services/appointments/AppointmentsPage";
 import { AvailabilityConfigPage } from "../features/services/appointments/AvailabilityConfigPage";
+import DoctorsPage from "../features/services/doctors/DoctorsPage";
 import { CreateOrderPage } from "../features/sales/orders/CreateOrderPage";
 import { CartProductsPage } from "../features/sales/orders/CartProductsPage";
 import { AdminPedidos } from "../features/sales/orders/AdminPedidos";
@@ -55,6 +56,8 @@ import EmployeePedidos from "../features/employee/EmployeePedidos";
 import EmployeeCitas from "../features/employee/EmployeeCitas";
 // ✅ Importamos la nueva página de servicios para empleados
 import { EmployeeServicesPage } from "../features/employee/EmployeeServicesPage";
+// ✅ Importamos la página de citas para empleados
+import { EmployeeAppointmentsPage } from "../features/employee/EmployeeAppointmentsPage";
 
 /* -------------------------------------------------------------------------- */
 /*                         SISTEMA DE CLIENTE                                 */
@@ -125,6 +128,7 @@ export const AppRouter = () => {
             path="citas/disponibilidad"
             element={<AvailabilityConfigPage />}
           />
+          <Route path="medicos" element={<DoctorsPage />} />
 
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />
@@ -156,7 +160,8 @@ export const AppRouter = () => {
           {/* ✅ NUEVA RUTA: Servicios del Empleado */}
           <Route path="servicios" element={<EmployeeServicesPage />} />
 
-          <Route path="citas" element={<AppointmentsPage />} />
+          {/* ✅ NUEVA RUTA: Citas del Empleado */}
+          <Route path="citas" element={<EmployeeAppointmentsPage />} />
         </Route>
 
         {/* =================================================================

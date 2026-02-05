@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   Clock,
   Save,
-  ArrowLeft,
   AlertCircle,
   CheckCircle,
   Plus,
@@ -16,7 +14,6 @@ import { appointmentService } from "./services/appointmentService";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
 
 export const AvailabilityConfigPage = () => {
-  const navigate = useNavigate();
   const [availability, setAvailability] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -180,24 +177,14 @@ export const AvailabilityConfigPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate("/admin/citas")}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <h1 className="text-2xl font-bold text-gray-800">
-                Configuración de Disponibilidad
-              </h1>
-            </div>
-          </div>
+    <div className="bg-gray-50 h-full overflow-y-auto">
+      <div className="max-w-7xl mx-auto px-2 py-2">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+          <h2 className="text-lg font-bold text-gray-800 mb-3">
+            Configuración de Disponibilidad
+          </h2>
 
-          <div className="space-y-8">
+          <div className="space-y-3">
             {/* Selección de Médico */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -225,23 +212,23 @@ export const AvailabilityConfigPage = () => {
             {/* Configuración de Horarios */}
             {selectedDoctor && (
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-semibold text-gray-800">
                     Horarios de {selectedDoctor.nombre}
                   </h3>
                   <button
                     onClick={handleSaveSchedule}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                    className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
                   >
                     <Save size={16} />
                     Guardar Horario
                   </button>
                 </div>
 
-                <div className="grid gap-4">
+                <div className="grid gap-2">
                   {Object.entries(dayNames).map(([dayKey, dayName]) => (
-                    <div key={dayKey} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
+                    <div key={dayKey} className="border rounded-lg p-2">
+                      <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium text-gray-800">{dayName}</h4>
                         <button
                           onClick={() => toggleDayAvailability(dayKey)}
@@ -258,10 +245,10 @@ export const AvailabilityConfigPage = () => {
                       </div>
 
                       {doctorSchedule[dayKey] && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {/* Mañana */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
                               Mañana
                             </label>
                             <div className="flex gap-2">
@@ -303,7 +290,7 @@ export const AvailabilityConfigPage = () => {
 
                           {/* Tarde */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-2">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
                               Tarde
                             </label>
                             <div className="flex gap-2">
@@ -351,14 +338,14 @@ export const AvailabilityConfigPage = () => {
             )}
 
             {/* Días No Disponibles */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            <div className="border-t pt-2">
+              <h3 className="text-base font-semibold text-gray-800 mb-2">
                 Días No Disponibles
               </h3>
 
               {/* Agregar nuevo día no disponible */}
-              <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <h4 className="font-medium text-gray-700 mb-3">
+              <div className="bg-gray-50 p-2 rounded-lg mb-2">
+                <h4 className="font-medium text-gray-700 mb-2">
                   Agregar Día No Disponible
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
