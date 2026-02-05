@@ -489,7 +489,7 @@ export const EmployeeAppointmentsPage = () => {
             setSelectedAppointment(null);
           }}
           appointment={selectedAppointment}
-          doctor={doctors.find((d) => d.id === selectedAppointment.doctorId)}
+          doctors={doctors}
           onMarkCompleted={() => {
             appointmentService.updateAppointment(selectedAppointment.id, {
               ...selectedAppointment,

@@ -12,7 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors }) => {
+const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors = [] }) => {
   if (!isOpen || !appointment) return null;
 
   const doctor = doctors.find((d) => d.id === appointment.doctorId);
@@ -51,21 +51,21 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800">Detalle de Cita</h2>
+      <div className="bg-white rounded-xl p-3 max-w-xs w-full mx-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-gray-800">Detalle de Cita</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
           >
-            <X size={24} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           {/* Estado de la cita */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-600">Estado:</span>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-xs font-medium text-gray-600">Estado:</span>
             <span
               className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(appointment.estado)}`}
             >
@@ -75,12 +75,12 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors }) => {
           </div>
 
           {/* Información del Paciente */}
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <User size={20} />
+          <div className="border-t pt-2">
+            <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <User size={16} />
               Información del Paciente
             </h3>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2">
               <div>
                 <span className="text-sm font-medium text-gray-600">
                   Nombre:
@@ -108,12 +108,12 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors }) => {
           </div>
 
           {/* Información de la Cita */}
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Stethoscope size={20} />
+          <div className="border-t pt-2">
+            <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+              <Stethoscope size={16} />
               Información de la Cita
             </h3>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2">
               <div>
                 <span className="text-sm font-medium text-gray-600">
                   Profesional:
@@ -154,12 +154,12 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors }) => {
 
           {/* Notas */}
           {appointment.notas && (
-            <div className="border-t pt-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <FileText size={20} />
+            <div className="border-t pt-1">
+              <h3 className="text-xs font-semibold text-gray-800 mb-1 flex items-center gap-1">
+                <FileText size={12} />
                 Notas
               </h3>
-              <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
+              <p className="text-gray-700 bg-gray-50 p-2 rounded text-xs">
                 {appointment.notas}
               </p>
             </div>
@@ -167,7 +167,7 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors }) => {
 
           {/* Fecha de creación */}
           {appointment.fechaCreacion && (
-            <div className="border-t pt-4">
+            <div className="border-t pt-1">
               <div className="text-xs text-gray-500">
                 Cita creada el:{" "}
                 {new Date(appointment.fechaCreacion).toLocaleString("es-ES")}
@@ -177,10 +177,10 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors }) => {
         </div>
 
         {/* Botón cerrar */}
-        <div className="flex justify-end mt-6 pt-4 border-t">
+        <div className="flex justify-end mt-2 pt-2 border-t">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors"
           >
             Cerrar
           </button>
