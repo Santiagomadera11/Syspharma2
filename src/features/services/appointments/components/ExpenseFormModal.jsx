@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, DollarSign, FileText, Calendar, Tag, CreditCard, TrendingDown } from "lucide-react";
+import { X, Save, DollarSign, FileText, Calendar, Tag, CreditCard, TrendingDown, AlertCircle } from "lucide-react";
+import { formValidations } from "../../../../shared/utils/formValidations";
 
 const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +11,8 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
     metodoPago: "Efectivo",
     observaciones: ""
   });
+
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -24,12 +27,26 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
         observaciones: ""
       });
     }
+    setErrors({});
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
+  const handleChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+    
+    let error = "";
+    if (field === "concepto") {
+      error = formValidations.validateService(value);
+    }
+    setErrors({ ...errors, [field]: error });
+  };
+
   const handleSubmit = () => {
-    if (!formData.concepto || !formData.monto) {
+    const conceptoError = formValidations.validateService(formData.concepto);
+    setErrors({ ...errors, concepto: conceptoError });
+
+    if (!formData.concepto || !formData.monto || conceptoError) {
       alert("Concepto y Monto son obligatorios");
       return;
     }
@@ -58,9 +75,25 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
                 <label className="block text-xs font-bold text-gray-700 mb-1">Concepto / Descripción</label>
                 <div className="relative">
                     <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                    <input type="text" disabled={isViewMode} className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-red-500 disabled:bg-gray-100" 
-                      placeholder="Ej: Pago de Luz Marzo" value={formData.concepto} onChange={(e) => setFormData({...formData, concepto: e.target.value})} />
+                    <input 
+                      type="text" 
+                      disabled={isViewMode} 
+                      className={`w-full pl-8 pr-3 py-2 text-sm border rounded focus:outline-none disabled:bg-gray-100 ${
+                        errors.concepto
+                          ? "border-red-500 focus:ring-1 focus:ring-red-300"
+                          : "border-gray-300 focus:border-red-500"
+                      }`}
+                      placeholder="Ej: Pago de Luz Marzo" 
+                      value={formData.concepto} 
+                      onChange={(e) => handleChange("concepto", e.target.value)} 
+                    />
                 </div>
+                {errors.concepto && (
+                  <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                    <AlertCircle size={12} />
+                    {errors.concepto}
+                  </div>
+                )}
             </div>
             
             <div>

@@ -9,6 +9,8 @@ import {
   Package,
   AlertCircle,
   Download,
+  Calendar,
+  Wallet,
 } from "lucide-react";
 import {
   AreaChart,
@@ -31,21 +33,75 @@ import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 export const DashboardPage = () => {
   const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
-  const [currentTurn, setCurrentTurn] = useState(null);
+  const [period, setPeriod] = useState("Año"); // Día, Mes, Año
+  const [appointments, setAppointments] = useState([]);
+  const [expenses, setExpenses] = useState([]);
 
   // Al cargar el dashboard, verifica si hay turno activo
   useEffect(() => {
     const activeTurn = turnService.getActiveTurn();
-    if (activeTurn) {
-      setCurrentTurn(activeTurn);
-    } else {
-      // Si no hay turno activo, muestra el modal
+    if (!activeTurn) {
       setShowOpenShiftModal(true);
     }
   }, []);
 
-  const handleShiftOpened = (newTurn) => {
-    setCurrentTurn(newTurn);
+  // Cargar citas y gastos del localStorage y sincronizar en tiempo real
+  useEffect(() => {
+    const loadData = () => {
+      try {
+        const appointmentsData = localStorage.getItem("sys_appointments_db");
+        const expensesData = localStorage.getItem("sys_expenses_db");
+        
+        if (appointmentsData) {
+          setAppointments(JSON.parse(appointmentsData));
+        }
+        if (expensesData) {
+          setExpenses(JSON.parse(expensesData));
+        }
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      }
+    };
+
+    loadData();
+
+    // Escuchar cambios en el localStorage (para sincronización en tiempo real)
+    window.addEventListener("storage", loadData);
+    return () => window.removeEventListener("storage", loadData);
+  }, []);
+
+  // LÓGICA DE FILTRADO DE FECHAS
+  const filterByDate = (items, dateField) => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    return items.filter(item => {
+      if (!item || !item[dateField]) return false;
+      const itemDate = new Date(item[dateField]);
+      const itemDateStr = itemDate.toISOString().split('T')[0];
+
+      if (period === "Día") return itemDateStr === today;
+      if (period === "Mes") return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+      if (period === "Año") return itemDate.getFullYear() === now.getFullYear();
+      
+      return true;
+    });
+  };
+
+  // CÁLCULOS EN TIEMPO REAL
+  const filteredAppointments = filterByDate(appointments, "fecha");
+  const filteredExpenses = filterByDate(expenses, "fecha");
+
+  const totalCitas = filteredAppointments.length;
+  const totalIngresos = filteredAppointments.reduce((sum, appt) => {
+    return sum + (Number(appt.precio) || 0);
+  }, 0);
+  const totalGastos = filteredExpenses.reduce((sum, exp) => {
+    return sum + (Number(exp.monto) || 0);
+  }, 0);
+  const utilidad = totalIngresos - totalGastos;
+
+  const handleShiftOpened = () => {
     setShowOpenShiftModal(false);
   };
 
@@ -74,12 +130,12 @@ export const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* 1. LO QUE ESTABA ANTES: Banner de Bienvenida */}
+      {/* 1. Banner de Bienvenida */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-400 rounded-xl p-6 text-white shadow-md flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold mb-1">¡Hola, {user.nombre}! 👋</h1>
           <p className="opacity-90 text-sm">
-            Aquí tienes el resumen de tu farmacia hoy.
+            Aquí tienes el resumen de tu farmacia.
           </p>
         </div>
         <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
@@ -87,7 +143,63 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* 2. LO QUE ESTABA ANTES: KPIs (Resumen numérico) */}
+      {/* SELECCIONADOR DE PERÍODO */}
+      <div className="flex bg-white rounded-xl border border-gray-100 p-1 w-fit gap-1">
+        {["Día", "Mes", "Año"].map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              period === p
+                ? "bg-blue-600 text-white"
+                : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      {/* 2. TARJETAS SINCRONIZADAS CON LÓGICA CONTABLE */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* TARJETA: CITAS */}
+        <StatCard
+          title={`Citas del ${period.toLowerCase()}`}
+          value={totalCitas}
+          icon={Calendar}
+          color="blue"
+          suffix="citas"
+        />
+
+        {/* TARJETA: INGRESOS */}
+        <StatCard
+          title={`Ingresos del ${period.toLowerCase()}`}
+          value={`$${totalIngresos.toLocaleString()}`}
+          icon={DollarSign}
+          color="green"
+          suffix="Pesos"
+        />
+
+        {/* TARJETA: GASTOS */}
+        <StatCard
+          title={`Gastos del ${period.toLowerCase()}`}
+          value={`$${totalGastos.toLocaleString()}`}
+          icon={Wallet}
+          color="orange"
+          suffix="Pesos"
+        />
+
+        {/* TARJETA: UTILIDAD */}
+        <StatCard
+          title={`Utilidad del ${period.toLowerCase()}`}
+          value={`$${utilidad.toLocaleString()}`}
+          icon={TrendingUp}
+          color={utilidad >= 0 ? "emerald" : "red"}
+          suffix={utilidad >= 0 ? "Ganancia" : "Pérdida"}
+        />
+      </div>
+
+      {/* 3. KPIs Adicionales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Ventas Hoy"
@@ -115,7 +227,7 @@ export const DashboardPage = () => {
         />
       </div>
 
-      {/* 3. LO NUEVO: Las Gráficas (Cuadrícula 2x2) */}
+      {/* 4. Las Gráficas (Cuadrícula 2x2) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Gráfica Ventas */}
         <ChartCard
@@ -248,7 +360,7 @@ export const DashboardPage = () => {
         </ChartCard>
       </div>
 
-      {/* 4. LO QUE ESTABA ANTES: Accesos Rápidos */}
+      {/* 5. Accesos Rápidos */}
       <h2 className="text-base font-bold text-gray-800 pt-2">
         Accesos Rápidos
       </h2>
@@ -273,6 +385,29 @@ export const DashboardPage = () => {
 };
 
 // --- Subcomponentes para mantener el código limpio ---
+
+const StatCard = ({ title, value, icon: Icon, color, suffix }) => {
+  const colorMap = {
+    blue: "bg-blue-50/50 border-blue-100 text-blue-700",
+    green: "bg-emerald-50/50 border-emerald-100 text-emerald-700",
+    orange: "bg-orange-50/50 border-orange-100 text-orange-700",
+    red: "bg-red-50/50 border-red-100 text-red-700",
+    emerald: "bg-emerald-50/50 border-emerald-100 text-emerald-700",
+  };
+
+  return (
+    <div className={`p-5 rounded-2xl border ${colorMap[color]} flex flex-col justify-between h-32`}>
+      <div className="flex items-center gap-2 font-bold text-sm">
+        <Icon size={18} />
+        {title}
+      </div>
+      <div>
+        <h3 className="text-3xl font-bold">{value}</h3>
+        <p className="text-xs opacity-75 mt-1">{suffix}</p>
+      </div>
+    </div>
+  );
+};
 
 const KpiCard = ({ title, value, icon: Icon, color }) => (
   <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">

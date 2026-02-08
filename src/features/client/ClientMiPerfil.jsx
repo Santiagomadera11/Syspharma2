@@ -86,7 +86,7 @@ export const ClientMiPerfil = () => {
         type: "success",
         zIndex: 70,
       });
-    } catch (error) {
+    } catch {
       setToast({
         message: "Error al actualizar perfil",
         type: "error",

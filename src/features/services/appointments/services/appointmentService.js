@@ -1,5 +1,5 @@
 const DB_DOCTORS = "syspharma_doctors";
-const DB_APPOINTMENTS = "syspharma_appointments";
+const DB_APPOINTMENTS = "sys_appointments_db"; // Sincronizado con dashboard
 
 // Datos iniciales: Médicos y sus horarios
 const initialDoctors = [
@@ -30,10 +30,11 @@ const initialAppointments = [
     paciente: "Juan Pérez",
     documento: "12345678",
     telefono: "3001234567",
-    fecha: "2025-10-25",
+    fecha: "2026-02-06",
     hora: "09:00",
     estado: "Confirmar Asistencia",
     servicio: "Consulta General",
+    precio: 25000,
     notas: "",
   },
   {
@@ -42,10 +43,50 @@ const initialAppointments = [
     paciente: "Ana Díaz",
     documento: "87654321",
     telefono: "3019876543",
-    fecha: "2025-10-25",
+    fecha: "2026-02-06",
     hora: "10:15",
     estado: "Completada",
     servicio: "Inyección",
+    precio: 50000,
+    notas: "",
+  },
+  {
+    id: 3,
+    doctorId: 1,
+    paciente: "Carlos López",
+    documento: "11223344",
+    telefono: "3105555666",
+    fecha: "2026-02-04",
+    hora: "14:00",
+    estado: "Completada",
+    servicio: "Consulta General",
+    precio: 25000,
+    notas: "",
+  },
+  {
+    id: 4,
+    doctorId: 2,
+    paciente: "María González",
+    documento: "55667788",
+    telefono: "3117778899",
+    fecha: "2026-02-03",
+    hora: "08:30",
+    estado: "Completada",
+    servicio: "Inyección",
+    precio: 50000,
+    notas: "",
+  },
+  {
+    id: 5,
+    doctorId: 1,
+    paciente: "Pedro Martínez",
+    documento: "99001122",
+    telefono: "3129990011",
+    fecha: "2026-02-10",
+    hora: "11:00",
+    estado: "Confirmar Asistencia",
+    servicio: "Consulta General",
+    precio: 25000,
     notas: "",
   },
 ];

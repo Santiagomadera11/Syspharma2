@@ -11,7 +11,7 @@ export const ordersService = {
     }
     try {
       return JSON.parse(data);
-    } catch (e) {
+    } catch {
       localStorage.setItem(DB_KEY, JSON.stringify(initialData));
       return initialData;
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -13,8 +13,6 @@ import {
   ChevronRight,
   Clock,
   User,
-  Phone,
-  FileText,
   CheckCircle,
   Clock as ClockIcon,
   XCircle,
@@ -30,33 +28,47 @@ import { appointmentService } from "./services/appointmentService";
 import { availabilityService } from "./services/availabilityService";
 import AppointmentFormModal from "./components/AppointmentFormModal";
 import AppointmentDetailModal from "./components/AppointmentDetailModal";
+import ExpenseFormModal from "./components/ExpenseFormModal";
 import { AvailabilityConfigPage } from "./AvailabilityConfigPage";
 import DoctorsPage from "../doctors/DoctorsPage";
 
+// Helper para obtener gastos del storage
+const getExpensesFromStorage = () => {
+  try {
+    return JSON.parse(localStorage.getItem("sys_expenses_db") || "[]");
+  } catch {
+    return [];
+  }
+};
+
 export const AppointmentsPage = () => {
   const navigate = useNavigate();
-  // Usuario actual (simulado - en producción vendría de auth)
   const currentUser = JSON.parse(
     localStorage.getItem("syspharma_user") || "{}",
   );
-  const currentUserRole = currentUser.rol || "Empleado"; // Administrador o Empleado
+  const currentUserRole = currentUser.rol || "Empleado";
 
   const [activeTab, setActiveTab] = useState("calendario");
+  const [periodFilter, setPeriodFilter] = useState("dia");
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
 
   // Modales
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDaySummaryModalOpen, setIsDaySummaryModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+
   const [appointmentToChangeStatus, setAppointmentToChangeStatus] =
     useState(null);
   const [editingAppointment, setEditingAppointment] = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -65,33 +77,102 @@ export const AppointmentsPage = () => {
   const loadData = () => {
     setAppointments(appointmentService.getAppointments());
     setDoctors(appointmentService.getDoctors());
+    setExpenses(getExpensesFromStorage());
   };
 
-  // Helper para obtener citas de un día específico
+  // --- LÓGICA FINANCIERA (CORREGIDA) ---
+  const filterByPeriod = (items, dateField) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return items.filter((item) => {
+      // ✅ TRUCO: Agregamos T00:00:00 para forzar interpretación local
+      // Si la fecha ya viene completa, no importa, pero si es "2026-02-08" evita el bug
+      const dateString = item[dateField];
+      const itemDate = new Date(
+        dateString.includes("T") ? dateString : dateString + "T00:00:00",
+      );
+      itemDate.setHours(0, 0, 0, 0);
+
+      const itemDateStr = itemDate.toISOString().split("T")[0];
+      const todayStr = today.toISOString().split("T")[0];
+
+      if (periodFilter === "dia") return itemDateStr === todayStr;
+
+      if (periodFilter === "semana") {
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(diff);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        return itemDate >= startOfWeek && itemDate <= endOfWeek;
+      } else if (periodFilter === "mes")
+        return (
+          itemDate.getMonth() === today.getMonth() &&
+          itemDate.getFullYear() === today.getFullYear()
+        );
+      else if (periodFilter === "año")
+        return itemDate.getFullYear() === today.getFullYear();
+
+      return true;
+    });
+  };
+
+  const financialSummary = useMemo(() => {
+    const periodAppointments = filterByPeriod(appointments, "fecha");
+    const periodExpenses = filterByPeriod(expenses, "fecha");
+
+    // ✅ SUMAR SOLO COMPLETADAS Y LIMPIAR PRECIO
+    const ingresos = periodAppointments
+      .filter((apt) => apt.estado === "Completada")
+      .reduce((sum, apt) => {
+        // Quita todo lo que no sea número o punto decimal (ej: "50.000" -> "50000")
+        const cleanPrice = String(apt.precio).replace(/[^0-9.]/g, "");
+        return sum + (Number(cleanPrice) || 0);
+      }, 0);
+
+    const totalCitas = periodAppointments.length;
+
+    const totalGastos = periodExpenses.reduce((sum, exp) => {
+      const cleanMonto = String(exp.monto).replace(/[^0-9.]/g, "");
+      return sum + (Number(cleanMonto) || 0);
+    }, 0);
+
+    return {
+      ingresos,
+      gastos: totalGastos,
+      balance: ingresos - totalGastos,
+      totalCitas,
+    };
+  }, [appointments, expenses, periodFilter]);
+
+  // --- HELPERS ---
   const getAppointmentsForDate = (date) => {
     const dateStr = date.toISOString().split("T")[0];
     return appointments.filter((apt) => apt.fecha === dateStr);
   };
 
-  // Helper para colores de estado
   const getStatusColor = (estado) => {
     switch (estado) {
       case "Confirmar Asistencia":
         return "bg-yellow-100 text-yellow-700";
       case "En Consulta":
-        return "bg-green-100 text-green-700";
+        return "bg-blue-100 text-blue-700";
       case "Completada":
-        return "bg-green-100 text-green-700";
+        return "bg-emerald-100 text-emerald-700";
       case "No Asistió":
         return "bg-red-100 text-red-700";
       case "Cancelada":
         return "bg-gray-100 text-gray-700";
       default:
-        return "bg-yellow-100 text-yellow-700";
+        return "bg-gray-100 text-gray-700";
     }
   };
 
-  // Helper para iconos de estado
   const getStatusIcon = (estado) => {
     switch (estado) {
       case "Confirmar Asistencia":
@@ -109,39 +190,12 @@ export const AppointmentsPage = () => {
     }
   };
 
-  // Cambiar estado de cita
+  // --- HANDLERS ---
   const handleStatusChange = (appointmentId, newStatus) => {
     appointmentService.updateAppointmentStatus(appointmentId, newStatus);
     loadData();
   };
 
-  // Eliminar cita (solo ADMIN)
-  const handleDeleteAppointment = (appointmentId) => {
-    if (currentUserRole === "Administrador") {
-      appointmentService.deleteAppointment(appointmentId);
-      loadData();
-    }
-  };
-
-  // Abrir modal de detalle
-  const handleViewAppointment = (appointment) => {
-    setSelectedAppointment(appointment);
-    setIsDetailModalOpen(true);
-  };
-
-  // Abrir modal de edición
-  const handleEditAppointment = (appointment) => {
-    setEditingAppointment(appointment);
-    setIsAppointmentModalOpen(true);
-  };
-
-  // Abrir modal de cambio de estado
-  const handleStatusChangeAppointment = (appointment) => {
-    setAppointmentToChangeStatus(appointment);
-    setIsStatusModalOpen(true);
-  };
-
-  // Confirmar cambio de estado
   const confirmStatusChange = (newStatus) => {
     if (appointmentToChangeStatus) {
       handleStatusChange(appointmentToChangeStatus.id, newStatus);
@@ -150,40 +204,33 @@ export const AppointmentsPage = () => {
     }
   };
 
-  // Crear nueva cita
+  const handleDeleteAppointment = (appointmentId) => {
+    if (window.confirm("¿Estás seguro de eliminar esta cita?")) {
+      appointmentService.deleteAppointment(appointmentId);
+      loadData();
+    }
+  };
+
   const handleCreateAppointment = () => {
     setEditingAppointment(null);
     setIsAppointmentModalOpen(true);
   };
 
-  // Calendario: navegar meses
-  const navigateMonth = (direction) => {
-    setCurrentDate((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(newDate.getMonth() + direction);
-      return newDate;
-    });
+  const handleCreateExpense = () => {
+    setEditingExpense(null);
+    setIsExpenseModalOpen(true);
   };
 
-  // Calendario: seleccionar día
-  const handleDateClick = (date) => {
-    setSelectedDate(date);
-    setIsDaySummaryModalOpen(true);
-  };
-
-  // Renderizar calendario
+  // --- RENDERIZADO CALENDARIO ---
   const renderCalendar = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
-
     const endDate = new Date(lastDay);
     endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
-
     const days = [];
     const current = new Date(startDate);
 
@@ -202,174 +249,90 @@ export const AppointmentsPage = () => {
         isCurrentMonth,
         isUnavailable,
       });
-
       current.setDate(current.getDate() + 1);
     }
 
     return (
-      <div className="space-y-2">
-        {/* Contenedor del calendario */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-          {/* Header del calendario */}
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-bold text-gray-800">
-              {currentDate.toLocaleDateString("es-ES", {
-                month: "long",
-                year: "numeric",
-              })}
-            </h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => navigateMonth(-1)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                onClick={() => navigateMonth(1)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
-
-          {/* Días de la semana */}
-          <div className="grid grid-cols-7 gap-0.5 mb-1">
-            {["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((day) => (
-              <div
-                key={day}
-                className="p-1 text-center text-xs font-semibold text-gray-600"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Grid de días */}
-          <div className="grid grid-cols-7 gap-0.5">
-            {days.map((day, index) => (
-              <div
-                key={index}
-                onClick={() => !day.isUnavailable && handleDateClick(day.date)}
-                className={`
-                  min-h-[60px] p-1 border rounded-lg cursor-pointer transition-colors
-                  ${day.isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-400"}
-                  ${day.isToday ? "ring-2 ring-green-500" : ""}
-                  ${day.isUnavailable ? "bg-red-50 cursor-not-allowed opacity-50" : "hover:bg-blue-50"}
-                  ${day.appointments.length > 0 ? "bg-green-50 border-green-200" : ""}
-                `}
-              >
-                <div className="text-xs font-medium mb-0.5">
-                  {day.date.getDate()}
-                </div>
-                {day.appointments.length > 0 && (
-                  <div className="text-xs text-green-700 font-medium">
-                    {day.appointments.length} cita
-                    {day.appointments.length !== 1 ? "s" : ""}
-                  </div>
-                )}
-                {day.isUnavailable && (
-                  <div className="text-xs text-red-600 font-medium">
-                    No disponible
-                  </div>
-                )}
-              </div>
-            ))}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-800 capitalize">
+            {currentDate.toLocaleDateString("es-ES", {
+              month: "long",
+              year: "numeric",
+            })}
+          </h2>
+          <div className="flex gap-1">
+            <button
+              onClick={() =>
+                setCurrentDate(
+                  new Date(currentDate.setMonth(currentDate.getMonth() - 1)),
+                )
+              }
+              className="p-1.5 hover:bg-gray-100 rounded-lg"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() =>
+                setCurrentDate(
+                  new Date(currentDate.setMonth(currentDate.getMonth() + 1)),
+                )
+              }
+              className="p-1.5 hover:bg-gray-100 rounded-lg"
+            >
+              <ChevronRight size={20} />
+            </button>
           </div>
         </div>
-
-        {/* Modal de resumen del día */}
-        {selectedDate && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-800">
-                  Citas del{" "}
-                  {selectedDate.toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </h3>
-                <button
-                  onClick={() => setSelectedDate(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {getAppointmentsForDate(selectedDate).length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No hay citas programadas para este día
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {getAppointmentsForDate(selectedDate).map((apt) => {
-                    const doctor = doctors.find((d) => d.id === apt.doctorId);
-                    return (
-                      <div
-                        key={apt.id}
-                        className="border rounded-lg p-4 bg-gray-50"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <User size={16} className="text-gray-600" />
-                            <span className="font-medium">{apt.paciente}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(apt.estado)}
-                            <span
-                              className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(apt.estado)}`}
-                            >
-                              {apt.estado}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                          <div>
-                            <span className="font-medium">Profesional:</span>{" "}
-                            {doctor?.nombre}
-                          </div>
-                          <div>
-                            <span className="font-medium">Hora:</span>{" "}
-                            {apt.hora}
-                          </div>
-                          <div>
-                            <span className="font-medium">Servicio:</span>{" "}
-                            {apt.servicio}
-                          </div>
-                          <div>
-                            <span className="font-medium">Teléfono:</span>{" "}
-                            {apt.telefono}
-                          </div>
-                        </div>
-                        <div className="mt-3 flex gap-2">
-                          <button
-                            onClick={() => {
-                              handleViewAppointment(apt);
-                              setSelectedDate(null);
-                            }}
-                            className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200"
-                          >
-                            Ver detalle
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((day) => (
+            <div
+              key={day}
+              className="text-center text-xs font-semibold text-gray-500"
+            >
+              {day}
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day, index) => (
+            <div
+              key={index}
+              onClick={() => !day.isUnavailable && handleDateClick(day.date)}
+              className={`
+                min-h-[70px] p-2 border rounded-lg cursor-pointer transition-all relative
+                ${day.isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-300"}
+                ${day.isToday ? "ring-2 ring-emerald-500 z-10" : "border-gray-100"}
+                ${day.isUnavailable ? "bg-red-50/50 cursor-not-allowed" : "hover:shadow-md hover:border-emerald-200"}
+              `}
+            >
+              <div className="text-xs font-bold mb-1">{day.date.getDate()}</div>
+              <div className="space-y-1">
+                {day.appointments.slice(0, 2).map((apt, i) => (
+                  <div
+                    key={i}
+                    className={`w-full h-1.5 rounded-full ${apt.estado === "Completada" ? "bg-emerald-400" : "bg-blue-400"}`}
+                  ></div>
+                ))}
+                {day.appointments.length > 2 && (
+                  <div className="text-[9px] text-gray-400 font-medium">
+                    +{day.appointments.length - 2} más
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
 
-  // Renderizar lista de citas
+  const handleDateClick = (date) => {
+    setSelectedDate(date);
+    setIsDaySummaryModalOpen(true);
+  };
+
+  // --- RENDERIZADO LISTA ---
   const renderAppointmentsList = () => {
     const filteredAppointments = appointments.filter(
       (apt) =>
@@ -387,165 +350,133 @@ export const AppointmentsPage = () => {
 
     return (
       <div className="space-y-4">
-        {/* Header con búsqueda */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1 max-w-md relative">
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               size={16}
             />
             <input
               type="text"
-              placeholder="Buscar por paciente, servicio o profesional..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300"
+              placeholder="Buscar cita..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Tabla de citas */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-green-600 text-white">
+              <thead className="bg-emerald-600 text-white">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold">
                     Paciente
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold">
-                    Profesional
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">
                     Fecha
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">
-                    Hora
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold">
                     Servicio
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">
+                  <th className="px-4 py-3 text-right text-xs font-semibold">
+                    Precio
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold">
                     Estado
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold">
+                  <th className="px-4 py-3 text-center text-xs font-semibold">
                     Acciones
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredAppointments.map((apt) => {
-                  const doctor = doctors.find((d) => d.id === apt.doctorId);
-                  return (
-                    <tr key={apt.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {apt.paciente}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {apt.documento}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {doctor?.nombre}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {new Date(apt.fecha).toLocaleDateString("es-ES")}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                {filteredAppointments.map((apt) => (
+                  <tr
+                    key={apt.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-bold text-gray-800 text-sm">
+                        {apt.paciente}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {doctors.find((d) => d.id === apt.doctorId)?.nombre}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {/* ✅ FIX FECHA: Forzamos la interpretación local con T00:00:00 */}
+                      {new Date(apt.fecha + "T00:00:00").toLocaleDateString()}
+                      <span className="text-xs text-gray-400 block">
                         {apt.hora}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {apt.servicio}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(apt.estado)}`}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {apt.servicio}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-bold text-emerald-600 text-right">
+                      $ {Number(apt.precio || 0).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${getStatusColor(apt.estado)}`}
+                      >
+                        {getStatusIcon(apt.estado)} {apt.estado}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-center items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setAppointmentToChangeStatus(apt);
+                            setIsStatusModalOpen(true);
+                          }}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                          title="Cambiar Estado"
                         >
-                          {getStatusIcon(apt.estado)}
-                          {apt.estado}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
+                          <Settings size={16} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingAppointment(apt);
+                            setIsAppointmentModalOpen(true);
+                          }}
+                          className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        {apt.estado !== "Completada" && (
                           <button
-                            onClick={() => handleStatusChangeAppointment(apt)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Cambiar estado"
+                            onClick={() =>
+                              handleStatusChange(apt.id, "Completada")
+                            }
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
+                            title="Marcar Completada"
                           >
-                            <Settings size={16} />
+                            <CheckCircle size={16} />
                           </button>
-
+                        )}
+                        {currentUserRole === "Administrador" && (
                           <button
-                            onClick={() => handleEditAppointment(apt)}
-                            className="p-1 text-gray-600 hover:bg-gray-50 rounded"
-                            title="Editar cita"
+                            onClick={() => handleDeleteAppointment(apt.id)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                            title="Eliminar"
                           >
-                            <Edit size={16} />
+                            <Trash2 size={16} />
                           </button>
-
-                          {currentUserRole === "Empleado" && (
-                            <>
-                              {apt.estado === "Confirmar Asistencia" && (
-                                <button
-                                  onClick={() =>
-                                    handleStatusChange(apt.id, "En Consulta")
-                                  }
-                                  className="p-1 text-green-600 hover:bg-green-50 rounded"
-                                  title="Marcar en consulta"
-                                >
-                                  <Clock size={16} />
-                                </button>
-                              )}
-                              {apt.estado === "En Consulta" && (
-                                <button
-                                  onClick={() =>
-                                    handleStatusChange(apt.id, "Completada")
-                                  }
-                                  className="p-1 text-green-600 hover:bg-green-50 rounded"
-                                  title="Marcar completada"
-                                >
-                                  <CheckCircle size={16} />
-                                </button>
-                              )}
-                              {(apt.estado === "Confirmada" ||
-                                apt.estado === "En Consulta") && (
-                                <button
-                                  onClick={() =>
-                                    handleStatusChange(apt.id, "No Asistió")
-                                  }
-                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                  title="Marcar no asistió"
-                                >
-                                  <XCircle size={16} />
-                                </button>
-                              )}
-                            </>
-                          )}
-
-                          {currentUserRole === "Administrador" && (
-                            <button
-                              onClick={() => handleDeleteAppointment(apt.id)}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded"
-                              title="Eliminar cita"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-
           {filteredAppointments.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No se encontraron citas
+            <div className="p-8 text-center text-gray-400 text-sm">
+              No hay citas registradas.
             </div>
           )}
         </div>
@@ -555,84 +486,154 @@ export const AppointmentsPage = () => {
 
   return (
     <div className="h-full flex flex-col gap-6 font-sans">
-      {/* Header */}
-      <div className="flex items-start justify-between flex-shrink-0">
+      {/* Header General */}
+      <div className="flex justify-between items-start flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Gestión de Citas</h1>
-          <p className="text-gray-500 text-xs mt-0.5">
-            Sistema completo de agendamiento y seguimiento de citas médicas
+          <p className="text-xs text-gray-500 mt-1">
+            Control de agenda y flujo financiero diario
           </p>
         </div>
+
         {(activeTab === "calendario" || activeTab === "citas") && (
-          <button
-            onClick={handleCreateAppointment}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 h-fit"
-          >
-            <Plus size={16} />
-            Nueva Cita
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCreateAppointment}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
+            >
+              <Plus size={16} /> Nueva Cita
+            </button>
+            <button
+              onClick={handleCreateExpense}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
+            >
+              <Plus size={16} /> Agregar Gasto
+            </button>
+          </div>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 flex-shrink-0 flex-wrap">
-        <button
-          onClick={() => setActiveTab("calendario")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "calendario"
-              ? "text-blue-600 border-blue-600"
-              : "text-gray-600 border-transparent hover:text-gray-800"
-          }`}
-        >
-          <Calendar size={16} />
-          Calendario
-        </button>
-        <button
-          onClick={() => setActiveTab("citas")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "citas"
-              ? "text-blue-600 border-blue-600"
-              : "text-gray-600 border-transparent hover:text-gray-800"
-          }`}
-        >
-          <List size={16} />
-          Lista de Citas
-        </button>
-        <button
-          onClick={() => setActiveTab("disponibilidad")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "disponibilidad"
-              ? "text-blue-600 border-blue-600"
-              : "text-gray-600 border-transparent hover:text-gray-800"
-          } ${currentUserRole !== "Administrador" ? "opacity-50 cursor-not-allowed" : ""}`}
-          disabled={currentUserRole !== "Administrador"}
-        >
-          <Settings size={16} />
-          Disponibilidad
-        </button>
-        <button
-          onClick={() => setActiveTab("medicos")}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === "medicos"
-              ? "text-blue-600 border-blue-600"
-              : "text-gray-600 border-transparent hover:text-gray-800"
-          } ${currentUserRole !== "Administrador" ? "opacity-50 cursor-not-allowed" : ""}`}
-          disabled={currentUserRole !== "Administrador"}
-        >
-          <Users size={16} />
-          Médicos
-        </button>
+      <div className="flex gap-2 border-b border-gray-200 flex-shrink-0 overflow-x-auto">
+        {[
+          { id: "calendario", icon: Calendar, label: "Calendario" },
+          { id: "citas", icon: List, label: "Lista de Citas" },
+          {
+            id: "disponibilidad",
+            icon: Settings,
+            label: "Disponibilidad",
+            adminOnly: true,
+          },
+          { id: "medicos", icon: Users, label: "Médicos", adminOnly: true },
+        ].map((tab) => {
+          if (tab.adminOnly && currentUserRole !== "Administrador") return null;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+                activeTab === tab.id
+                  ? "text-emerald-600 border-emerald-600"
+                  : "text-gray-500 border-transparent hover:text-gray-700"
+              }`}
+            >
+              <tab.icon size={16} /> {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Contenido de las tabs */}
-      <div className="flex-1 overflow-auto">
+      {/* --- SECCIÓN FINANCIERA (ESTADÍSTICAS) --- */}
+      {(activeTab === "calendario" || activeTab === "citas") && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 flex-shrink-0 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-gray-700 text-sm">
+              Resumen Financiero
+            </h3>
+            <div className="flex bg-gray-100 p-1 rounded-lg">
+              {[
+                { val: "dia", label: "Día" },
+                { val: "semana", label: "Semana" },
+                { val: "mes", label: "Mes" },
+                { val: "año", label: "Año" },
+              ].map((p) => (
+                <button
+                  key={p.val}
+                  onClick={() => setPeriodFilter(p.val)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                    periodFilter === p.val
+                      ? "bg-white text-emerald-600 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 1. Citas Registradas */}
+            <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/50 flex flex-col justify-between h-28">
+              <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase">
+                <Calendar size={16} /> Citas ({periodFilter})
+              </div>
+              <div>
+                <span className="text-3xl font-bold text-blue-900">
+                  {financialSummary.totalCitas}
+                </span>
+                <p className="text-xs text-blue-600 mt-1">citas registradas</p>
+              </div>
+            </div>
+
+            {/* 2. Ingresos (Solo Completadas) */}
+            <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/50 flex flex-col justify-between h-28">
+              <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase">
+                <TrendingUp size={16} /> Ingresos ({periodFilter})
+              </div>
+              <div>
+                <span className="text-3xl font-bold text-emerald-900">
+                  $ {financialSummary.ingresos.toLocaleString()}
+                </span>
+                <p className="text-xs text-emerald-600 mt-1">
+                  Citas Completadas
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Gastos y Balance */}
+            <div className="p-4 rounded-xl border border-orange-100 bg-orange-50/50 flex flex-col justify-between h-28">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-orange-700 font-bold text-xs uppercase">
+                  <TrendingDown size={16} /> Gastos
+                </div>
+                <span className="text-xs font-bold text-orange-800">
+                  $ {financialSummary.gastos.toLocaleString()}
+                </span>
+              </div>
+              <div className="mt-2 pt-2 border-t border-orange-200">
+                <p className="text-xs text-gray-500">Balance Neto:</p>
+                <span
+                  className={`text-xl font-bold ${financialSummary.balance >= 0 ? "text-emerald-700" : "text-red-600"}`}
+                >
+                  $ {financialSummary.balance.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contenido Principal (Outlet de Tabs) */}
+      <div className="flex-1 overflow-auto no-scrollbar">
         {activeTab === "calendario" && renderCalendar()}
         {activeTab === "citas" && renderAppointmentsList()}
         {activeTab === "disponibilidad" && <AvailabilityConfigPage />}
         {activeTab === "medicos" && <DoctorsPage />}
       </div>
 
-      {/* Modales */}
+      {/* --- MODALES --- */}
+
       {isAppointmentModalOpen && (
         <AppointmentFormModal
           isOpen={isAppointmentModalOpen}
@@ -651,103 +652,6 @@ export const AppointmentsPage = () => {
         />
       )}
 
-      {/* Modal de resumen del día */}
-      {isDaySummaryModalOpen && selectedDate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">
-                Citas del{" "}
-                {selectedDate.toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </h2>
-              <button
-                onClick={() => {
-                  setIsDaySummaryModalOpen(false);
-                  setSelectedDate(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {getAppointmentsForDate(selectedDate).length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No hay citas programadas para este día
-                </p>
-              ) : (
-                getAppointmentsForDate(selectedDate).map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="border border-gray-200 rounded-lg p-4"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-gray-800">
-                        {appointment.paciente}
-                      </h3>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.estado)}`}
-                      >
-                        {getStatusIcon(appointment.estado)}
-                        <span className="ml-1">{appointment.estado}</span>
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <p>
-                        <strong>Hora:</strong> {appointment.hora}
-                      </p>
-                      <p>
-                        <strong>Servicio:</strong> {appointment.servicio}
-                      </p>
-                      <p>
-                        <strong>Doctor:</strong>{" "}
-                        {doctors.find((d) => d.id === appointment.doctorId)
-                          ?.nombre || "N/A"}
-                      </p>
-                      {appointment.notas && (
-                        <p>
-                          <strong>Notas:</strong> {appointment.notas}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() => {
-                          setSelectedAppointment(appointment);
-                          setIsDetailModalOpen(true);
-                          setIsDaySummaryModalOpen(false);
-                        }}
-                        className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
-                      >
-                        Ver detalle
-                      </button>
-                      {currentUserRole === "Empleado" &&
-                        appointment.estado === "Confirmar Asistencia" && (
-                          <button
-                            onClick={() => {
-                              handleStatusChange(appointment.id, "En Consulta");
-                              setIsDaySummaryModalOpen(false);
-                            }}
-                            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
-                          >
-                            Confirmar asistencia
-                          </button>
-                        )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {isDetailModalOpen && selectedAppointment && (
         <AppointmentDetailModal
           isOpen={isDetailModalOpen}
@@ -760,21 +664,68 @@ export const AppointmentsPage = () => {
         />
       )}
 
-      {/* Modal de Cambio de Estado */}
+      {isDaySummaryModalOpen && selectedDate && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between mb-4 border-b pb-2">
+              <h3 className="font-bold text-gray-800">
+                {selectedDate.toLocaleDateString("es-ES", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })}
+              </h3>
+              <button onClick={() => setIsDaySummaryModalOpen(false)}>
+                <X size={20} className="text-gray-400 hover:text-red-500" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {getAppointmentsForDate(selectedDate).length === 0 ? (
+                <p className="text-center text-gray-400 py-4">
+                  No hay citas para este día.
+                </p>
+              ) : (
+                getAppointmentsForDate(selectedDate).map((apt) => (
+                  <div
+                    key={apt.id}
+                    className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-sm text-gray-800">
+                        {apt.hora} - {apt.paciente}
+                      </span>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${getStatusColor(apt.estado)}`}
+                      >
+                        {apt.estado}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {apt.servicio} -{" "}
+                      {doctors.find((d) => d.id === apt.doctorId)?.nombre}
+                    </p>
+                    {apt.estado !== "Completada" && (
+                      <button
+                        onClick={() => handleStatusChange(apt.id, "Completada")}
+                        className="mt-2 w-full py-1 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 transition-colors"
+                      >
+                        Marcar como Completada
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {isStatusModalOpen && appointmentToChangeStatus && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              Cambiar Estado de la Cita
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Cita de{" "}
-              <span className="font-semibold">
-                {appointmentToChangeStatus.paciente}
-              </span>{" "}
-              - {appointmentToChangeStatus.servicio}
-            </p>
-            <div className="space-y-2 mb-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="font-bold text-gray-800 mb-4">Cambiar Estado</h3>
+            <div className="space-y-2">
               {[
                 "Confirmar Asistencia",
                 "En Consulta",
@@ -785,29 +736,56 @@ export const AppointmentsPage = () => {
                 <button
                   key={status}
                   onClick={() => confirmStatusChange(status)}
-                  className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
+                  className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-all ${
                     appointmentToChangeStatus.estado === status
-                      ? "bg-emerald-100 border-emerald-300 text-emerald-700"
-                      : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+                      ? "bg-emerald-50 border-emerald-500 text-emerald-700 font-bold"
+                      : "border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   {status}
                 </button>
               ))}
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setIsStatusModalOpen(false);
-                  setAppointmentToChangeStatus(null);
-                }}
-                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
+            <button
+              onClick={() => setIsStatusModalOpen(false)}
+              className="mt-4 w-full py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
+      )}
+
+      {isExpenseModalOpen && (
+        <ExpenseFormModal
+          isOpen={isExpenseModalOpen}
+          onClose={() => {
+            setIsExpenseModalOpen(false);
+            setEditingExpense(null);
+          }}
+          onSave={(expenseData) => {
+            const currentExpenses = getExpensesFromStorage();
+            let updatedExpenses;
+            if (editingExpense) {
+              updatedExpenses = currentExpenses.map((e) =>
+                e.id === expenseData.id ? expenseData : e,
+              );
+            } else {
+              updatedExpenses = [
+                ...currentExpenses,
+                { ...expenseData, id: Date.now() },
+              ];
+            }
+            localStorage.setItem(
+              "sys_expenses_db",
+              JSON.stringify(updatedExpenses),
+            );
+            loadData();
+            setIsExpenseModalOpen(false);
+            setEditingExpense(null);
+          }}
+          initialData={editingExpense}
+        />
       )}
     </div>
   );

@@ -40,7 +40,7 @@ export const doctorService = {
     }
     try {
       return JSON.parse(data);
-    } catch (e) {
+    } catch {
       localStorage.setItem(DB_KEY, JSON.stringify(initialDoctors));
       return initialDoctors;
     }

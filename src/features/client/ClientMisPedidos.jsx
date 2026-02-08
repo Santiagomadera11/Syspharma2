@@ -22,12 +22,9 @@ export const ClientMisPedidos = () => {
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("desc"); // desc = reciente a antiguo, asc = antiguo a reciente
-  const [user, setUser] = useState({});
 
   // Cargar datos al montar
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-    setUser(userData);
 
     // Obtener pedidos del servicio
     const allOrders = ordersService.getAll();
@@ -124,13 +121,11 @@ export const ClientMisPedidos = () => {
     return "bg-amber-50 text-amber-700 border-amber-200";
   };
 
-  const handleViewDetail = (order) => {
-    console.log("Ver detalle de:", order);
+  const handleViewDetail = () => {
     // TODO: Abrir modal de detalle del pedido
   };
 
-  const handleViewInvoice = (order) => {
-    console.log("Generar factura de:", order);
+  const handleViewInvoice = () => {
     // TODO: Generar o descargar factura
   };
 

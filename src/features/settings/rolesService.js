@@ -13,7 +13,7 @@ export const rolesService = {
       const raw = localStorage.getItem(ROLES_KEY);
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   },
