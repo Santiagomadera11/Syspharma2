@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, Calendar, Clock, User, FileText, Phone } from "lucide-react";
+import {
+  X,
+  Save,
+  Calendar,
+  Clock,
+  User,
+  FileText,
+  Phone,
+  CreditCard,
+  Stethoscope,
+  AlertCircle,
+  Loader2,
+  DollarSign,
+} from "lucide-react";
 import { appointmentService } from "../services/appointmentService";
+
+// Helper para obtener fecha local "YYYY-MM-DD" sin restar días por zona horaria
+const getLocalToday = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const AppointmentFormModal = ({
   isOpen,
@@ -10,19 +32,25 @@ const AppointmentFormModal = ({
   doctors,
   availabilityService,
 }) => {
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     paciente: "",
     documento: "",
     telefono: "",
     doctorId: "",
-    fecha: "",
+    fecha: getLocalToday(), // Usamos fecha local por defecto
     hora: "",
     servicio: "",
+    precio: "",
     notas: "",
-  });
+  };
 
+  const [formData, setFormData] = useState(initialFormState);
   const [availableSlots, setAvailableSlots] = useState([]);
+  const [servicesList, setServicesList] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 1. CARGAR DATOS
   useEffect(() => {
     if (appointment) {
       setFormData({
@@ -30,286 +58,402 @@ const AppointmentFormModal = ({
         documento: appointment.documento || "",
         telefono: appointment.telefono || "",
         doctorId: appointment.doctorId || "",
-        fecha: appointment.fecha || "",
+        fecha: appointment.fecha || getLocalToday(),
         hora: appointment.hora || "",
         servicio: appointment.servicio || "",
+        precio: appointment.precio || "",
         notas: appointment.notas || "",
       });
     } else {
-      setFormData({
-        paciente: "",
-        documento: "",
-        telefono: "",
-        doctorId: "",
-        fecha: "",
-        hora: "",
-        servicio: "",
-        notas: "",
-      });
+      setFormData(initialFormState);
     }
-  }, [appointment, isOpen, doctors]);
+    setErrors({});
 
-  // Cuando cambia el médico o la fecha, actualizar slots disponibles
+    // Cargar servicios
+    const loadServices = () => {
+      try {
+        const storedServices = localStorage.getItem("sys_services_db");
+        if (storedServices) {
+          const parsedServices = JSON.parse(storedServices);
+          const activeServices = parsedServices.filter(
+            (s) => s.estado === "Activo",
+          );
+          setServicesList(activeServices);
+        }
+      } catch (error) {
+        console.error("Error cargando servicios:", error);
+      }
+    };
+    loadServices();
+  }, [appointment, isOpen]);
+
+  // Generador de horas de respaldo
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let i = 8; i < 18; i++) {
+      slots.push(`${i.toString().padStart(2, "0")}:00`);
+      slots.push(`${i.toString().padStart(2, "0")}:30`);
+    }
+    return slots;
+  };
+
+  // 2. BUSCAR HORARIOS
   useEffect(() => {
     if (formData.doctorId && formData.fecha) {
-      const slots = availabilityService.getAvailableSlotsForDate(
-        formData.doctorId,
-        formData.fecha,
-      );
+      let slots = [];
+      try {
+        if (
+          availabilityService &&
+          typeof availabilityService.getAvailableSlotsForDate === "function"
+        ) {
+          slots = availabilityService.getAvailableSlotsForDate(
+            parseInt(formData.doctorId),
+            formData.fecha,
+          );
+        }
+      } catch (error) {
+        console.warn("Error slots servicio");
+      }
+
+      if (!slots || slots.length === 0) slots = generateTimeSlots();
       setAvailableSlots(slots);
     } else {
       setAvailableSlots([]);
     }
   }, [formData.doctorId, formData.fecha, availabilityService]);
 
-  const handleDoctorChange = (e) => {
-    const doctorId = parseInt(e.target.value);
-    const doctor = doctors.find((d) => d.id === doctorId);
-    setFormData({
-      ...formData,
-      doctorId: doctorId,
-      servicio: doctor ? `Consulta con ${doctor.especialidad}` : "",
-    });
+  // --- HANDLERS ---
+  const handleGenericInput = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
-  const handleSubmit = (e) => {
+  const handleDoctorChange = (e) => {
+    const doctorId = e.target.value;
+    setFormData((prev) => ({ ...prev, doctorId: doctorId, hora: "" }));
+    if (errors.doctorId) setErrors((prev) => ({ ...prev, doctorId: null }));
+  };
+
+  const handleServiceChange = (e) => {
+    const selectedServiceName = e.target.value;
+    const selectedServiceData = servicesList.find(
+      (s) => s.nombre === selectedServiceName,
+    );
+    setFormData((prev) => ({
+      ...prev,
+      servicio: selectedServiceName,
+      precio: selectedServiceData ? selectedServiceData.precio : "",
+    }));
+    if (errors.servicio) setErrors((prev) => ({ ...prev, servicio: null }));
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.paciente.trim()) newErrors.paciente = "Nombre obligatorio";
+    if (!formData.documento.trim())
+      newErrors.documento = "Documento obligatorio";
+    if (!formData.doctorId) newErrors.doctorId = "Seleccione médico";
+    if (!formData.fecha) newErrors.fecha = "Seleccione fecha";
+    if (!formData.hora) newErrors.hora = "Seleccione hora";
+    if (!formData.servicio) newErrors.servicio = "Seleccione servicio";
+    if (!formData.precio) newErrors.precio = "Precio requerido";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (
-      !formData.paciente ||
-      !formData.doctorId ||
-      !formData.fecha ||
-      !formData.hora
-    ) {
-      alert("Por favor complete todos los campos obligatorios");
-      return;
+    if (!validateForm()) return;
+    setIsSubmitting(true);
+    try {
+      const appointmentData = {
+        ...formData,
+        doctorId: parseInt(formData.doctorId),
+      };
+      if (appointment) {
+        await appointmentService.updateAppointment(
+          appointment.id,
+          appointmentData,
+        );
+      } else {
+        await appointmentService.createAppointment(appointmentData);
+      }
+      onSave();
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert("Error al guardar la cita.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const appointmentData = {
-      ...formData,
-      doctorId: parseInt(formData.doctorId),
-    };
-
-    if (appointment) {
-      // Actualizar cita existente
-      appointmentService.updateAppointment(appointment.id, appointmentData);
-    } else {
-      // Crear nueva cita
-      appointmentService.createAppointment(appointmentData);
-    }
-
-    onSave();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-5 max-w-4xl w-full mx-4 max-h-[90vh]">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-800">
-            {appointment ? "Editar Cita" : "Nueva Cita"}
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+        {/* Header */}
+        <div className="bg-emerald-600 px-6 py-4 flex justify-between items-center">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Calendar size={20} />
+            {appointment ? "Editar Cita Médica" : "Nueva Cita Médica"}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="max-h-[82vh] overflow-auto pr-2">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Información del Paciente */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre del Paciente *
-              </label>
-              <div className="relative">
-                <User
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={16}
-                />
-                <input
-                  type="text"
-                  required
-                  className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
-                  placeholder="Nombre completo"
-                  value={formData.paciente}
-                  onChange={(e) =>
-                    setFormData({ ...formData, paciente: e.target.value })
-                  }
-                />
+        {/* Body */}
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 overflow-y-auto max-h-[75vh]"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            {/* COLUMNA IZQUIERDA: DATOS PACIENTE */}
+            <div className="md:col-span-5 space-y-5 md:border-r md:border-gray-100 md:pr-6">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 border-b pb-2 mb-3">
+                <User size={14} /> Información Paciente
+              </h3>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Nombre Completo *
+                </label>
+                <div className="relative">
+                  <User
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={16}
+                  />
+                  <input
+                    name="paciente"
+                    type="text"
+                    className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${errors.paciente ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                    value={formData.paciente}
+                    onChange={handleGenericInput}
+                  />
+                </div>
+                {errors.paciente && (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    {errors.paciente}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Documento ID *
+                </label>
+                <div className="relative">
+                  <FileText
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={16}
+                  />
+                  <input
+                    name="documento"
+                    type="text"
+                    className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${errors.documento ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                    value={formData.documento}
+                    onChange={handleGenericInput}
+                  />
+                </div>
+                {errors.documento && (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    {errors.documento}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Teléfono
+                </label>
+                <div className="relative">
+                  <Phone
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={16}
+                  />
+                  <input
+                    name="telefono"
+                    type="tel"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400"
+                    value={formData.telefono}
+                    onChange={handleGenericInput}
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Documento *
-              </label>
-              <input
-                type="text"
-                required
-                className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
-                placeholder="Número de documento"
-                value={formData.documento}
-                onChange={(e) =>
-                  setFormData({ ...formData, documento: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Teléfono
-            </label>
-            <div className="relative">
-              <Phone
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={16}
-              />
-              <input
-                type="tel"
-                className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
-                placeholder="Número de teléfono"
-                value={formData.telefono}
-                onChange={(e) =>
-                  setFormData({ ...formData, telefono: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          {/* Profesional Médico */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Profesional Médico *
-            </label>
-            <select
-              required
-              className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
-              value={formData.doctorId}
-              onChange={handleDoctorChange}
-            >
-              <option value="">Seleccionar profesional</option>
-              {doctors.map((doctor) => (
-                <option key={doctor.id} value={doctor.id}>
-                  {doctor.nombre} - {doctor.especialidad}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Fecha y Hora */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha *
-              </label>
-              <div className="relative">
-                <Calendar
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={16}
-                />
-                <input
-                  type="date"
-                  required
-                  className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
-                  value={formData.fecha}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fecha: e.target.value })
-                  }
-                  min={new Date().toISOString().split("T")[0]}
+            {/* COLUMNA DERECHA: DATOS CITA */}
+            <div className="md:col-span-7 space-y-5">
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 border-b pb-2 mb-3">
+                <Stethoscope size={14} /> Detalle Atención
+              </h3>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Médico / Especialista *
+                </label>
+                <select
+                  name="doctorId"
+                  className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.doctorId ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                  value={formData.doctorId}
+                  onChange={handleDoctorChange}
+                >
+                  <option value="">Seleccione especialista...</option>
+                  {doctors &&
+                    doctors.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.nombre} — {d.especialidad}
+                      </option>
+                    ))}
+                </select>
+                {errors.doctorId && (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    {errors.doctorId}
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Fecha *
+                  </label>
+                  <div className="relative">
+                    <Calendar
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={16}
+                    />
+                    <input
+                      name="fecha"
+                      type="date"
+                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${errors.fecha ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                      value={formData.fecha}
+                      onChange={handleGenericInput}
+                      min={getLocalToday()}
+                    />
+                  </div>
+                  {errors.fecha && (
+                    <p className="text-[10px] text-red-500 mt-1">
+                      {errors.fecha}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Hora *
+                  </label>
+                  <select
+                    name="hora"
+                    className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.hora ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                    value={formData.hora}
+                    onChange={handleGenericInput}
+                    disabled={!formData.doctorId || !formData.fecha}
+                  >
+                    <option value="">
+                      {availableSlots.length > 0 ? "Seleccionar hora..." : "--"}
+                    </option>
+                    {availableSlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.hora && (
+                    <p className="text-[10px] text-red-500 mt-1">
+                      {errors.hora}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Servicio *
+                  </label>
+                  <select
+                    name="servicio"
+                    className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.servicio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                    value={formData.servicio}
+                    onChange={handleServiceChange}
+                  >
+                    <option value="">Seleccione...</option>
+                    {servicesList.length > 0 ? (
+                      servicesList.map((srv) => (
+                        <option key={srv.id} value={srv.nombre}>
+                          {srv.nombre}
+                        </option>
+                      ))
+                    ) : (
+                      <option disabled>No hay servicios</option>
+                    )}
+                  </select>
+                  {errors.servicio && (
+                    <p className="text-[10px] text-red-500 mt-1">
+                      {errors.servicio}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                    Costo ($) *
+                  </label>
+                  <div className="relative">
+                    <DollarSign
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={16}
+                    />
+                    <input
+                      name="precio"
+                      type="number"
+                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg font-bold text-gray-700 focus:outline-none focus:ring-2 ${errors.precio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                      placeholder="0.00"
+                      value={formData.precio}
+                      onChange={handleGenericInput}
+                    />
+                  </div>
+                  {errors.precio && (
+                    <p className="text-[10px] text-red-500 mt-1">
+                      {errors.precio}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Notas
+                </label>
+                <textarea
+                  name="notas"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 resize-none h-20"
+                  placeholder="Observaciones..."
+                  value={formData.notas}
+                  onChange={handleGenericInput}
                 />
               </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hora *
-              </label>
-              <select
-                required
-                className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
-                value={formData.hora}
-                onChange={(e) =>
-                  setFormData({ ...formData, hora: e.target.value })
-                }
-                disabled={!formData.doctorId || !formData.fecha}
-              >
-                <option value="">
-                  {!formData.doctorId || !formData.fecha
-                    ? "Seleccione médico y fecha primero"
-                    : "Seleccionar hora disponible"}
-                </option>
-                {availableSlots.map((slot) => (
-                  <option key={slot} value={slot}>
-                    {slot}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
+        </form>
 
-          {/* Servicio */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Servicio *
-            </label>
-            <div className="relative">
-              <FileText
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                size={16}
-              />
-              <input
-                type="text"
-                required
-                className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
-                placeholder="Tipo de consulta o servicio"
-                value={formData.servicio}
-                onChange={(e) =>
-                  setFormData({ ...formData, servicio: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          {/* Notas */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notas Adicionales
-            </label>
-            <textarea
-              className="w-full px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 text-sm"
-              rows={2}
-              placeholder="Observaciones adicionales..."
-              value={formData.notas}
-              onChange={(e) =>
-                setFormData({ ...formData, notas: e.target.value })
-              }
-            />
-          </div>
-
-          </form>
-        </div>
-
-        <div className="px-5 py-4 border-t bg-white flex gap-3">
+        {/* Footer */}
+        <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-100">
           <button
-            type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
           >
             Cancelar
           </button>
           <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); document.querySelector('form').dispatchEvent(new Event('submit', {cancelable:true})); }}
-            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="px-5 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2"
           >
-            <Save size={16} className="inline mr-2" />
-            {appointment ? "Actualizar Cita" : "Crear Cita"}
+            {isSubmitting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Save size={16} />
+            )}
+            Guardar Cita
           </button>
         </div>
       </div>

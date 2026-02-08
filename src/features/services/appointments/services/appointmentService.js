@@ -1,5 +1,5 @@
 const DB_DOCTORS = "syspharma_doctors";
-const DB_APPOINTMENTS = "syspharma_appointments";
+const DB_APPOINTMENTS = "sys_appointments_db"; // Sincronizado con dashboard
 
 // Datos iniciales: Médicos y sus horarios
 const initialDoctors = [
@@ -34,6 +34,7 @@ const initialAppointments = [
     hora: "09:00",
     estado: "Confirmar Asistencia",
     servicio: "Consulta General",
+    precio: 25000,
     notas: "",
   },
   {
@@ -46,6 +47,7 @@ const initialAppointments = [
     hora: "10:15",
     estado: "Completada",
     servicio: "Inyección",
+    precio: 50000,
     notas: "",
   },
   {
@@ -58,6 +60,7 @@ const initialAppointments = [
     hora: "14:00",
     estado: "Completada",
     servicio: "Consulta General",
+    precio: 25000,
     notas: "",
   },
   {
@@ -70,6 +73,7 @@ const initialAppointments = [
     hora: "08:30",
     estado: "Completada",
     servicio: "Inyección",
+    precio: 50000,
     notas: "",
   },
   {
@@ -82,6 +86,7 @@ const initialAppointments = [
     hora: "11:00",
     estado: "Confirmar Asistencia",
     servicio: "Consulta General",
+    precio: 25000,
     notas: "",
   },
 ];
