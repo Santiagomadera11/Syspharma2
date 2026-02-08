@@ -1,12 +1,46 @@
 import React, { useEffect, useState } from "react";
-import { Bell, Menu, Stethoscope, ShoppingCart } from "lucide-react";
+import { Bell, Menu, Stethoscope, ShoppingCart, Heart } from "lucide-react";
 
 export const ClientHeader = ({ onMenuClick }) => {
   const [user, setUser] = useState({ nombre: "Usuario", rol: "Cliente" });
+  const [cartCount, setCartCount] = useState(0);
+  const [favCount, setFavCount] = useState(0);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("syspharma_user");
     if (storedUser) setUser(JSON.parse(storedUser));
+
+    const loadCart = () => {
+      try {
+        const saved = localStorage.getItem("syspharma_cart");
+        const parsed = saved ? JSON.parse(saved) : [];
+        setCartCount(Array.isArray(parsed) ? parsed.length : 0);
+      } catch {
+        setCartCount(0);
+      }
+    };
+
+    const loadFavorites = () => {
+      try {
+        const saved = localStorage.getItem("syspharma_favorites");
+        const parsed = saved ? JSON.parse(saved) : [];
+        setFavCount(Array.isArray(parsed) ? parsed.length : 0);
+      } catch {
+        setFavCount(0);
+      }
+    };
+
+    loadCart();
+    loadFavorites();
+
+    const cartHandler = () => loadCart();
+    const favHandler = () => loadFavorites();
+    window.addEventListener("syspharma_cart_updated", cartHandler);
+    window.addEventListener("syspharma_favorites_updated", favHandler);
+    return () => {
+      window.removeEventListener("syspharma_cart_updated", cartHandler);
+      window.removeEventListener("syspharma_favorites_updated", favHandler);
+    };
   }, []);
 
   return (
@@ -36,8 +70,23 @@ export const ClientHeader = ({ onMenuClick }) => {
 
       <div className="flex items-center gap-4">
         <button className="relative text-green-100 hover:text-white transition-colors">
+          <Heart size={20} />
+          {favCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-5 bg-emerald-600 text-white rounded-full text-[11px] font-bold flex items-center justify-center px-1 border border-green-600">
+              {favCount}
+            </span>
+          )}
+        </button>
+
+        <button className="relative text-green-100 hover:text-white transition-colors">
           <ShoppingCart size={20} />
-          <span className="absolute top-0 right-0.5 w-2 h-2 bg-red-400 rounded-full border border-green-600"></span>
+          {cartCount > 0 ? (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-5 bg-emerald-600 text-white rounded-full text-[11px] font-bold flex items-center justify-center px-1 border border-green-600">
+              {cartCount}
+            </span>
+          ) : (
+            <span className="absolute top-0 right-0.5 w-2 h-2 bg-red-400 rounded-full border border-green-600"></span>
+          )}
         </button>
 
         <button className="relative text-green-100 hover:text-white transition-colors">

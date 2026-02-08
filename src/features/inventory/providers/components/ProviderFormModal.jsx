@@ -229,3 +229,4 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData }) => {
 };
 
 export default ProviderFormModal;
+
