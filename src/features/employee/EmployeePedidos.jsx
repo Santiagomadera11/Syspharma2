@@ -116,9 +116,6 @@ export const EmployeePedidos = () => {
         }
 
         // Pasar de Pendiente a En proceso/Entregado: descontar del stock
-        console.log(
-          `Cambiando pedido ${orderToChangeStatus.id} de ${currentStatus} a ${newStatus} - Descontando stock`,
-        );
         orderToChangeStatus.productos.forEach((item) => {
           if (item && item.id) {
             const currentProduct = productService.getById(item.id);
@@ -130,9 +127,6 @@ export const EmployeePedidos = () => {
               productService.update(item.id, {
                 stock: newStock,
               });
-              console.log(
-                `Stock actualizado para ${item.nombre || item.id}: ${currentProduct.stock} -> ${newStock}`,
-              );
             }
           }
         });
@@ -161,13 +155,6 @@ export const EmployeePedidos = () => {
             pedidoId: orderToChangeStatus.id, // Referencia al pedido original
             fecha: new Date().toLocaleDateString("es-CO"),
           });
-          console.log(
-            `Venta registrada automáticamente para pedido ${orderToChangeStatus.id}`,
-          );
-        } else {
-          console.log(
-            `Venta ya existe para pedido ${orderToChangeStatus.id}, no se duplica`,
-          );
         }
       }
 

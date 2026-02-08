@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { X, Eye, EyeOff } from "lucide-react";
+import { X, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 import { rolesService } from "../../settings/rolesService";
+import { formValidations } from "../../../shared/utils/formValidations";
 
 export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,6 +18,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
     telefono: "",
     estado: true,
   });
+  const [errors, setErrors] = useState({});
   const [toast, setToast] = useState(null);
   const [rolesOptions, setRolesOptions] = useState([]);
 
@@ -37,6 +39,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
         estado: true,
       });
     }
+    setErrors({});
     // load roles from rolesService
     setRolesOptions(rolesService.getAll());
   }, [userToEdit, isOpen]);
@@ -45,11 +48,37 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
+    const newValue = type === "checkbox" ? checked : value;
+    setFormData({ ...formData, [name]: newValue });
+
+    // Validar campo en tiempo real
+    let error = "";
+    if (name === "nombres" || name === "apellidos") {
+      error = formValidations.validateName(newValue);
+    } else if (name === "documento") {
+      error = formValidations.validateDocument(newValue);
+    } else if (name === "telefono") {
+      error = formValidations.validatePhone(newValue);
+    } else if (name === "email") {
+      error = formValidations.validateEmail(newValue);
+    }
+
+    setErrors({ ...errors, [name]: error });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Validar todos los campos
+    let newErrors = {};
+    newErrors.nombres = formValidations.validateName(formData.nombres);
+    newErrors.apellidos = formValidations.validateName(formData.apellidos);
+    newErrors.documento = formValidations.validateDocument(formData.documento);
+    newErrors.telefono = formValidations.validatePhone(formData.telefono);
+    newErrors.email = formValidations.validateEmail(formData.email);
+
+    setErrors(newErrors);
+
     // Validation: all fields required except telefono when creating
     if (!userToEdit) {
       const required = [
@@ -82,6 +111,16 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       }
     }
 
+    // Verificar que no haya errores
+    if (Object.values(newErrors).some((error) => error)) {
+      setToast({
+        message: "Por favor corrija los errores en el formulario.",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
     // prepare payload (exclude confirmPassword)
     const payload = { ...formData };
     delete payload.confirmPassword;
@@ -100,10 +139,24 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   };
 
   // Clases comunes para inputs compactos
-  const inputClass =
-    "w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-100 transition-all bg-gray-50 focus:bg-white";
+  const inputClass = (hasError = false) =>
+    `w-full px-3 py-1.5 border rounded-lg text-xs outline-none focus:ring-1 transition-all bg-gray-50 focus:bg-white ${
+      hasError
+        ? "border-red-500 focus:border-red-500 focus:ring-red-300"
+        : "border-gray-200 focus:border-primary-400 focus:ring-primary-100"
+    }`;
   const labelClass =
     "block text-[10px] font-bold text-gray-600 mb-1 uppercase tracking-wide";
+
+  const ErrorMessage = ({ error }) => {
+    if (!error) return null;
+    return (
+      <div className="flex items-center gap-1 mt-0.5 text-red-500 text-[9px]">
+        <AlertCircle size={10} />
+        {error}
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -152,9 +205,10 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
                 value={formData.documento}
                 onChange={handleChange}
                 placeholder="Ej: 12345678"
-                className={inputClass}
+                className={inputClass(!!errors.documento)}
                 required
               />
+              <ErrorMessage error={errors.documento} />
             </div>
           </div>
 
@@ -168,9 +222,10 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
                 value={formData.nombres}
                 onChange={handleChange}
                 placeholder="Juan"
-                className={inputClass}
+                className={inputClass(!!errors.nombres)}
                 required
               />
+              <ErrorMessage error={errors.nombres} />
             </div>
             <div>
               <label className={labelClass}>Apellidos *</label>
@@ -180,9 +235,10 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
                 value={formData.apellidos}
                 onChange={handleChange}
                 placeholder="Pérez"
-                className={inputClass}
+                className={inputClass(!!errors.apellidos)}
                 required
               />
+              <ErrorMessage error={errors.apellidos} />
             </div>
           </div>
 
@@ -196,9 +252,10 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="juan@mail.com"
-                className={inputClass}
+                className={inputClass(!!errors.email)}
                 required
               />
+              <ErrorMessage error={errors.email} />
             </div>
             <div>
               <label className={labelClass}>Teléfono</label>
@@ -208,8 +265,9 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
                 value={formData.telefono}
                 onChange={handleChange}
                 placeholder="300..."
-                className={inputClass}
+                className={inputClass(!!errors.telefono)}
               />
+              <ErrorMessage error={errors.telefono} />
             </div>
           </div>
 

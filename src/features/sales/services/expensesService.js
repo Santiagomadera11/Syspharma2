@@ -9,7 +9,7 @@ export const expensesService = {
     }
     try {
       return JSON.parse(data);
-    } catch (e) {
+    } catch {
       localStorage.setItem(DB_KEY, JSON.stringify([]));
       return [];
     }

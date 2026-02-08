@@ -31,21 +31,17 @@ import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 export const DashboardPage = () => {
   const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
-  const [currentTurn, setCurrentTurn] = useState(null);
 
   // Al cargar el dashboard, verifica si hay turno activo
   useEffect(() => {
     const activeTurn = turnService.getActiveTurn();
-    if (activeTurn) {
-      setCurrentTurn(activeTurn);
-    } else {
+    if (!activeTurn) {
       // Si no hay turno activo, muestra el modal
       setShowOpenShiftModal(true);
     }
   }, []);
 
-  const handleShiftOpened = (newTurn) => {
-    setCurrentTurn(newTurn);
+  const handleShiftOpened = () => {
     setShowOpenShiftModal(false);
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -30,6 +30,7 @@ import { appointmentService } from "./services/appointmentService";
 import { availabilityService } from "./services/availabilityService";
 import AppointmentFormModal from "./components/AppointmentFormModal";
 import AppointmentDetailModal from "./components/AppointmentDetailModal";
+import ExpenseFormModal from "./components/ExpenseFormModal";
 import { AvailabilityConfigPage } from "./AvailabilityConfigPage";
 import DoctorsPage from "../doctors/DoctorsPage";
 
@@ -42,6 +43,7 @@ export const AppointmentsPage = () => {
   const currentUserRole = currentUser.rol || "Empleado"; // Administrador o Empleado
 
   const [activeTab, setActiveTab] = useState("calendario");
+  const [periodFilter, setPeriodFilter] = useState("dia"); // dia, semana, mes
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -57,6 +59,10 @@ export const AppointmentsPage = () => {
   const [appointmentToChangeStatus, setAppointmentToChangeStatus] =
     useState(null);
   const [editingAppointment, setEditingAppointment] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [dailyExpense, setDailyExpense] = useState("");
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -66,6 +72,68 @@ export const AppointmentsPage = () => {
     setAppointments(appointmentService.getAppointments());
     setDoctors(appointmentService.getDoctors());
   };
+
+  // Función para obtener fecha del inicio del período
+  const getPeriodStartDate = (period) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (period === "dia") {
+      return today;
+    } else if (period === "semana") {
+      // Lunes de la semana actual
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      const startDate = new Date(today);
+      startDate.setDate(diff);
+      return startDate;
+    } else if (period === "mes") {
+      // Primer día del mes
+      return new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (period === "año") {
+      // Primer día del año
+      return new Date(today.getFullYear(), 0, 1);
+    }
+  };
+
+  // Filtrar citas según el período
+  const filteredAppointmentsByPeriod = useMemo(() => {
+    const periodStart = getPeriodStartDate(periodFilter);
+    const today = new Date();
+
+    return appointments.filter((apt) => {
+      const aptDate = new Date(apt.fecha);
+      aptDate.setHours(0, 0, 0, 0);
+
+      if (periodFilter === "dia") {
+        const todayNormalized = new Date();
+        todayNormalized.setHours(0, 0, 0, 0);
+        return aptDate.getTime() === todayNormalized.getTime();
+      } else if (periodFilter === "semana") {
+        const endOfWeek = new Date(periodStart);
+        endOfWeek.setDate(endOfWeek.getDate() + 6);
+        return aptDate >= periodStart && aptDate <= endOfWeek;
+      } else if (periodFilter === "mes") {
+        return (
+          aptDate.getFullYear() === today.getFullYear() &&
+          aptDate.getMonth() === today.getMonth()
+        );
+      } else if (periodFilter === "año") {
+        return aptDate.getFullYear() === today.getFullYear();
+      }
+    });
+  }, [appointments, periodFilter]);
+
+  // Métricas
+  const totalAppointments = filteredAppointmentsByPeriod.length;
+  const totalValue = useMemo(
+    () =>
+      filteredAppointmentsByPeriod.reduce(
+        (sum, a) => sum + (Number(a.valor) || 0),
+        0
+      ),
+    [filteredAppointmentsByPeriod]
+  );
 
   // Helper para obtener citas de un día específico
   const getAppointmentsForDate = (date) => {
@@ -282,7 +350,7 @@ export const AppointmentsPage = () => {
         {/* Modal de resumen del día */}
         {selectedDate && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto no-scrollbar">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-800">
                   Citas del{" "}
@@ -471,6 +539,14 @@ export const AppointmentsPage = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
                           <button
+                            onClick={() => handleViewAppointment(apt)}
+                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            title="Ver detalles"
+                          >
+                            <Eye size={16} />
+                          </button>
+
+                          <button
                             onClick={() => handleStatusChangeAppointment(apt)}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                             title="Cambiar estado"
@@ -564,13 +640,25 @@ export const AppointmentsPage = () => {
           </p>
         </div>
         {(activeTab === "calendario" || activeTab === "citas") && (
-          <button
-            onClick={handleCreateAppointment}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 h-fit"
-          >
-            <Plus size={16} />
-            Nueva Cita
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCreateAppointment}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 h-fit"
+            >
+              <Plus size={16} />
+              Nueva Cita
+            </button>
+            <button
+              onClick={() => {
+                setEditingExpense(null);
+                setIsExpenseModalOpen(true);
+              }}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 h-fit"
+            >
+              <Plus size={16} />
+              Agregar Gasto
+            </button>
+          </div>
         )}
       </div>
 
@@ -624,8 +712,83 @@ export const AppointmentsPage = () => {
         </button>
       </div>
 
+      {/* Cards - KPIs (mostrar solo en tabs de calendario y citas) */}
+      {(activeTab === "calendario" || activeTab === "citas") && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">Estadísticas</h3>
+            {/* Selector de Período */}
+            <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+              {[
+                { value: "dia", label: "Día" },
+                { value: "semana", label: "Semana" },
+                { value: "mes", label: "Mes" },
+                { value: "año", label: "Año" },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setPeriodFilter(option.value)}
+                  className={`px-3 py-1 rounded-md font-medium text-xs transition-colors ${
+                    periodFilter === option.value
+                      ? "bg-blue-600 text-white"
+                      : "bg-transparent text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {/* Card 1: Total de Citas */}
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-cyan-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="text-cyan-600" size={18} />
+                <h3 className="text-xs font-bold text-gray-800">
+                  Citas {periodFilter === "dia" ? "del día" : periodFilter === "semana" ? "de la semana" : periodFilter === "mes" ? "del mes" : "del año"}
+                </h3>
+              </div>
+              <div className="text-2xl font-bold text-cyan-600">
+                {totalAppointments}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {totalAppointments === 1 ? "cita" : "citas"} registradas
+              </div>
+            </div>
+            {/* Card 2: Ingresos totales (monto en pesos) */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-green-600">$</span>
+                <h3 className="text-xs font-bold text-gray-800">Ingresos {periodFilter === "dia" ? "del día" : periodFilter === "semana" ? "de la semana" : periodFilter === "mes" ? "del mes" : "del año"}</h3>
+              </div>
+              <div className="text-2xl font-bold text-green-600">
+                {totalValue.toLocaleString("es-ES", { maximumFractionDigits: 0 })}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">Pesos</div>
+            </div>
+            {/* Card 3: Gastos del día */}
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-orange-600\">$</span>
+                <h3 className="text-xs font-bold text-gray-800\">Gastos del día</h3>
+              </div>
+              <div className="text-2xl font-bold text-orange-600\">
+                {expenses
+                  .filter(e => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const expDate = typeof e.fecha === 'string' ? e.fecha.split('T')[0] : new Date(e.fecha).toISOString().split('T')[0];
+                    return expDate === today;
+                  })
+                  .reduce((sum, e) => sum + (Number(e.monto) || 0), 0)
+                  .toLocaleString("es-ES", { maximumFractionDigits: 0 })}
+              </div>
+              <div className="text-xs text-gray-500 mt-1\">Pesos</div>
+            </div>          </div>
+        </div>
+      )}
+
       {/* Contenido de las tabs */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto no-scrollbar">
         {activeTab === "calendario" && renderCalendar()}
         {activeTab === "citas" && renderAppointmentsList()}
         {activeTab === "disponibilidad" && <AvailabilityConfigPage />}
@@ -654,7 +817,7 @@ export const AppointmentsPage = () => {
       {/* Modal de resumen del día */}
       {isDaySummaryModalOpen && selectedDate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto no-scrollbar">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-800">
                 Citas del{" "}
@@ -682,7 +845,18 @@ export const AppointmentsPage = () => {
                   No hay citas programadas para este día
                 </p>
               ) : (
-                getAppointmentsForDate(selectedDate).map((appointment) => (
+                <>
+                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4 border border-cyan-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Total del día en pesos:</span>
+                      <span className="text-2xl font-bold text-cyan-600">
+                        ${getAppointmentsForDate(selectedDate)
+                          .reduce((sum, apt) => sum + (Number(apt.valor) || 0), 0)
+                          .toLocaleString("es-ES", { maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </div>
+                  {getAppointmentsForDate(selectedDate).map((appointment) => (
                   <div
                     key={appointment.id}
                     className="border border-gray-200 rounded-lg p-4"
@@ -741,7 +915,9 @@ export const AppointmentsPage = () => {
                         )}
                     </div>
                   </div>
-                ))
+                  ))
+                  }
+                </>
               )}
             </div>
           </div>
@@ -809,6 +985,25 @@ export const AppointmentsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Gastos */}
+      <ExpenseFormModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => {
+          setIsExpenseModalOpen(false);
+          setEditingExpense(null);
+        }}
+        onSave={(expenseData) => {
+          if (editingExpense) {
+            setExpenses(expenses.map(e => e.id === expenseData.id ? expenseData : e));
+          } else {
+            setExpenses([...expenses, expenseData]);
+          }
+          setIsExpenseModalOpen(false);
+          setEditingExpense(null);
+        }}
+        initialData={editingExpense}
+      />
     </div>
   );
 };

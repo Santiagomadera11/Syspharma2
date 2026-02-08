@@ -79,7 +79,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
       setTimeout(() => {
         onClose();
       }, 1000);
-    } catch (err) {
+    } catch {
       setError("Error al actualizar contraseña");
     } finally {
       setLoading(false);

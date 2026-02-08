@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, User, BookOpen, Mail, Phone } from "lucide-react";
+import { X, Save, User, BookOpen, Mail, Phone, AlertCircle } from "lucide-react";
 import { doctorService } from "../services/doctorService";
+import { formValidations } from "../../../../shared/utils/formValidations";
 
 const DoctorFormModal = ({ isOpen, onClose, onSave, doctor }) => {
   const [formData, setFormData] = useState({
@@ -59,12 +60,23 @@ const DoctorFormModal = ({ isOpen, onClose, onSave, doctor }) => {
       ...formData,
       [name]: value,
     });
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: null,
-      });
+
+    let error = "";
+    
+    if (name === "nombre") {
+      error = formValidations.validateName(value);
+    } else if (name === "especialidad") {
+      error = formValidations.validateName(value);
+    } else if (name === "email") {
+      error = formValidations.validateEmail(value);
+    } else if (name === "telefono") {
+      error = formValidations.validatePhone(value);
     }
+
+    setErrors({
+      ...errors,
+      [name]: error,
+    });
   };
 
   const handleDayToggle = (day) => {
@@ -151,12 +163,15 @@ const DoctorFormModal = ({ isOpen, onClose, onSave, doctor }) => {
               placeholder="Ej: Dr. Juan Pérez"
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 ${
                 errors.nombre
-                  ? "border-red-300 focus:ring-red-300"
+                  ? "border-red-500 focus:ring-red-300"
                   : "border-gray-200 focus:ring-blue-300"
               }`}
             />
             {errors.nombre && (
-              <p className="text-red-600 text-xs mt-1">{errors.nombre}</p>
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.nombre}
+              </div>
             )}
           </div>
 
@@ -174,12 +189,15 @@ const DoctorFormModal = ({ isOpen, onClose, onSave, doctor }) => {
               placeholder="Ej: Medicina General, Cardiología, etc."
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 ${
                 errors.especialidad
-                  ? "border-red-300 focus:ring-red-300"
+                  ? "border-red-500 focus:ring-red-300"
                   : "border-gray-200 focus:ring-blue-300"
               }`}
             />
             {errors.especialidad && (
-              <p className="text-red-600 text-xs mt-1">{errors.especialidad}</p>
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.especialidad}
+              </div>
             )}
           </div>
 
@@ -197,12 +215,15 @@ const DoctorFormModal = ({ isOpen, onClose, onSave, doctor }) => {
               placeholder="doctor@syspharma.com"
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 ${
                 errors.email
-                  ? "border-red-300 focus:ring-red-300"
+                  ? "border-red-500 focus:ring-red-300"
                   : "border-gray-200 focus:ring-blue-300"
               }`}
             />
             {errors.email && (
-              <p className="text-red-600 text-xs mt-1">{errors.email}</p>
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.email}
+              </div>
             )}
           </div>
 
@@ -218,8 +239,18 @@ const DoctorFormModal = ({ isOpen, onClose, onSave, doctor }) => {
               value={formData.telefono}
               onChange={handleInputChange}
               placeholder="3001234567"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 ${
+                errors.telefono
+                  ? "border-red-500 focus:ring-red-300"
+                  : "border-gray-200 focus:ring-blue-300"
+              }`}
             />
+            {errors.telefono && (
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.telefono}
+              </div>
+            )}
           </div>
 
           {/* Días Laborales */}
