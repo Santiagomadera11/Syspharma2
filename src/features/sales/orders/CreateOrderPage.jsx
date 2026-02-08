@@ -304,7 +304,7 @@ export const CreateOrderPage = () => {
       });
     } else {
       // Para creación: reducir stock normalmente
-      console.log("Creando pedido - Descontando stock para productos:", cart);
+
       cart.forEach((item) => {
         const currentProduct = productService.getById(item.id);
         console.log(

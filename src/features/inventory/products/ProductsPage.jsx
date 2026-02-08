@@ -33,9 +33,6 @@ export const ProductsPage = () => {
     // Refrescar cada 1 segundo para sincronizar cambios de stock
     const interval = setInterval(() => {
       const updatedProducts = productService.getAll();
-      console.log(
-        `🔄 Refrescando productos... Total: ${updatedProducts.length}`,
-      );
       setProducts(updatedProducts);
     }, 1000);
     return () => clearInterval(interval);

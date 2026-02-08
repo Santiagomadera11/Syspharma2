@@ -105,7 +105,7 @@ const AppointmentFormModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-4 max-w-lg w-full mx-4">
+      <div className="bg-white rounded-xl p-5 max-w-4xl w-full mx-4 max-h-[90vh]">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-800">
             {appointment ? "Editar Cita" : "Nueva Cita"}
@@ -118,6 +118,7 @@ const AppointmentFormModal = ({
           </button>
         </div>
 
+        <div className="max-h-[82vh] overflow-auto pr-2">
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Información del Paciente */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -291,24 +292,26 @@ const AppointmentFormModal = ({
             />
           </div>
 
-          {/* Botones */}
-          <div className="flex gap-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <Save size={16} className="inline mr-2" />
-              {appointment ? "Actualizar Cita" : "Crear Cita"}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
+
+        <div className="px-5 py-4 border-t bg-white flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); document.querySelector('form').dispatchEvent(new Event('submit', {cancelable:true})); }}
+            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            <Save size={16} className="inline mr-2" />
+            {appointment ? "Actualizar Cita" : "Crear Cita"}
+          </button>
+        </div>
       </div>
     </div>
   );

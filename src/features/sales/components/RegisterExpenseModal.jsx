@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { X, DollarSign } from "lucide-react";
+import { X, DollarSign, AlertCircle } from "lucide-react";
 import { expensesService } from "../services/expensesService";
+import { formValidations } from "../../../shared/utils/formValidations";
 
 export const RegisterExpenseModal = ({ isOpen, onClose, onSaveSuccess }) => {
   const [formData, setFormData] = useState({
@@ -9,15 +10,38 @@ export const RegisterExpenseModal = ({ isOpen, onClose, onSaveSuccess }) => {
     categoria: "Materiales",
   });
 
+  const [errors, setErrors] = useState({});
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    let error = "";
+    
+    if (name === "descripcion") {
+      error = formValidations.validateName(value);
+    }
+
+    setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.descripcion || !formData.monto) {
-      alert("Por favor completa todos los campos");
+
+    const newErrors = {};
+
+    if (!formData.descripcion) {
+      newErrors.descripcion = "Descripción requerida";
+    } else {
+      newErrors.descripcion = formValidations.validateName(formData.descripcion);
+    }
+
+    if (!formData.monto) {
+      newErrors.monto = "Monto requerido";
+    }
+
+    if (Object.values(newErrors).some(error => error)) {
+      setErrors(newErrors);
       return;
     }
 
@@ -29,12 +53,14 @@ export const RegisterExpenseModal = ({ isOpen, onClose, onSaveSuccess }) => {
 
     // Reset form
     setFormData({ descripcion: "", monto: "", categoria: "Materiales" });
+    setErrors({});
     onSaveSuccess?.();
     onClose();
   };
 
   const handleCancel = () => {
     setFormData({ descripcion: "", monto: "", categoria: "Materiales" });
+    setErrors({});
     onClose();
   };
 
@@ -80,9 +106,15 @@ export const RegisterExpenseModal = ({ isOpen, onClose, onSaveSuccess }) => {
               value={formData.descripcion}
               onChange={handleChange}
               placeholder="Ej: compra de bolsas, luz, repartidor, etc"
-              className={inputClass}
+              className={`${inputClass} ${errors.descripcion ? "border-red-500" : ""}`}
               required
             />
+            {errors.descripcion && (
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.descripcion}
+              </div>
+            )}
           </div>
 
           {/* Monto y Categoría */}

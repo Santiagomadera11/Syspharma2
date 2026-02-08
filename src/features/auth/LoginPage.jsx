@@ -60,7 +60,6 @@ export const LoginPage = () => {
     // Generar código de 6 dígitos
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setVerificationCode(code);
-    console.log(`🔐 CÓDIGO DE VERIFICACIÓN: ${code}`);
 
     setRecoveryStep("code");
     setTimeLeft(180);
@@ -160,7 +159,6 @@ export const LoginPage = () => {
   const handleResendCode = () => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setVerificationCode(code);
-    console.log(`🔐 CÓDIGO DE VERIFICACIÓN (REENVÍO): ${code}`);
     setCodeInputs(["", "", "", "", "", ""]);
     setTimeLeft(180);
     setCodeExpired(false);

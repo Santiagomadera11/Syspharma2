@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, Stethoscope, Clock, DollarSign, FileText, Eye } from "lucide-react";
+import { X, Save, Stethoscope, Clock, DollarSign, FileText, Eye, AlertCircle } from "lucide-react";
+import { formValidations } from "../../../shared/utils/formValidations";
 
 const ServiceFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +11,8 @@ const ServiceFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
     duracion: "",
     descripcion: ""
   });
+
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -24,13 +27,28 @@ const ServiceFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
         descripcion: ""
       });
     }
+    setErrors({});
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
+  const handleChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+    
+    // Validación en tiempo real
+    let error = "";
+    if (field === "nombre") {
+      error = formValidations.validateService(value);
+    }
+    setErrors({ ...errors, [field]: error });
+  };
+
   const handleSubmit = () => {
-    if (!formData.nombre || !formData.precio) {
-      alert("Completa los campos obligatorios");
+    const nameError = formValidations.validateService(formData.nombre);
+    setErrors({ ...errors, nombre: nameError });
+
+    if (!formData.nombre || !formData.precio || nameError) {
+      alert("Completa los campos obligatorios correctamente");
       return;
     }
     const dataToSave = {
@@ -62,7 +80,23 @@ const ServiceFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
                 <label className="block text-xs font-bold text-gray-700 mb-1">Nombre</label>
-                <input type="text" disabled={isViewMode} className="w-full pl-3 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500" value={formData.nombre} onChange={(e) => setFormData({...formData, nombre: e.target.value})} />
+                <input 
+                  type="text" 
+                  disabled={isViewMode} 
+                  className={`w-full pl-3 pr-3 py-2 text-sm border rounded-md focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 ${
+                    errors.nombre
+                      ? "border-red-500 focus:ring-1 focus:ring-red-300"
+                      : "border-gray-300 focus:border-emerald-500"
+                  }`}
+                  value={formData.nombre} 
+                  onChange={(e) => handleChange("nombre", e.target.value)} 
+                />
+                {errors.nombre && (
+                  <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                    <AlertCircle size={12} />
+                    {errors.nombre}
+                  </div>
+                )}
             </div>
             <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Categoría</label>

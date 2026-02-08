@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, Save } from "lucide-react";
+import { X, Save, AlertCircle } from "lucide-react";
+import { formValidations } from "../../../../shared/utils/formValidations";
 
 const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,8 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
     requiereFormula: false,
   });
 
+  const [errors, setErrors] = useState({});
+
   useEffect(() => {
     if (initialData) setFormData(initialData);
     else
@@ -37,12 +40,25 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
         registroSanitario: "",
         requiereFormula: false,
       });
+    setErrors({});
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    if (!formData.nombre) return alert("Nombre requerido");
+    const newErrors = {};
+    
+    if (!formData.nombre) {
+      newErrors.nombre = "Nombre requerido";
+    } else {
+      newErrors.nombre = formValidations.validateName(formData.nombre);
+    }
+
+    if (Object.values(newErrors).some(error => error)) {
+      setErrors(newErrors);
+      return;
+    }
+
     onSave(formData);
     onClose();
   };
@@ -71,12 +87,24 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
             </label>
             <input
               type="text"
-              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
+              className={`w-full text-sm border rounded px-3 py-2 ${
+                errors.nombre
+                  ? "border-red-500 focus:ring-1 focus:ring-red-300"
+                  : "border-gray-300"
+              }`}
               value={formData.nombre}
-              onChange={(e) =>
-                setFormData({ ...formData, nombre: e.target.value })
-              }
+              onChange={(e) => {
+                setFormData({ ...formData, nombre: e.target.value });
+                const error = formValidations.validateName(e.target.value);
+                setErrors({ ...errors, nombre: error });
+              }}
             />
+            {errors.nombre && (
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.nombre}
+              </div>
+            )}
           </div>
 
           {/* Tipo de Producto */}

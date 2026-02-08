@@ -1,8 +1,71 @@
-import React from "react";
-import { X, Save, Building2, User, Phone, Mail, MapPin } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Save, Building2, User, Phone, Mail, MapPin, AlertCircle } from "lucide-react";
+import { formValidations } from "../../../../shared/utils/formValidations";
 
-const ProviderFormModal = ({ isOpen, onClose }) => {
+const ProviderFormModal = ({ isOpen, onClose, onSave, initialData }) => {
+  const [formData, setFormData] = useState({
+    empresa: "",
+    contacto: "",
+    telefono: "",
+    correo: "",
+    estado: "Activo",
+    direccion: ""
+  });
+
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    } else {
+      setFormData({
+        empresa: "",
+        contacto: "",
+        telefono: "",
+        correo: "",
+        estado: "Activo",
+        direccion: ""
+      });
+    }
+    setErrors({});
+  }, [initialData, isOpen]);
+
   if (!isOpen) return null;
+
+  const handleChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+    
+    let error = "";
+    if (field === "empresa" || field === "contacto") {
+      error = formValidations.validateName(value);
+    } else if (field === "telefono") {
+      error = formValidations.validatePhone(value);
+    } else if (field === "correo") {
+      error = formValidations.validateEmail(value);
+    }
+    setErrors({ ...errors, [field]: error });
+  };
+
+  const handleSubmit = () => {
+    const newErrors = {
+      empresa: formValidations.validateName(formData.empresa),
+      contacto: formValidations.validateName(formData.contacto),
+      telefono: formValidations.validatePhone(formData.telefono),
+      correo: formValidations.validateEmail(formData.correo)
+    };
+
+    setErrors(newErrors);
+
+    if (!formData.empresa || !formData.contacto || Object.values(newErrors).some(e => e)) {
+      alert("Completa los campos correctamente");
+      return;
+    }
+
+    if (onSave) {
+      onSave(formData);
+    }
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -28,10 +91,22 @@ const ProviderFormModal = ({ isOpen, onClose }) => {
               <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text" 
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
+                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${
+                  errors.empresa
+                    ? "border-red-500 focus:ring-1 focus:ring-red-300"
+                    : "border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                }`}
                 placeholder="Ej: Farmacéutica Global S.A." 
+                value={formData.empresa}
+                onChange={(e) => handleChange("empresa", e.target.value)}
               />
             </div>
+            {errors.empresa && (
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.empresa}
+              </div>
+            )}
           </div>
 
           {/* Contacto */}
@@ -41,10 +116,22 @@ const ProviderFormModal = ({ isOpen, onClose }) => {
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="text" 
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500" 
+                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${
+                  errors.contacto
+                    ? "border-red-500 focus:ring-1 focus:ring-red-300"
+                    : "border-gray-300 focus:border-emerald-500"
+                }`}
                 placeholder="Ej: Juan Pérez" 
+                value={formData.contacto}
+                onChange={(e) => handleChange("contacto", e.target.value)}
               />
             </div>
+            {errors.contacto && (
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.contacto}
+              </div>
+            )}
           </div>
 
           {/* Teléfono */}
@@ -54,10 +141,22 @@ const ProviderFormModal = ({ isOpen, onClose }) => {
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="tel" 
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500" 
+                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${
+                  errors.telefono
+                    ? "border-red-500 focus:ring-1 focus:ring-red-300"
+                    : "border-gray-300 focus:border-emerald-500"
+                }`}
                 placeholder="+506 0000-0000" 
+                value={formData.telefono}
+                onChange={(e) => handleChange("telefono", e.target.value)}
               />
             </div>
+            {errors.telefono && (
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.telefono}
+              </div>
+            )}
           </div>
 
           {/* Email */}
@@ -67,10 +166,22 @@ const ProviderFormModal = ({ isOpen, onClose }) => {
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input 
                 type="email" 
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500" 
+                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${
+                  errors.correo
+                    ? "border-red-500 focus:ring-1 focus:ring-red-300"
+                    : "border-gray-300 focus:border-emerald-500"
+                }`}
                 placeholder="contacto@empresa.com" 
+                value={formData.correo}
+                onChange={(e) => handleChange("correo", e.target.value)}
               />
             </div>
+            {errors.correo && (
+              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
+                <AlertCircle size={12} />
+                {errors.correo}
+              </div>
+            )}
           </div>
 
           {/* Estado */}
@@ -104,7 +215,10 @@ const ProviderFormModal = ({ isOpen, onClose }) => {
           >
             Cancelar
           </button>
-          <button className="px-4 py-2 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded-md flex items-center gap-1 shadow-sm transition-colors">
+          <button 
+            onClick={handleSubmit}
+            className="px-4 py-2 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded-md flex items-center gap-1 shadow-sm transition-colors"
+          >
             <Save size={16} /> Guardar Proveedor
           </button>
         </div>
