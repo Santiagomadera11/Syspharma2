@@ -4,7 +4,6 @@ import { FeaturedProducts } from './components/FeaturedProducts';
 
 export const CatalogPage = () => {
   return (
-    // CLAVE: flex flex-col min-h-screen
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <PublicNavbar />
       
@@ -13,7 +12,6 @@ export const CatalogPage = () => {
         <p className="text-primary-200 text-xs">Todos los productos</p>
       </div>
 
-      {/* flex-1 para que ocupe espacio si hay pocos productos */}
       <div className="py-2 flex-1">
         <FeaturedProducts />
       </div>
@@ -24,3 +22,5 @@ export const CatalogPage = () => {
     </div>
   );
 };
+
+export default CatalogPage;
