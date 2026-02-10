@@ -27,7 +27,7 @@ export const DoctorsPage = () => {
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5; // ✅ Reducido a 5 para mejor compacidad
 
   useEffect(() => {
     loadDoctors();
@@ -116,7 +116,7 @@ export const DoctorsPage = () => {
       {/* Header */}
       <div className="flex items-start justify-between flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Gestión de Médicos</h1>
+          <h1 className="text-2xl font-bold text-emerald-700">Gestión de Médicos</h1>
           <p className="text-gray-500 text-xs mt-0.5">
             Administra el registro completo de profesionales médicos
           </p>
@@ -133,7 +133,7 @@ export const DoctorsPage = () => {
           <input
             type="text"
             placeholder="Buscar por nombre, especialidad o email..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -148,7 +148,7 @@ export const DoctorsPage = () => {
             setFilterStatus(e.target.value);
             setCurrentPage(0);
           }}
-          className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white"
+          className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
         >
           <option value="all">Todos</option>
           <option value="active">Activos</option>
@@ -157,7 +157,7 @@ export const DoctorsPage = () => {
 
         <button
           onClick={handleOpenCreate}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 flex-shrink-0"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 flex-shrink-0"
         >
           <Plus size={16} />
           Nuevo Médico
@@ -167,7 +167,7 @@ export const DoctorsPage = () => {
       {/* Tabla de Médicos */}
       <div className="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-gray-100">
         <table className="w-full">
-          <thead className="bg-blue-600 text-white sticky top-0">
+          <thead className="bg-emerald-600 text-white sticky top-0">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold">
                 Nombre
@@ -229,7 +229,7 @@ export const DoctorsPage = () => {
                     <div className="flex flex-wrap gap-1">
                       {doctor.diasLaborales &&
                         doctor.diasLaborales.length > 0 && (
-                          <span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                          <span className="inline-block bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs">
                             {doctor.diasLaborales.length} días
                           </span>
                         )}
@@ -315,7 +315,7 @@ export const DoctorsPage = () => {
                   onClick={() => setCurrentPage(i)}
                   className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                     currentPage === i
-                      ? "bg-blue-600 text-white"
+                      ? "bg-emerald-600 text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >

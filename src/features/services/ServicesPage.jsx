@@ -99,7 +99,7 @@ export const ServicesPage = () => {
       <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#5F9EA0] text-white sticky top-0 z-10"> 
+            <thead className="bg-emerald-600 text-white sticky top-0 z-10"> 
               <tr>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase">ID</th>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase">Nombre</th>
@@ -112,7 +112,7 @@ export const ServicesPage = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {currentItems.map((srv) => (
-                <tr key={srv.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={srv.id} className="hover:bg-gray-50 transition-colors">
                   <td className="py-1.5 px-3 text-xs font-medium text-gray-900">{srv.id}</td>
                   <td className="py-1.5 px-3"><div className="flex items-center gap-2"><Stethoscope size={12} className="text-emerald-600"/><span className="text-xs font-bold text-gray-700">{srv.nombre}</span></div></td>
                   <td className="py-1.5 px-3 text-xs text-gray-600">{srv.categoria}</td>
@@ -120,8 +120,8 @@ export const ServicesPage = () => {
                   <td className="py-1.5 px-3 text-xs text-center text-gray-500"><div className="flex items-center justify-center gap-1"><Clock size={10} /> {srv.duracion} min</div></td>
                   <td className="py-1.5 px-3 text-center">{getStatusBadge(srv.estado)}</td>
                   <td className="py-1.5 px-3">
-                    <div className="flex items-center justify-center gap-1">
-                      <button onClick={() => handleView(srv)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Ver detalle"><Eye size={14} /></button>
+                      <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => handleView(srv)} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver detalle"><Eye size={14} /></button>
                       <button onClick={() => handleEdit(srv)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar"><Edit size={14} /></button>
                       <button onClick={() => handleDelete(srv.id)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
                     </div>

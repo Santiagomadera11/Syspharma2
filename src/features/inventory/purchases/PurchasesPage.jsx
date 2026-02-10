@@ -103,7 +103,7 @@ export const PurchasesPage = () => {
         
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#5F9EA0] text-white sticky top-0 z-10">
+            <thead className="bg-emerald-600 text-white sticky top-0 z-10">
               <tr>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">ID</th>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">Proveedor</th>
@@ -122,7 +122,7 @@ export const PurchasesPage = () => {
                     
                     <td className="py-1.5 px-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+                        <div className="w-5 h-5 rounded bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
                            <ShoppingBag size={12} />
                         </div>
                         <span className="text-xs font-bold text-gray-700 truncate max-w-[150px]">{compra.proveedor}</span>
@@ -135,7 +135,7 @@ export const PurchasesPage = () => {
                     <td className="py-1.5 px-3 text-center">{getStatusBadge(compra.estado)}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Ver"><Eye size={14} /></button>
+                        <button className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver"><Eye size={14} /></button>
                         <button className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar"><Edit size={14} /></button>
                         <button className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
                       </div>

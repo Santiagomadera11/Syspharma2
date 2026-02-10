@@ -18,6 +18,7 @@ import {
   XCircle,
   AlertCircle,
   X,
+  Settings,
 } from "lucide-react";
 import { appointmentService } from "../services/appointments/services/appointmentService";
 import { availabilityService } from "../services/appointments/services/availabilityService";
@@ -30,6 +31,8 @@ export const EmployeeAppointmentsPage = () => {
   const [doctors, setDoctors] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
@@ -41,10 +44,15 @@ export const EmployeeAppointmentsPage = () => {
   const [appointmentToChangeStatus, setAppointmentToChangeStatus] =
     useState(null);
   const [editingAppointment, setEditingAppointment] = useState(null);
+  const [statusMenuFor, setStatusMenuFor] = useState(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const loadData = () => {
     setAppointments(appointmentService.getAppointments());
@@ -85,6 +93,12 @@ export const EmployeeAppointmentsPage = () => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
 
+  // Parse date strings like '2026-02-10' as local dates (avoid timezone shift)
+  const parseLocalDate = (dateStr) => {
+    if (!dateStr) return null;
+    return new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+  };
+
   const getFirstDayOfMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
   };
@@ -120,10 +134,10 @@ export const EmployeeAppointmentsPage = () => {
       );
       const isToday =
         dayDate.toDateString() === new Date().toDateString();
-      const dayAppointments = appointments.filter(
-        (apt) =>
-          new Date(apt.fecha).toDateString() === dayDate.toDateString(),
-      );
+        const dayAppointments = appointments.filter((apt) => {
+          const d = parseLocalDate(apt.fecha);
+          return d && d.toDateString() === dayDate.toDateString();
+        });
 
       days.push({
         date: dayDate,
@@ -183,16 +197,16 @@ export const EmployeeAppointmentsPage = () => {
                 className={`
                   min-h-[60px] p-1 border rounded-lg cursor-pointer transition-colors
                   ${day.isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-400"}
-                  ${day.isToday ? "ring-2 ring-green-500" : ""}
-                  ${day.isUnavailable ? "bg-red-50 cursor-not-allowed opacity-50" : "hover:bg-green-50"}
-                  ${day.appointments.length > 0 ? "bg-green-50 border-green-200" : ""}
+                  ${day.isToday ? "ring-2 ring-blue-500" : ""}
+                  ${day.isUnavailable ? "bg-red-50 cursor-not-allowed opacity-50" : "hover:bg-blue-50"}
+                  ${day.appointments.length > 0 ? "bg-blue-50 border-blue-200" : ""}
                 `}
               >
                 <div className="text-xs font-medium mb-0.5">
                   {day.date?.getDate()}
                 </div>
                 {day.appointments.length > 0 && (
-                  <div className="text-xs text-green-700 font-medium">
+                  <div className="text-xs text-blue-700 font-medium">
                     {day.appointments.length} cita
                     {day.appointments.length !== 1 ? "s" : ""}
                   </div>
@@ -281,9 +295,10 @@ export const EmployeeAppointmentsPage = () => {
   };
 
   const getAppointmentsForDate = (date) => {
-    return appointments.filter(
-      (apt) => new Date(apt.fecha).toDateString() === date.toDateString(),
-    );
+    return appointments.filter((apt) => {
+      const d = parseLocalDate(apt.fecha);
+      return d && d.toDateString() === date.toDateString();
+    });
   };
 
   const renderAppointmentsList = () => {
@@ -293,6 +308,22 @@ export const EmployeeAppointmentsPage = () => {
         (apt.telefono && apt.telefono.includes(searchTerm)) ||
         (apt.email && apt.email.toLowerCase().includes(searchTerm.toLowerCase())),
     );
+
+    // Ordenar de la más reciente a la más antigua (fecha + hora desc)
+    const sorted = filteredAppointments.sort((a, b) => {
+      const dateA = new Date(`${a.fecha}T${a.hora || "00:00"}`);
+      const dateB = new Date(`${b.fecha}T${b.hora || "00:00"}`);
+      return dateB - dateA; // más reciente primero
+    });
+
+    // Paginación
+    const totalPages = Math.max(1, Math.ceil(sorted.length / itemsPerPage));
+    const indexOfLast = currentPage * itemsPerPage;
+    const indexOfFirst = indexOfLast - itemsPerPage;
+    const currentItems = sorted.slice(indexOfFirst, indexOfLast);
+
+    const nextPage = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+    const prevPage = () => setCurrentPage((p) => Math.max(1, p - 1));
 
     return (
       <div className="space-y-4">
@@ -314,7 +345,7 @@ export const EmployeeAppointmentsPage = () => {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <table className="w-full">
-            <thead className="bg-green-600 text-white">
+            <thead className="bg-blue-600 text-white">
               <tr>
                 <th className="px-4 py-2.5 text-left text-sm font-semibold">
                   Paciente
@@ -337,7 +368,7 @@ export const EmployeeAppointmentsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredAppointments.map((appointment) => (
+              {currentItems.map((appointment) => (
                 <tr
                   key={appointment.id}
                   className="border-t border-gray-100 hover:bg-gray-50"
@@ -346,7 +377,7 @@ export const EmployeeAppointmentsPage = () => {
                     {appointment.paciente}
                   </td>
                   <td className="px-4 py-2.5 text-sm text-gray-600">
-                    {new Date(appointment.fecha).toLocaleDateString("es-ES")}
+                    {parseLocalDate(appointment.fecha).toLocaleDateString("es-ES")}
                   </td>
                   <td className="px-4 py-2.5 text-sm text-gray-600">
                     {appointment.hora}
@@ -364,13 +395,14 @@ export const EmployeeAppointmentsPage = () => {
                     </span>
                   </td>
                   <td className="px-4 py-2.5 text-sm">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center relative">
+                      <div className="relative">
                       <button
                         onClick={() => {
                           setSelectedAppointment(appointment);
                           setIsDetailModalOpen(true);
                         }}
-                        className="p-1 text-green-600 hover:bg-green-50 rounded"
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                         title="Ver detalles"
                       >
                         <Eye size={16} />
@@ -380,11 +412,40 @@ export const EmployeeAppointmentsPage = () => {
                           setEditingAppointment(appointment);
                           setIsAppointmentModalOpen(true);
                         }}
-                        className="p-1 text-green-600 hover:bg-green-50 rounded"
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                         title="Editar"
                       >
                         <Edit size={16} />
                       </button>
+                      </div>
+
+                      <button
+                        onClick={() => setStatusMenuFor(statusMenuFor === appointment.id ? null : appointment.id)}
+                        className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                        title="Cambiar estado"
+                      >
+                        <Settings size={16} />
+                      </button>
+
+                      {statusMenuFor === appointment.id && (
+                        <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-100 rounded-md shadow-md z-20">
+                          {["Confirmar Asistencia","En Consulta","Completada","No Asistió","Cancelada"].map((status) => (
+                            <button
+                              key={status}
+                              onClick={() => {
+                                try {
+                                  appointmentService.updateAppointmentStatus(appointment.id, status);
+                                } catch (e) {}
+                                loadData();
+                                setStatusMenuFor(null);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0"
+                            >
+                              {status}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <button
                         onClick={() => {
                           if (
@@ -408,6 +469,31 @@ export const EmployeeAppointmentsPage = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Paginación */}
+        <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-100">
+          <span className="text-xs text-gray-500">
+            Página {currentPage} de {totalPages} ({sorted.length} total)
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={prevPage}
+              disabled={currentPage === 1}
+              className="p-1.5 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
+              title="Anterior"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={nextPage}
+              disabled={currentPage === totalPages}
+              className="p-1.5 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
+              title="Siguiente"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
       </div>
     );
   };
@@ -421,7 +507,7 @@ export const EmployeeAppointmentsPage = () => {
             onClick={() => setActiveTab("calendario")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
               activeTab === "calendario"
-                ? "text-green-600 border-green-600"
+                ? "text-blue-600 border-blue-600"
                 : "text-gray-600 border-transparent hover:text-gray-800"
             }`}
           >
@@ -432,7 +518,7 @@ export const EmployeeAppointmentsPage = () => {
             onClick={() => setActiveTab("citas")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
               activeTab === "citas"
-                ? "text-green-600 border-green-600"
+                ? "text-blue-600 border-blue-600"
                 : "text-gray-600 border-transparent hover:text-gray-800"
             }`}
           >
@@ -447,7 +533,7 @@ export const EmployeeAppointmentsPage = () => {
               setEditingAppointment(null);
               setIsAppointmentModalOpen(true);
             }}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 h-fit"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 h-fit"
           >
             <Plus size={16} />
             Nueva Cita
