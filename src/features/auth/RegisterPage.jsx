@@ -70,12 +70,11 @@ export const RegisterPage = () => {
     }
 
     const payload = {
-      nombres: formData.nombres,
-      apellidos: formData.apellidos,
+      nombre: `${(formData.nombres || "").trim()} ${(formData.apellidos || "").trim()}`.trim(),
       email: email,
       telefono: formData.telefono || "",
       password: formData.password,
-      rol: "cliente",
+      rol: "Cliente",
       documento: formData.documento || "",
       tipoDocumento: formData.tipoDocumento || "",
       estado: true,

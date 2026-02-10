@@ -131,14 +131,37 @@ export const appointmentService = {
       estado: "Confirmar Asistencia",
       fechaCreacion: new Date().toISOString(),
     };
-    localStorage.setItem(DB_APPOINTMENTS, JSON.stringify([...list, newAppt]));
-    return [...list, newAppt];
+    // If caller didn't include user association, try to attach current logged user info
+    try {
+      const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      if (currentUser && currentUser.id) {
+        if (!newAppt.userId) newAppt.userId = currentUser.id;
+        if (!newAppt.email && currentUser.email) newAppt.email = currentUser.email;
+        if (!newAppt.paciente && currentUser.nombre) newAppt.paciente = currentUser.nombre;
+        if (!newAppt.documento && currentUser.documento) newAppt.documento = currentUser.documento;
+        if (!newAppt.telefono && currentUser.telefono) newAppt.telefono = currentUser.telefono;
+      }
+    } catch (e) {
+      console.warn("[appointmentService] could not attach currentUser to appointment", e);
+    }
+
+    const updatedList = [...list, newAppt];
+    localStorage.setItem(DB_APPOINTMENTS, JSON.stringify(updatedList));
+    try {
+      window.dispatchEvent(new Event("appointments:changed"));
+    } catch (e) {}
+
+    return newAppt;
   },
 
   updateAppointment: (id, updates) => {
     const list = appointmentService.getAppointments();
     const updated = list.map((a) => (a.id === id ? { ...a, ...updates } : a));
     localStorage.setItem(DB_APPOINTMENTS, JSON.stringify(updated));
+    // Notify listeners that appointments changed
+    try {
+      window.dispatchEvent(new Event("appointments:changed"));
+    } catch (e) {}
     return updated;
   },
 
@@ -150,11 +173,18 @@ export const appointmentService = {
     const list = appointmentService.getAppointments();
     const filtered = list.filter((a) => a.id !== id);
     localStorage.setItem(DB_APPOINTMENTS, JSON.stringify(filtered));
+    try {
+      window.dispatchEvent(new Event("appointments:changed"));
+    } catch (e) {}
     return filtered;
   },
 
   cancelAppointment: (id) => {
-    return appointmentService.updateAppointmentStatus(id, "Cancelada");
+    const res = appointmentService.updateAppointmentStatus(id, "Cancelada");
+    try {
+      window.dispatchEvent(new Event("appointments:changed"));
+    } catch (e) {}
+    return res;
   },
 
   // --- UTILIDADES ---
@@ -174,3 +204,5 @@ export const appointmentService = {
       .filter((a) => a.fecha === date && a.doctorId === doctorId);
   },
 };
+
+// (no debug exposure)
