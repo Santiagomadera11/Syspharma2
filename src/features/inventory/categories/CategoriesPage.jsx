@@ -101,7 +101,7 @@ export const CategoriesPage = () => {
         
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#5F9EA0] text-white sticky top-0 z-10"> 
+            <thead className="bg-emerald-600 text-white sticky top-0 z-10"> 
               <tr>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">ID</th>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">Nombre</th>

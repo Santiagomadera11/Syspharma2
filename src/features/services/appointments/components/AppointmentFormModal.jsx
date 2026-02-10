@@ -36,12 +36,14 @@ const AppointmentFormModal = ({
     paciente: "",
     documento: "",
     telefono: "",
+    email: "",
     doctorId: "",
     fecha: getLocalToday(), // Usamos fecha local por defecto
     hora: "",
     servicio: "",
     precio: "",
     notas: "",
+    userId: "", // Agregamos userId al estado
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -57,21 +59,25 @@ const AppointmentFormModal = ({
         paciente: appointment.paciente || "",
         documento: appointment.documento || "",
         telefono: appointment.telefono || "",
+        email: appointment.email || "",
         doctorId: appointment.doctorId || "",
         fecha: appointment.fecha || getLocalToday(),
         hora: appointment.hora || "",
         servicio: appointment.servicio || "",
         precio: appointment.precio || "",
         notas: appointment.notas || "",
+        userId: appointment.userId || "", // Capturar userId si viene prefillado
       });
     } else {
       const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-      // Prefill paciente, documento and telefono from current user when available
+      // Prefill paciente, documento, telefono y userId from current user when available
       setFormData({
         ...initialFormState,
         paciente: currentUser.nombre || initialFormState.paciente,
-        documento: currentUser.documento || (currentUser.id ? String(currentUser.id) : initialFormState.documento),
-        telefono: currentUser.telefono || initialFormState.telefono,
+        documento: currentUser.documento || currentUser.cedula || (currentUser.id ? String(currentUser.id) : initialFormState.documento),
+        telefono: currentUser.telefono || currentUser.phone || initialFormState.telefono,
+        email: currentUser.email || initialFormState.email,
+        userId: currentUser.id || "", // Capturar userId del usuario actual
       });
     }
     setErrors({});
@@ -179,16 +185,22 @@ const AppointmentFormModal = ({
         ...formData,
         doctorId: parseInt(formData.doctorId),
       };
-      // Asociar la cita al usuario logueado cuando exista
-      const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-      if (currentUser && currentUser.id) appointmentData.userId = currentUser.id;
-      if (appointment) {
+      
+      // Priorizar userId de formData (si fue pre-cargado), sino obtener del usuario actual
+      if (!appointmentData.userId) {
+        const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+        if (currentUser && currentUser.id) appointmentData.userId = currentUser.id;
+      }
+      
+      if (appointment && appointment.id) {
+        // Es una edición
         await appointmentService.updateAppointment(
           appointment.id,
           appointmentData,
         );
         onSave && onSave(null);
       } else {
+        // Es una creación
         try {
           const created = await appointmentService.createAppointment(appointmentData);
           onSave && onSave(created);
@@ -317,12 +329,18 @@ const AppointmentFormModal = ({
                   onChange={handleDoctorChange}
                 >
                   <option value="">Seleccione especialista...</option>
+                  {/* ✅ LÓGICA DE FILTRADO: Solo mostrar médicos con estado "Activo" */}
                   {doctors &&
-                    doctors.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.nombre} — {d.especialidad}
-                      </option>
-                    ))}
+                    doctors
+                      .filter(d => {
+                        if (d.estado === true || d.estado === "Activo") return true;
+                        return false;
+                      })
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nombre} — {d.especialidad}
+                        </option>
+                      ))}
                 </select>
                 {errors.doctorId && (
                   <p className="text-[10px] text-red-500 mt-1">

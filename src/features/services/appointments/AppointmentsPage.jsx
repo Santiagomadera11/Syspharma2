@@ -69,6 +69,10 @@ export const AppointmentsPage = () => {
     useState(null);
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
+  
+  // ✅ Paginación para lista de citas
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     loadData();
@@ -76,6 +80,11 @@ export const AppointmentsPage = () => {
     window.addEventListener("appointments:changed", onChange);
     return () => window.removeEventListener("appointments:changed", onChange);
   }, []);
+
+  // ✅ Reset página cuando cambia la búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const loadData = () => {
     setAppointments(appointmentService.getAppointments());
@@ -337,7 +346,7 @@ export const AppointmentsPage = () => {
 
   // --- RENDERIZADO LISTA ---
   const renderAppointmentsList = () => {
-    const filteredAppointments = appointments.filter(
+    const filtered = appointments.filter(
       (apt) =>
         (apt.paciente?.toLowerCase() || "").includes(
           searchTerm.toLowerCase(),
@@ -351,6 +360,26 @@ export const AppointmentsPage = () => {
         ).includes(searchTerm.toLowerCase()),
     );
 
+    // ✅ Ordenar por fecha y hora (más nuevo primero)
+    const sorted = filtered.sort((a, b) => {
+      const dateA = new Date(`${a.fecha}T${a.hora || "00:00"}`);
+      const dateB = new Date(`${b.fecha}T${b.hora || "00:00"}`);
+      return dateB - dateA;
+    });
+
+    // ✅ Paginación
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = sorted.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(sorted.length / itemsPerPage);
+
+    const nextPage = () => {
+      if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+    };
+    const prevPage = () => {
+      if (currentPage > 1) setCurrentPage(currentPage - 1);
+    };
+
     return (
       <div className="space-y-4">
         <div className="flex gap-3">
@@ -362,17 +391,17 @@ export const AppointmentsPage = () => {
             <input
               type="text"
               placeholder="Buscar cita..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-emerald-600 text-white">
+              <thead className="bg-blue-600 text-white">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold">
                     Paciente
@@ -395,93 +424,121 @@ export const AppointmentsPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredAppointments.map((apt) => (
-                  <tr
-                    key={apt.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-bold text-gray-800 text-sm">
-                        {apt.paciente}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {doctors.find((d) => d.id === apt.doctorId)?.nombre}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {/* ✅ FIX FECHA: Forzamos la interpretación local con T00:00:00 */}
-                      {new Date(apt.fecha + "T00:00:00").toLocaleDateString()}
-                      <span className="text-xs text-gray-400 block">
-                        {apt.hora}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {apt.servicio}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-bold text-emerald-600 text-right">
-                      $ {Number(apt.precio || 0).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${getStatusColor(apt.estado)}`}
-                      >
-                        {getStatusIcon(apt.estado)} {apt.estado}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center items-center gap-1">
-                        <button
-                          onClick={() => {
-                            setAppointmentToChangeStatus(apt);
-                            setIsStatusModalOpen(true);
-                          }}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                          title="Cambiar Estado"
+                {currentItems.length > 0 ? (
+                  currentItems.map((apt) => (
+                    <tr
+                      key={apt.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-gray-800 text-sm">
+                          {apt.paciente}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {doctors.find((d) => d.id === apt.doctorId)?.nombre}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {/* ✅ FIX FECHA: Forzamos la interpretación local con T00:00:00 */}
+                        {new Date(apt.fecha + "T00:00:00").toLocaleDateString()}
+                        <span className="text-xs text-gray-400 block">
+                          {apt.hora}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {apt.servicio}
+                      </td>
+                    <td className="px-4 py-3 text-sm font-bold text-blue-600 text-right">
+                        $ {Number(apt.precio || 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${getStatusColor(apt.estado)}`}
                         >
-                          <Settings size={16} />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingAppointment(apt);
-                            setIsAppointmentModalOpen(true);
-                          }}
-                          className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
-                          title="Editar"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        {apt.estado !== "Completada" && (
+                          {getStatusIcon(apt.estado)} {apt.estado}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-center items-center gap-1">
                           <button
-                            onClick={() =>
-                              handleStatusChange(apt.id, "Completada")
-                            }
-                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
-                            title="Marcar Completada"
+                            onClick={() => {
+                              setAppointmentToChangeStatus(apt);
+                              setIsStatusModalOpen(true);
+                            }}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                            title="Cambiar Estado"
                           >
-                            <CheckCircle size={16} />
+                            <Settings size={16} />
                           </button>
-                        )}
-                        {currentUserRole === "Administrador" && (
                           <button
-                            onClick={() => handleDeleteAppointment(apt.id)}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded"
-                            title="Eliminar"
+                            onClick={() => {
+                              setEditingAppointment(apt);
+                              setIsAppointmentModalOpen(true);
+                            }}
+                            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+                            title="Editar"
                           >
-                            <Trash2 size={16} />
+                            <Edit size={16} />
                           </button>
-                        )}
-                      </div>
+                          {apt.estado !== "Completada" && (
+                            <button
+                              onClick={() =>
+                                handleStatusChange(apt.id, "Completada")
+                              }
+                              className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+                              title="Marcar Completada"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                          )}
+                          {currentUserRole === "Administrador" && (
+                            <button
+                              onClick={() => handleDeleteAppointment(apt.id)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="px-4 py-8 text-center text-gray-400 text-sm">
+                      No hay citas registradas.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
-          {filteredAppointments.length === 0 && (
-            <div className="p-8 text-center text-gray-400 text-sm">
-              No hay citas registradas.
+
+          {/* ✅ Footer de Paginación */}
+          <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-100">
+            <span className="text-xs text-gray-500">
+              Página {currentPage} de {totalPages || 1} ({sorted.length} total)
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={prevPage}
+                disabled={currentPage === 1}
+                className="p-1.5 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
+                title="Anterior"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={nextPage}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="p-1.5 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
+                title="Siguiente"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
@@ -502,7 +559,7 @@ export const AppointmentsPage = () => {
           <div className="flex gap-2">
             <button
               onClick={handleCreateAppointment}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
             >
               <Plus size={16} /> Nueva Cita
             </button>
@@ -536,7 +593,7 @@ export const AppointmentsPage = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === tab.id
-                  ? "text-emerald-600 border-emerald-600"
+                  ? "text-blue-600 border-blue-600"
                   : "text-gray-500 border-transparent hover:text-gray-700"
               }`}
             >
@@ -565,7 +622,7 @@ export const AppointmentsPage = () => {
                   onClick={() => setPeriodFilter(p.val)}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                     periodFilter === p.val
-                      ? "bg-white text-emerald-600 shadow-sm"
+                      ? "bg-white text-blue-600 shadow-sm"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -617,7 +674,7 @@ export const AppointmentsPage = () => {
               <div className="mt-2 pt-2 border-t border-orange-200">
                 <p className="text-xs text-gray-500">Balance Neto:</p>
                 <span
-                  className={`text-xl font-bold ${financialSummary.balance >= 0 ? "text-emerald-700" : "text-red-600"}`}
+                  className={`text-xl font-bold ${financialSummary.balance >= 0 ? "text-green-700" : "text-red-600"}`}
                 >
                   $ {financialSummary.balance.toLocaleString()}
                 </span>
@@ -711,7 +768,7 @@ export const AppointmentsPage = () => {
                     {apt.estado !== "Completada" && (
                       <button
                         onClick={() => handleStatusChange(apt.id, "Completada")}
-                        className="mt-2 w-full py-1 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 transition-colors"
+                        className="mt-2 w-full py-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 transition-colors"
                       >
                         Marcar como Completada
                       </button>
@@ -741,7 +798,7 @@ export const AppointmentsPage = () => {
                   onClick={() => confirmStatusChange(status)}
                   className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-all ${
                     appointmentToChangeStatus.estado === status
-                      ? "bg-emerald-50 border-emerald-500 text-emerald-700 font-bold"
+                      ? "bg-blue-50 border-blue-500 text-blue-700 font-bold"
                       : "border-gray-200 hover:bg-gray-50"
                   }`}
                 >

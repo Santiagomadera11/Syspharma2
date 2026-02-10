@@ -1,6 +1,12 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Calendar, CheckCircle, Clock } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Settings } from "lucide-react";
 import { appointmentService } from "../services/appointments/services/appointmentService";
+
+// Parse date-only strings as local dates to avoid timezone shifts
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null;
+  return new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+};
 
 export const EmployeeCitas = () => {
   const [periodFilter, setPeriodFilter] = useState("dia"); // dia, semana, mes
@@ -41,7 +47,8 @@ export const EmployeeCitas = () => {
     const today = new Date();
 
     return allAppointments.filter((apt) => {
-      const aptDate = new Date(apt.fecha);
+      const aptDate = parseLocalDate(apt.fecha);
+      if (!aptDate) return false;
       aptDate.setHours(0, 0, 0, 0);
 
       if (periodFilter === "dia") {
@@ -51,6 +58,7 @@ export const EmployeeCitas = () => {
       } else if (periodFilter === "semana") {
         const endOfWeek = new Date(periodStart);
         endOfWeek.setDate(endOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
         return aptDate >= periodStart && aptDate <= endOfWeek;
       } else if (periodFilter === "mes") {
         return (
@@ -193,13 +201,16 @@ export const EmployeeCitas = () => {
                   <th className="px-4 py-2 text-left font-semibold text-gray-700">
                     Estado
                   </th>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-700">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAppointments.map((apt) => (
                   <tr
                     key={apt.id}
-                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                    className="border-b border-gray-200 hover:bg-gray-50 transition-colors relative"
                   >
                     <td className="px-4 py-2">{apt.paciente}</td>
                     <td className="px-4 py-2">
@@ -221,6 +232,11 @@ export const EmployeeCitas = () => {
                         {apt.estado}
                       </span>
                     </td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <StatusMenuButton appointment={apt} />
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -239,3 +255,49 @@ export const EmployeeCitas = () => {
 };
 
 export default EmployeeCitas;
+
+// Small inline component to show a settings button and status menu per appointment
+const StatusMenuButton = ({ appointment }) => {
+  const [open, setOpen] = useState(false);
+
+  const statuses = [
+    "Confirmar Asistencia",
+    "En Consulta",
+    "Completada",
+    "No Asistió",
+    "Cancelada",
+  ];
+
+  const changeStatus = (status) => {
+    try {
+      appointmentService.updateAppointmentStatus(appointment.id, status);
+    } catch (e) {}
+    // appointmentService dispatches appointments:changed, parent component listens and reloads
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+        title="Cambiar estado"
+      >
+        <Settings size={14} />
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-100 rounded-md shadow-md z-20">
+          {statuses.map((s) => (
+            <button
+              key={s}
+              onClick={() => changeStatus(s)}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

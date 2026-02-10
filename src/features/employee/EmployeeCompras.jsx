@@ -64,7 +64,7 @@ export const EmployeeCompras = () => {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
         >
           <Plus size={16} /> Nueva
         </button>
@@ -77,14 +77,14 @@ export const EmployeeCompras = () => {
           <input 
             type="text" 
             placeholder="Buscar compra..." 
-            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white"
+            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-blue-400 text-sm bg-white"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
           />
         </div>
         <div className="relative w-36">
            <select 
-             className="w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white appearance-none cursor-pointer"
+             className="w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-blue-400 text-sm bg-white appearance-none cursor-pointer"
              value={statusFilter}
              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
            >
@@ -103,7 +103,7 @@ export const EmployeeCompras = () => {
         
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#5F9EA0] text-white sticky top-0 z-10">
+            <thead className="bg-blue-600 text-white sticky top-0 z-10">
               <tr>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">ID</th>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">Proveedor</th>
@@ -130,13 +130,13 @@ export const EmployeeCompras = () => {
                     </td>
 
                     <td className="py-1.5 px-3 text-xs text-gray-500">{compra.fecha}</td>
-                    <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">₡ {compra.total.toLocaleString()}</td>
+                    <td className="py-1.5 px-3 text-xs font-bold text-blue-600 text-right">$ {compra.total.toLocaleString()}</td>
                     <td className="py-1.5 px-3 text-xs text-center text-gray-600 font-medium bg-gray-50 mx-auto rounded">{compra.items}</td>
                     <td className="py-1.5 px-3 text-center">{getStatusBadge(compra.estado)}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
                         <button className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Ver"><Eye size={14} /></button>
-                        <button className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar"><Edit size={14} /></button>
+                        <button className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
                         <button className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
                       </div>
                     </td>
