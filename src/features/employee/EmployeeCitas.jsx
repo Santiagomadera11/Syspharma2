@@ -1,15 +1,20 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Calendar, CheckCircle, Clock } from "lucide-react";
 import { appointmentService } from "../services/appointments/services/appointmentService";
 
 export const EmployeeCitas = () => {
   const [periodFilter, setPeriodFilter] = useState("dia"); // dia, semana, mes
 
-  // Obtener todas las citas
-  const allAppointments = useMemo(
-    () => appointmentService.getAppointments(),
-    []
+  // Obtener todas las citas y sus actualizaciones
+  const [allAppointments, setAllAppointments] = useState(
+    appointmentService.getAppointments(),
   );
+
+  useEffect(() => {
+    const reload = () => setAllAppointments(appointmentService.getAppointments());
+    window.addEventListener("appointments:changed", reload);
+    return () => window.removeEventListener("appointments:changed", reload);
+  }, []);
 
   // Función para obtener fecha del inicio del período
   const getPeriodStartDate = (period) => {

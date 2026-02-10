@@ -65,7 +65,14 @@ const AppointmentFormModal = ({
         notas: appointment.notas || "",
       });
     } else {
-      setFormData(initialFormState);
+      const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      // Prefill paciente, documento and telefono from current user when available
+      setFormData({
+        ...initialFormState,
+        paciente: currentUser.nombre || initialFormState.paciente,
+        documento: currentUser.documento || (currentUser.id ? String(currentUser.id) : initialFormState.documento),
+        telefono: currentUser.telefono || initialFormState.telefono,
+      });
     }
     setErrors({});
 
@@ -164,22 +171,31 @@ const AppointmentFormModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    const isValid = validateForm();
+    if (!isValid) return;
     setIsSubmitting(true);
     try {
       const appointmentData = {
         ...formData,
         doctorId: parseInt(formData.doctorId),
       };
+      // Asociar la cita al usuario logueado cuando exista
+      const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      if (currentUser && currentUser.id) appointmentData.userId = currentUser.id;
       if (appointment) {
         await appointmentService.updateAppointment(
           appointment.id,
           appointmentData,
         );
+        onSave && onSave(null);
       } else {
-        await appointmentService.createAppointment(appointmentData);
+        try {
+          const created = await appointmentService.createAppointment(appointmentData);
+          onSave && onSave(created);
+        } catch (err) {
+          console.error(err);
+        }
       }
-      onSave();
       onClose();
     } catch (error) {
       console.error(error);
@@ -371,23 +387,30 @@ const AppointmentFormModal = ({
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Servicio *
                   </label>
-                  <select
-                    name="servicio"
-                    className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.servicio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
-                    value={formData.servicio}
-                    onChange={handleServiceChange}
-                  >
-                    <option value="">Seleccione...</option>
-                    {servicesList.length > 0 ? (
-                      servicesList.map((srv) => (
+                  {servicesList.length > 0 ? (
+                    <select
+                      name="servicio"
+                      className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.servicio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                      value={formData.servicio}
+                      onChange={handleServiceChange}
+                    >
+                      <option value="">Seleccione...</option>
+                      {servicesList.map((srv) => (
                         <option key={srv.id} value={srv.nombre}>
                           {srv.nombre}
                         </option>
-                      ))
-                    ) : (
-                      <option disabled>No hay servicios</option>
-                    )}
-                  </select>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      name="servicio"
+                      type="text"
+                      placeholder="Describa el servicio..."
+                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${errors.servicio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                      value={formData.servicio}
+                      onChange={handleGenericInput}
+                    />
+                  )}
                   {errors.servicio && (
                     <p className="text-[10px] text-red-500 mt-1">
                       {errors.servicio}

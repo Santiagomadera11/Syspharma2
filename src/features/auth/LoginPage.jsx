@@ -11,6 +11,7 @@ import {
 } from "lucide-react"; // <--- Agregamos ChevronLeft
 import { authService } from "../auth/authService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
+import { userService } from "../users/services/userService";
 
 // TU IMAGEN LOCAL
 import loginImage from "../../assets/login.jpg";
@@ -121,10 +122,10 @@ export const LoginPage = () => {
       return;
     }
 
-    // Encontrar el usuario y actualizar la contraseña
-    const users = JSON.parse(localStorage.getItem("sys_users") || "[]");
+    // Encontrar el usuario y actualizar la contraseña usando userService
+    const users = userService.getAll();
     const userIndex = users.findIndex(
-      (u) => u.email.toLowerCase() === recoveryEmail.toLowerCase(),
+      (u) => (u.email || "").toLowerCase() === recoveryEmail.toLowerCase(),
     );
 
     if (userIndex === -1) {
@@ -136,8 +137,8 @@ export const LoginPage = () => {
       return;
     }
 
-    users[userIndex].password = newPassword;
-    localStorage.setItem("sys_users", JSON.stringify(users));
+    const userToUpdate = { ...users[userIndex], password: newPassword };
+    userService.update(userToUpdate);
 
     setToast({
       message: "Contraseña actualizada exitosamente",

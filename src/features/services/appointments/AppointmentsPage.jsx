@@ -72,6 +72,9 @@ export const AppointmentsPage = () => {
 
   useEffect(() => {
     loadData();
+    const onChange = () => loadData();
+    window.addEventListener("appointments:changed", onChange);
+    return () => window.removeEventListener("appointments:changed", onChange);
   }, []);
 
   const loadData = () => {
