@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Plus, Search, Eye, Edit, Trash2, 
   ChevronLeft, ChevronRight, Filter, ShoppingBag
@@ -6,6 +6,7 @@ import {
 
 // ✅ IMPORTACIÓN CORRECTA DEL COMPONENTE
 import PurchaseModal from "../inventory/purchases/components/PurchaseFormModal";
+import { purchaseService } from "../inventory/purchases/services/purchaseService";
 
 export const EmployeeCompras = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,16 +17,29 @@ export const EmployeeCompras = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; 
 
-  const [compras] = useState([
-    { id: "CMP-101", proveedor: "Farmacéutica Global", fecha: "2024-01-15", total: 450000, items: 12, estado: "Recibido" },
-    { id: "CMP-102", proveedor: "Distribuidora MedRx", fecha: "2024-01-18", total: 125500, items: 5, estado: "Pendiente" },
-    { id: "CMP-103", proveedor: "Laboratorios Pfizer", fecha: "2024-01-20", total: 890000, items: 24, estado: "En Camino" },
-    { id: "CMP-104", proveedor: "Insumos Médicos CR", fecha: "2024-01-21", total: 35000, items: 2, estado: "Cancelado" },
-    { id: "CMP-105", proveedor: "Bayer S.A.", fecha: "2024-01-22", total: 210000, items: 8, estado: "Pendiente" },
-    { id: "CMP-106", proveedor: "Genéricos del Valle", fecha: "2024-01-23", total: 15000, items: 1, estado: "Recibido" },
-    { id: "CMP-107", proveedor: "Droguería Central", fecha: "2024-01-24", total: 67000, items: 3, estado: "Recibido" },
-    { id: "CMP-108", proveedor: "Meditech Devices", fecha: "2024-01-25", total: 540000, items: 10, estado: "En Camino" },
-  ]);
+  const [compras, setCompras] = useState([]);
+  const [selectedPurchase, setSelectedPurchase] = useState(null);
+  const [modalMode, setModalMode] = useState("create"); // 'create' | 'view' | 'edit'
+
+  // Cargar compras desde el servicio
+  useEffect(() => {
+    const loadPurchases = () => {
+      const data = purchaseService.getAll();
+      setCompras(data);
+    };
+
+    loadPurchases();
+
+    // Escuchar cambios en compras
+    const handlePurchaseChange = () => {
+      loadPurchases();
+    };
+    window.addEventListener("purchases:changed", handlePurchaseChange);
+
+    return () => {
+      window.removeEventListener("purchases:changed", handlePurchaseChange);
+    };
+  }, []);
 
   const filtered = compras.filter(c => {
     const texto = searchTerm.toLowerCase();
@@ -53,6 +67,36 @@ export const EmployeeCompras = () => {
     }
   };
 
+  const handleView = (compra) => {
+    setSelectedPurchase(compra);
+    setModalMode("view");
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (compra) => {
+    setSelectedPurchase(compra);
+    setModalMode("edit");
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (compra) => {
+    if (!window.confirm(`Eliminar compra ${compra.id}?`)) return;
+    purchaseService.delete(compra.id);
+    setCompras(purchaseService.getAll());
+  };
+
+  const handleSave = (data) => {
+    if (modalMode === "edit") {
+      purchaseService.update(data);
+    } else { 
+      purchaseService.create(data);
+    }
+    setCompras(purchaseService.getAll());
+    setIsModalOpen(false);
+    setSelectedPurchase(null);
+    setModalMode("create");
+  };
+
   return (
     <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
       
@@ -63,7 +107,11 @@ export const EmployeeCompras = () => {
           <p className="text-xs text-gray-500">Gestión de adquisiciones</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setSelectedPurchase(null);
+            setModalMode("create");
+            setIsModalOpen(true);
+          }}
           className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
         >
           <Plus size={16} /> Nueva
@@ -135,9 +183,9 @@ export const EmployeeCompras = () => {
                     <td className="py-1.5 px-3 text-center">{getStatusBadge(compra.estado)}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Ver"><Eye size={14} /></button>
-                        <button className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
-                        <button className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                        <button onClick={() => handleView(compra)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Ver"><Eye size={14} /></button>
+                        <button onClick={() => handleEdit(compra)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
+                        <button onClick={() => handleDelete(compra)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -164,7 +212,14 @@ export const EmployeeCompras = () => {
       </div>
 
       {/* ✅ RENDERIZADO DEL MODAL */}
-      <PurchaseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <PurchaseModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
+        initialData={selectedPurchase}
+        mode={modalMode}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
 
     </div>
   );

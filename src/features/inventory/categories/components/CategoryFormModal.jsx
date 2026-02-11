@@ -2,11 +2,17 @@ import React, { useState, useEffect } from "react";
 import { X, Save, Tag, FileText, Activity } from "lucide-react";
 
 const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave, onDelete }) => {
-  const [formData, setFormData] = useState({ nombre: '', descripcion: '', estado: 'Activo' });
+  const [formData, setFormData] = useState({ nombre: '', descripcion: '', estado: true });
 
   useEffect(() => {
-    if (initialData) setFormData(initialData);
-    else setFormData({ nombre: '', descripcion: '', estado: 'Activo' });
+    if (initialData) {
+      setFormData({
+        ...initialData,
+        estado: typeof initialData.estado === 'boolean' ? initialData.estado : (initialData.estado === 'Activo')
+      });
+    } else {
+      setFormData({ nombre: '', descripcion: '', estado: true });
+    }
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -14,7 +20,12 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
   const isView = mode === 'view';
 
   const handleSubmit = () => {
-    if (onSave) onSave(formData);
+    if (onSave) {
+      onSave({
+        ...formData,
+        estado: formData.estado // Asegurar que sea booleano
+      });
+    }
   };
 
   const handleDelete = () => {
@@ -79,11 +90,11 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
               <select 
                 disabled={isView}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 bg-white appearance-none cursor-pointer"
-                value={formData.estado}
-                onChange={(e) => setFormData({...formData, estado: e.target.value})}
+                value={formData.estado ? 'true' : 'false'}
+                onChange={(e) => setFormData({...formData, estado: e.target.value === 'true'})}
               >
-                <option value="Activo">Activo</option>
-                <option value="Inactivo">Inactivo</option>
+                <option value="true">Activo</option>
+                <option value="false">Inactivo</option>
               </select>
             </div>
           </div>

@@ -319,19 +319,11 @@ export const AppointmentsPage = () => {
               `}
             >
               <div className="text-xs font-bold mb-1">{day.date.getDate()}</div>
-              <div className="space-y-1">
-                {day.appointments.slice(0, 2).map((apt, i) => (
-                  <div
-                    key={i}
-                    className={`w-full h-1.5 rounded-full ${apt.estado === "Completada" ? "bg-emerald-400" : "bg-blue-400"}`}
-                  ></div>
-                ))}
-                {day.appointments.length > 2 && (
-                  <div className="text-[9px] text-gray-400 font-medium">
-                    +{day.appointments.length - 2} más
-                  </div>
-                )}
-              </div>
+              {day.appointments.length > 0 && (
+                <div className="text-[9px] text-emerald-600 font-semibold mt-1">
+                  {day.appointments.length} {day.appointments.length === 1 ? 'cita' : 'citas'}
+                </div>
+              )}
             </div>
           ))}
         </div>

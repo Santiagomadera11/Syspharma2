@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, Save, AlertCircle, Upload } from "lucide-react";
 import { formValidations } from "../../../../shared/utils/formValidations";
 
-const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
+const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] }) => {
   const [formData, setFormData] = useState({
     nombre: "",
     tipoProducto: "Producto General",
@@ -193,8 +193,15 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
                 }
               >
                 <option value="">Seleccionar...</option>
-                <option value="Antibióticos">Antibióticos</option>
-                <option value="Analgésicos">Analgésicos</option>
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={cat.nombre}>
+                      {cat.nombre}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No hay categorías disponibles</option>
+                )}
               </select>
             </div>
             <div>

@@ -13,10 +13,12 @@ import {
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
 import { productService } from "./services/productService";
+import { categoryService } from "../categories/services/categoryService";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
 
 export const ProductsPage = () => {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,15 +29,31 @@ export const ProductsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const itemsPerPage = 20;
 
-  // Cargar productos al montar el componente
+  // Cargar productos y categorías al montar el componente
   useEffect(() => {
     setProducts(productService.getAll());
-    // Refrescar cada 1 segundo para sincronizar cambios de stock
+    setCategories(categoryService.getAll());
+    
+    // Refrescar cada 1 segundo para sincronizar cambios de stock y categorías
     const interval = setInterval(() => {
       const updatedProducts = productService.getAll();
+      const updatedCategories = categoryService.getAll();
       setProducts(updatedProducts);
+      setCategories(updatedCategories);
     }, 1000);
-    return () => clearInterval(interval);
+    
+    // Escuchar eventos de cambio de categorías
+    const handleCategoryChange = () => {
+      setCategories(categoryService.getAll());
+    };
+    window.addEventListener("categories:changed", handleCategoryChange);
+    window.addEventListener("products:changed", handleCategoryChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("categories:changed", handleCategoryChange);
+      window.removeEventListener("products:changed", handleCategoryChange);
+    };
   }, []);
 
   const handleCreate = () => {
@@ -391,6 +409,7 @@ export const ProductsPage = () => {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
         initialData={editingItem}
+        categories={categories}
       />
 
       {notification && (

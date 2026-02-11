@@ -128,7 +128,7 @@ export const ClientMisCitas = () => {
           {days.map((d, i) => (
             <div key={i} className={`min-h-[70px] p-2 border rounded-lg text-sm ${d.count > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}>
               <div className="font-bold text-gray-700">{d.date.getDate()}</div>
-              {d.count > 0 && <div className="text-xs text-emerald-600 mt-1 font-medium">{d.count} cita(s)</div>}
+              {d.count > 0 && <div className="text-xs text-emerald-600 mt-1 font-medium">{d.count} {d.count === 1 ? 'cita' : 'citas'}</div>}
             </div>
           ))}
         </div>

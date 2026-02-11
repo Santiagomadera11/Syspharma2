@@ -133,7 +133,7 @@ export const EmployeeCitas = () => {
             {totalAppointments}
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            {totalAppointments === 1 ? "cita" : "citas"} registradas
+            {totalAppointments} {totalAppointments === 1 ? "cita" : "citas"}
           </div>
         </div>
 
@@ -163,7 +163,7 @@ export const EmployeeCitas = () => {
             {pendingAppointments}
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            {pendingAppointments === 1
+            {pendingAppointments} {pendingAppointments === 1
               ? "cita pendiente"
               : "citas pendientes"}
           </div>

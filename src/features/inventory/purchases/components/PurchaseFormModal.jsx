@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, ShoppingCart, Plus, Trash2 } from "lucide-react";
+import { productService } from "../../products/services/productService";
 
 const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave, onDelete }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +11,32 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
     items: 1,
     estado: "Pendiente",
   });
+  
+  const [products, setProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [productCost, setProductCost] = useState("");
+  const [productQuantity, setProductQuantity] = useState("");
+  const [purchaseItems, setPurchaseItems] = useState([]);
+
+  // Cargar productos
+  useEffect(() => {
+    const loadProducts = () => {
+      const data = productService.getAll();
+      setProducts(data);
+    };
+
+    loadProducts();
+
+    // Escuchar cambios en productos
+    const handleProductChange = () => {
+      loadProducts();
+    };
+    window.addEventListener("products:changed", handleProductChange);
+
+    return () => {
+      window.removeEventListener("products:changed", handleProductChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -32,7 +59,22 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
         estado: "Pendiente",
       });
     }
+    setPurchaseItems([]);
+    setSelectedProduct("");
+    setProductCost("");
+    setProductQuantity("");
   }, [initialData, isOpen]);
+
+  // Recalcular totales cuando cambian los items
+  useEffect(() => {
+    const totalCost = purchaseItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    const totalItems = purchaseItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    setFormData(prev => ({
+      ...prev,
+      total: totalCost,
+      items: totalItems
+    }));
+  }, [purchaseItems]);
 
   if (!isOpen) return null;
 
@@ -56,6 +98,50 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
   };
 
   const title = isView ? 'Ver Compra' : (mode === 'edit' ? 'Editar Compra' : 'Registrar Compra');
+
+  // Función para agregar producto a la compra
+  const handleAddProduct = () => {
+    if (!selectedProduct) {
+      alert('Por favor selecciona un producto');
+      return;
+    }
+
+    if (!productCost || Number(productCost) <= 0) {
+      alert('Por favor ingresa un costo válido');
+      return;
+    }
+
+    if (!productQuantity || Number(productQuantity) <= 0) {
+      alert('Por favor ingresa una cantidad válida');
+      return;
+    }
+
+    const product = products.find(p => p.id === Number(selectedProduct));
+    if (!product) {
+      alert('Producto no encontrado');
+      return;
+    }
+
+    const subtotal = Number(productCost) * Number(productQuantity);
+    const newItem = {
+      id: Date.now(), // ID único temporal
+      productId: product.id,
+      nombre: product.nombre,
+      quantity: Number(productQuantity),
+      cost: Number(productCost),
+      subtotal: subtotal
+    };
+
+    setPurchaseItems([...purchaseItems, newItem]);
+    setSelectedProduct("");
+    setProductCost("");
+    setProductQuantity("");
+  };
+
+  // Función para eliminar producto de la compra
+  const handleRemoveItem = (itemId) => {
+    setPurchaseItems(purchaseItems.filter(item => item.id !== itemId));
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -120,20 +206,51 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
              <div className="flex flex-col md:flex-row gap-3 items-end">
                 <div className="flex-1 w-full">
                    <label className="block text-[10px] font-bold text-gray-600 mb-1">Producto</label>
-                   <select className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500 bg-white">
-                     <option>Buscar producto...</option>
-                     <option>Amoxicilina 500mg</option>
+                   <select 
+                     disabled={isView}
+                     className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500 bg-white"
+                     value={selectedProduct}
+                     onChange={(e) => setSelectedProduct(e.target.value)}
+                   >
+                     <option value="">Seleccionar producto...</option>
+                     {products.length > 0 ? (
+                       products.map((prod) => (
+                         <option key={prod.id} value={prod.id}>
+                           {prod.nombre}
+                         </option>
+                       ))
+                     ) : (
+                       <option disabled>No hay productos disponibles</option>
+                     )}
                    </select>
                 </div>
                 <div className="w-full md:w-32">
                    <label className="block text-[10px] font-bold text-gray-600 mb-1">Costo Unit.</label>
-                   <input type="number" className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" placeholder="0.00" />
+                   <input 
+                     disabled={isView}
+                     type="number" 
+                     className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" 
+                     placeholder="0.00"
+                     value={productCost}
+                     onChange={(e) => setProductCost(e.target.value)}
+                   />
                 </div>
                 <div className="w-full md:w-24">
                    <label className="block text-[10px] font-bold text-gray-600 mb-1">Cantidad</label>
-                   <input type="number" className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" placeholder="1" />
+                   <input 
+                     disabled={isView}
+                     type="number" 
+                     className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" 
+                     placeholder="1"
+                     value={productQuantity}
+                     onChange={(e) => setProductQuantity(e.target.value)}
+                   />
                 </div>
-                 <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-1.5 rounded-md text-sm font-medium h-[34px] flex items-center justify-center gap-1 shadow-sm transition-colors w-full md:w-auto">
+                 <button 
+                   onClick={handleAddProduct}
+                   disabled={isView || !selectedProduct}
+                   className="bg-primary-500 hover:bg-primary-600 disabled:bg-gray-400 text-white px-4 py-1.5 rounded-md text-sm font-medium h-[34px] flex items-center justify-center gap-1 shadow-sm transition-colors w-full md:w-auto"
+                 >
                    <Plus size={14}/> Agregar
                  </button>
              </div>
@@ -152,22 +269,31 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                   </tr>
                </thead>
                <tbody className="divide-y divide-gray-100">
-                  {/* Ejemplo de item agregado */}
-                  <tr>
-                       <td className="px-4 py-2 text-xs font-medium text-gray-700">Amoxicilina 500mg</td>
-                       <td className="px-4 py-2 text-center text-xs text-gray-600">{formData.items || 1}</td>
-                       <td className="px-4 py-2 text-right text-xs text-gray-600">{(formData.total && formData.items) ? Math.round(formData.total / formData.items).toLocaleString() : '0'}</td>
-                       <td className="px-4 py-2 text-right text-xs font-bold text-gray-800">{(formData.total).toLocaleString()}</td>
-                       <td className="px-4 py-2 text-center">
-                         <button className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
-                       </td>
+                  {purchaseItems.length > 0 ? (
+                    purchaseItems.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-4 py-2 text-xs font-medium text-gray-700">{item.nombre}</td>
+                        <td className="px-4 py-2 text-center text-xs text-gray-600">{item.quantity}</td>
+                        <td className="px-4 py-2 text-right text-xs text-gray-600">$ {item.cost.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-right text-xs font-bold text-gray-800">$ {item.subtotal.toLocaleString()}</td>
+                        <td className="px-4 py-2 text-center">
+                          <button 
+                            onClick={() => handleRemoveItem(item.id)}
+                            disabled={isView}
+                            className="text-gray-400 hover:text-red-500 disabled:text-gray-300 transition-colors"
+                          >
+                            <Trash2 size={14}/>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-xs text-gray-400 italic bg-gray-50/30">
+                        No hay productos agregados
+                      </td>
                     </tr>
-                  {/* Fila vacía para relleno visual */}
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-xs text-gray-400 italic bg-gray-50/30">
-                      No hay más productos en la lista
-                    </td>
-                  </tr>
+                  )}
                </tbody>
                <tfoot className="bg-gray-50 border-t border-gray-200">
                   <tr>

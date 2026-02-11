@@ -8,6 +8,12 @@ const initialData = [
   { id: 5, nombre: "Infantil", descripcion: "Pañales y fórmulas", estado: false },
 ];
 
+// Función auxiliar para disparar eventos de cambio
+const notifyChange = () => {
+  window.dispatchEvent(new CustomEvent("categories:changed"));
+  window.dispatchEvent(new CustomEvent("products:changed"));
+};
+
 export const categoryService = {
   getAll: () => {
     const data = localStorage.getItem(DB_KEY);
@@ -17,21 +23,25 @@ export const categoryService = {
     const list = categoryService.getAll();
     const newList = [{ ...item, id: Date.now() }, ...list];
     localStorage.setItem(DB_KEY, JSON.stringify(newList));
+    notifyChange();
     return newList;
   },
   update: (item) => {
     const list = categoryService.getAll().map(i => i.id === item.id ? item : i);
     localStorage.setItem(DB_KEY, JSON.stringify(list));
+    notifyChange();
     return list;
   },
   toggleStatus: (id) => {
     const list = categoryService.getAll().map(i => i.id === id ? { ...i, estado: !i.estado } : i);
     localStorage.setItem(DB_KEY, JSON.stringify(list));
+    notifyChange();
     return list;
   },
   delete: (id) => {
     const list = categoryService.getAll().filter(i => i.id !== id);
     localStorage.setItem(DB_KEY, JSON.stringify(list));
+    notifyChange();
     return list;
   }
 };
