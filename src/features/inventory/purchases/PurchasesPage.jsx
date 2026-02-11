@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { 
   Plus, Search, Eye, Edit, Trash2, 
-  ChevronLeft, ChevronRight, Filter, ShoppingBag
+  ChevronLeft, ChevronRight, Filter, ShoppingBag, Settings
 } from "lucide-react";
 
 // ✅ IMPORTACIÓN CORRECTA DEL COMPONENTE
@@ -16,7 +16,7 @@ export const PurchasesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; 
 
-  const [compras] = useState([
+  const [compras, setCompras] = useState([
     { id: "CMP-101", proveedor: "Farmacéutica Global", fecha: "2024-01-15", total: 450000, items: 12, estado: "Recibido" },
     { id: "CMP-102", proveedor: "Distribuidora MedRx", fecha: "2024-01-18", total: 125500, items: 5, estado: "Pendiente" },
     { id: "CMP-103", proveedor: "Laboratorios Pfizer", fecha: "2024-01-20", total: 890000, items: 24, estado: "En Camino" },
@@ -27,11 +27,18 @@ export const PurchasesPage = () => {
     { id: "CMP-108", proveedor: "Meditech Devices", fecha: "2024-01-25", total: 540000, items: 10, estado: "En Camino" },
   ]);
 
+  const [selectedPurchase, setSelectedPurchase] = useState(null);
+  const [modalMode, setModalMode] = useState("create"); // 'create' | 'view' | 'edit'
+  const [dateFilter, setDateFilter] = useState("");
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [purchaseToChangeStatus, setPurchaseToChangeStatus] = useState(null);
+
   const filtered = compras.filter(c => {
     const texto = searchTerm.toLowerCase();
     const matchText = c.proveedor.toLowerCase().includes(texto) || c.id.toLowerCase().includes(texto);
     const matchStatus = statusFilter === "Todos" || c.estado === statusFilter;
-    return matchText && matchStatus;
+    const matchDate = !dateFilter || c.fecha === dateFilter;
+    return matchText && matchStatus && matchDate;
   });
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -53,6 +60,49 @@ export const PurchasesPage = () => {
     }
   };
 
+  const handleView = (compra) => {
+    setSelectedPurchase(compra);
+    setModalMode("view");
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (compra) => {
+    setSelectedPurchase(compra);
+    setModalMode("edit");
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (compra) => {
+    if (!window.confirm(`Eliminar compra ${compra.id}?`)) return;
+    setCompras(prev => prev.filter(p => p.id !== compra.id));
+  };
+
+  const handleSave = (data) => {
+    if (modalMode === "edit") {
+      setCompras(prev => prev.map(p => p.id === data.id ? data : p));
+    } else { // create
+      const max = compras.reduce((acc, cur) => {
+        const n = parseInt(cur.id.split("-")[1]) || 0; return Math.max(acc, n);
+      }, 100);
+      const newId = `CMP-${String(max + 1).padStart(3, '0')}`;
+      const nuevo = { ...data, id: newId };
+      setCompras(prev => [nuevo, ...prev]);
+    }
+    setIsModalOpen(false);
+  };
+
+  const handleChangeStatus = (compraId, newStatus) => {
+    setCompras(prev => prev.map(p => p.id === compraId ? { ...p, estado: newStatus } : p));
+  };
+
+  const confirmStatusChange = (newStatus) => {
+    if (purchaseToChangeStatus) {
+      setCompras(prev => prev.map(p => p.id === purchaseToChangeStatus.id ? { ...p, estado: newStatus } : p));
+      setIsStatusModalOpen(false);
+      setPurchaseToChangeStatus(null);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
       
@@ -64,7 +114,7 @@ export const PurchasesPage = () => {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
+          className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
         >
           <Plus size={16} /> Nueva
         </button>
@@ -80,6 +130,14 @@ export const PurchasesPage = () => {
             className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white"
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+          />
+        </div>
+        <div className="w-40">
+          <input
+            type="date"
+            className="w-full pl-3 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white"
+            value={dateFilter}
+            onChange={(e) => { setDateFilter(e.target.value); setCurrentPage(1); }}
           />
         </div>
         <div className="relative w-36">
@@ -130,14 +188,21 @@ export const PurchasesPage = () => {
                     </td>
 
                     <td className="py-1.5 px-3 text-xs text-gray-500">{compra.fecha}</td>
-                    <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">₡ {compra.total.toLocaleString()}</td>
+                    <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">$ {compra.total.toLocaleString()}</td>
                     <td className="py-1.5 px-3 text-xs text-center text-gray-600 font-medium bg-gray-50 mx-auto rounded">{compra.items}</td>
                     <td className="py-1.5 px-3 text-center">{getStatusBadge(compra.estado)}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver"><Eye size={14} /></button>
-                        <button className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar"><Edit size={14} /></button>
-                        <button className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                        <button
+                          onClick={() => { setPurchaseToChangeStatus(compra); setIsStatusModalOpen(true); }}
+                          className="p-1 rounded text-gray-600 hover:bg-gray-100"
+                          title="Cambiar Estado"
+                        >
+                          <Settings size={14} />
+                        </button>
+                        <button onClick={() => handleView(compra)} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver"><Eye size={14} /></button>
+                        <button onClick={() => handleEdit(compra)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar"><Edit size={14} /></button>
+                        <button onClick={() => handleDelete(compra)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -164,7 +229,43 @@ export const PurchasesPage = () => {
       </div>
 
       {/* ✅ RENDERIZADO DEL MODAL */}
-      <PurchaseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <PurchaseModal 
+        isOpen={isModalOpen} 
+        onClose={() => { setIsModalOpen(false); setSelectedPurchase(null); setModalMode('create'); }}
+        initialData={selectedPurchase}
+        mode={modalMode}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
+
+      {isStatusModalOpen && purchaseToChangeStatus && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="font-bold text-gray-800 mb-4">Cambiar Estado</h3>
+            <div className="space-y-2">
+              {["Recibido", "Pendiente", "En Camino", "Cancelado"].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => confirmStatusChange(status)}
+                  className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-all ${
+                    purchaseToChangeStatus.estado === status
+                      ? "bg-blue-50 border-blue-500 text-blue-700 font-bold"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setIsStatusModalOpen(false)}
+              className="mt-4 w-full py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

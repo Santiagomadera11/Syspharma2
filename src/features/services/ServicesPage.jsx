@@ -7,9 +7,9 @@ import ServiceFormModal from "./components/ServiceFormModal";
 import { useCrud } from "../../shared/hooks/useCrud"; 
 
 const INITIAL_SERVICES = [
-  { id: "SRV-001", nombre: "Inyectable Intramuscular", categoria: "Enfermería", precio: 2500, duracion: 10, estado: "Activo" },
-  { id: "SRV-002", nombre: "Toma de Presión Arterial", categoria: "Enfermería", precio: 1000, duracion: 5, estado: "Activo" },
-  { id: "SRV-003", nombre: "Consulta Médica General", categoria: "Medicina", precio: 25000, duracion: 30, estado: "Activo" },
+  { id: "SRV-001", nombre: "Inyectable Intramuscular", categoria: "Enfermería", precio: 2500, duracion: 10, estado: "Activo", descripcion: "Aplicación de inyecciones intramusculares con técnica aséptica y seguimiento del paciente." },
+  { id: "SRV-002", nombre: "Toma de Presión Arterial", categoria: "Enfermería", precio: 1000, duracion: 5, estado: "Activo", descripcion: "Medición de presión arterial sistólica y diastólica, registro y asesoramiento." },
+  { id: "SRV-003", nombre: "Consulta Médica General", categoria: "Medicina", precio: 25000, duracion: 30, estado: "Activo", descripcion: "Evaluación clínica completa, diagnóstico y recomendaciones de tratamiento." },
 ];
 
 export const ServicesPage = () => {
@@ -42,7 +42,13 @@ export const ServicesPage = () => {
   };
 
   const handleDelete = (id) => {
+    if (!window.confirm(`¿Eliminar este servicio?`)) return;
     deleteItem(id);
+  };
+
+  const confirmStatusChange = (service) => {
+    const newStatus = service.estado === 'Activo' ? 'Inactivo' : 'Activo';
+    updateItem(service.id, { ...service, estado: newStatus });
   };
 
   const handleSave = (formData) => {
@@ -76,7 +82,7 @@ export const ServicesPage = () => {
           <h1 className="text-lg font-bold text-gray-800">Servicios</h1>
           <p className="text-xs text-gray-500">Catálogo de procedimientos</p>
         </div>
-        <button onClick={handleCreate} className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors">
+        <button onClick={handleCreate} className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors">
           <Plus size={16} /> Nuevo
         </button>
       </div>
@@ -118,7 +124,22 @@ export const ServicesPage = () => {
                   <td className="py-1.5 px-3 text-xs text-gray-600">{srv.categoria}</td>
                   <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">$ {Number(srv.precio).toLocaleString()}</td>
                   <td className="py-1.5 px-3 text-xs text-center text-gray-500"><div className="flex items-center justify-center gap-1"><Clock size={10} /> {srv.duracion} min</div></td>
-                  <td className="py-1.5 px-3 text-center">{getStatusBadge(srv.estado)}</td>
+                  <td className="py-1.5 px-3">
+                    <button
+                      onClick={() => confirmStatusChange(srv)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
+                        srv.estado === 'Activo'
+                          ? 'bg-emerald-600'
+                          : 'bg-gray-400'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                          srv.estado === 'Activo' ? 'translate-x-5' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </button>
+                  </td>
                   <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
                       <button onClick={() => handleView(srv)} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver detalle"><Eye size={14} /></button>
