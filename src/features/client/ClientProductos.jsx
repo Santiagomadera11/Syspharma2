@@ -79,23 +79,53 @@ export const ClientProductos = () => {
   const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
 
   useEffect(() => {
-    const mock = [
-      { id: 1, name: "Paracetamol 500mg", price: 12000, category: "Medicamento", marca: "Tafirol", image: "" },
-      { id: 2, name: "Ibupirac 400mg", price: 15000, category: "Medicamento", marca: "Actron", image: "" },
-      { id: 3, name: "Algodón 100g", price: 3000, category: "Insumo", marca: "Genérico", image: "" },
-      { id: 4, name: "Vitamina C 100 cáps", price: 45000, category: "Suplemento", marca: "Natura", image: "" },
-      { id: 5, name: "Termómetro Digital", price: 85000, category: "Equipo", marca: "Omron", image: "" },
-      { id: 6, name: "Mascarilla N95", price: 5000, category: "Insumo", marca: "3M", image: "" },
-      { id: 7, name: "Suero Fisiológico 500ml", price: 8000, category: "Insumo", marca: "Baxter", image: "" },
-    ];
-    setProducts(mock);
+    // Cargar productos desde localStorage
+    try {
+      const storedProducts = JSON.parse(localStorage.getItem("syspharma_products") || "[]");
+      // Mapear campos del servicio al formato esperado
+      const mappedProducts = Array.isArray(storedProducts) ? storedProducts.map(p => ({
+        id: p.id,
+        name: p.nombre,
+        price: p.precio,
+        image: p.imagen || "",
+        category: p.categoria || "Otros",
+        marca: p.laboratorio || "Genérico",
+      })) : [];
+      setProducts(mappedProducts);
+    } catch {
+      setProducts([]);
+    }
 
+    // Cargar favoritos
     try {
       const fav = JSON.parse(localStorage.getItem("syspharma_favorites") || "[]");
       setFavorites(Array.isArray(fav) ? fav : []);
     } catch {
       setFavorites([]);
     }
+
+    // Escuchar actualizaciones de productos
+    const handleProductsUpdate = () => {
+      try {
+        const storedProducts = JSON.parse(localStorage.getItem("syspharma_products") || "[]");
+        const mappedProducts = Array.isArray(storedProducts) ? storedProducts.map(p => ({
+          id: p.id,
+          name: p.nombre,
+          price: p.precio,
+          image: p.imagen || "",
+          category: p.categoria || "Otros",
+          marca: p.laboratorio || "Genérico",
+        })) : [];
+        setProducts(mappedProducts);
+      } catch {
+        setProducts([]);
+      }
+    };
+
+    window.addEventListener("syspharma_products_updated", handleProductsUpdate);
+    return () => {
+      window.removeEventListener("syspharma_products_updated", handleProductsUpdate);
+    };
   }, []);
 
   const saveCartAndNotify = (id) => {
