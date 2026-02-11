@@ -52,6 +52,12 @@ export const ProductsPage = () => {
       const updatedProduct = { ...editingItem, ...data };
       const updatedProducts = productService.update(updatedProduct);
       setProducts(updatedProducts);
+      
+      // Si el producto en detalle es el que se editó, actualizar también el detalle
+      if (detailProduct && detailProduct.id === editingItem.id) {
+        setDetailProduct(updatedProduct);
+      }
+      
       setNotification({
         message: `${data.nombre} actualizado correctamente`,
         type: "success",
@@ -329,7 +335,21 @@ export const ProductsPage = () => {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-6">
+              {/* Imagen del Producto */}
+              {detailProduct.imagen && (
+                <div className="flex justify-center">
+                  <div className="w-full max-w-xs h-64 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={detailProduct.imagen} 
+                      alt={detailProduct.nombre} 
+                      className="max-w-full max-h-full object-contain p-4"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Grid de Detalles */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 uppercase">

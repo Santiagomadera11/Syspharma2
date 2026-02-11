@@ -55,21 +55,21 @@ const categoryButtons = [
   { id: 'cuidado', icon: Sparkles, label: 'Cuidado Personal' },
 ];
 
-// Productos mock
+// Productos mock (con soporte de imágenes Base64)
 const mockProducts = {
   recomendados: [
-    { id: 1, name: 'Paracetamol 500mg', price: 12000, stock: 45, marca: 'Tafirol', category: 'medicamentos' },
-    { id: 2, name: 'Ibupirac 400mg', price: 15000, stock: 32, marca: 'Actron', category: 'medicamentos' },
-    { id: 3, name: 'Vitamina C 100 cáps', price: 45000, stock: 18, marca: 'Natura', category: 'suplementos' },
-    { id: 4, name: 'Algodón 100g', price: 3000, stock: 120, marca: 'Genérico', category: 'insumos' },
-    { id: 5, name: 'Suero Fisiológico 500ml', price: 8000, stock: 100, marca: 'Baxter', category: 'insumos' },
-    { id: 6, name: 'Mascarilla N95 Premium', price: 5000, stock: 200, marca: '3M', category: 'insumos' },
+    { id: 1, name: 'Paracetamol 500mg', price: 12000, stock: 45, marca: 'Tafirol', category: 'medicamentos', image: null },
+    { id: 2, name: 'Ibupirac 400mg', price: 15000, stock: 32, marca: 'Actron', category: 'medicamentos', image: null },
+    { id: 3, name: 'Vitamina C 100 cáps', price: 45000, stock: 18, marca: 'Natura', category: 'suplementos', image: null },
+    { id: 4, name: 'Algodón 100g', price: 3000, stock: 120, marca: 'Genérico', category: 'insumos', image: null },
+    { id: 5, name: 'Suero Fisiológico 500ml', price: 8000, stock: 100, marca: 'Baxter', category: 'insumos', image: null },
+    { id: 6, name: 'Mascarilla N95 Premium', price: 5000, stock: 200, marca: '3M', category: 'insumos', image: null },
   ],
   ofertas: [
-    { id: 7, name: 'Bloqueador Solar SPF50', price: 42000, discount: 30, stock: 25, marca: 'Coppertone', category: 'cuidado' },
-    { id: 8, name: 'Gel Antibacterial 500ml', price: 18000, discount: 20, stock: 60, marca: 'Dettol', category: 'insumos' },
-    { id: 9, name: 'Multivitamínico Diario', price: 55000, discount: 15, stock: 40, marca: 'One-a-Day', category: 'suplementos' },
-    { id: 10, name: 'Termómetro Digital', price: 85000, discount: 10, stock: 15, marca: 'Omron', category: 'medicamentos' },
+    { id: 7, name: 'Bloqueador Solar SPF50', price: 42000, discount: 30, stock: 25, marca: 'Coppertone', category: 'cuidado', image: null },
+    { id: 8, name: 'Gel Antibacterial 500ml', price: 18000, discount: 20, stock: 60, marca: 'Dettol', category: 'insumos', image: null },
+    { id: 9, name: 'Multivitamínico Diario', price: 55000, discount: 15, stock: 40, marca: 'One-a-Day', category: 'suplementos', image: null },
+    { id: 10, name: 'Termómetro Digital', price: 85000, discount: 10, stock: 15, marca: 'Omron', category: 'medicamentos', image: null },
   ],
 };
 
@@ -189,8 +189,12 @@ const MiniPromos = () => (
 const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => (
   <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
     {/* Image Area */}
-    <div className="relative h-32 bg-gray-50 flex items-center justify-center overflow-hidden">
-      <Pill size={56} className="text-gray-300" />
+    <div className="relative w-full h-48 bg-gray-50 flex items-center justify-center overflow-hidden">
+      {product.image ? (
+        <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
+      ) : (
+        <Pill size={56} className="text-gray-300" />
+      )}
       
       {/* Badge Descuento */}
       {product.discount && (
@@ -310,8 +314,32 @@ export const ClientCatalogo = () => {
     }
   };
 
-  const filterBySearchAndCategory = (products) => {
-    return products.filter((p) => {
+  const handleSaveProduct = (productData) => {
+    let updatedProducts = { ...products };
+
+    if (editingProduct) {
+      // Editar producto existente - mantener imagen anterior si no se sube nueva
+      const updatedData = editingProduct.id > 6 
+        ? updatedProducts.ofertas.find(p => p.id === editingProduct.id)
+        : updatedProducts.recomendados.find(p => p.id === editingProduct.id);
+      
+      if (updatedData) {
+        Object.assign(updatedData, { ...productData, image: productData.image || updatedData.image });
+      }
+    } else {
+      // Crear nuevo producto
+      const newId = Math.max(...updatedProducts.recomendados.map(p => p.id), ...updatedProducts.ofertas.map(p => p.id)) + 1;
+      const newProduct = { ...productData, id: newId };
+      updatedProducts.recomendados.push(newProduct);
+    }
+
+    setProducts(updatedProducts);
+    localStorage.setItem('syspharma_products', JSON.stringify(updatedProducts));
+    setEditingProduct(null);
+  };
+
+  const filterBySearchAndCategory = (productList) => {
+    return productList.filter((p) => {
       const matchesCategory = !selectedCategory || p.category === selectedCategory;
       const matchesSearch = !searchValue || 
         p.name.toLowerCase().includes(searchValue.toLowerCase()) ||

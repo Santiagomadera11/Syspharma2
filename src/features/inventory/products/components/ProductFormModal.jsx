@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { X, Save, AlertCircle } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, Save, AlertCircle, Upload } from "lucide-react";
 import { formValidations } from "../../../../shared/utils/formValidations";
 
 const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
@@ -11,6 +11,7 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
     precio: "",
     stock: "",
     estado: "Activo",
+    imagen: null,
     // Campos técnicos (solo para medicamentos)
     composicion: "",
     concentracion: "",
@@ -20,11 +21,15 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
     requiereFormula: false,
   });
 
+  const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    if (initialData) setFormData(initialData);
-    else
+    if (initialData) {
+      setFormData(initialData);
+      setImagePreview(initialData.imagen || null);
+    } else {
       setFormData({
         nombre: "",
         tipoProducto: "Producto General",
@@ -33,6 +38,7 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
         precio: "",
         stock: "",
         estado: "Activo",
+        imagen: null,
         composicion: "",
         concentracion: "",
         presentacion: "",
@@ -40,8 +46,23 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
         registroSanitario: "",
         requiereFormula: false,
       });
+      setImagePreview(null);
+    }
     setErrors({});
   }, [initialData, isOpen]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target.result;
+        setFormData({ ...formData, imagen: base64 });
+        setImagePreview(base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -80,6 +101,40 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          {/* Imagen del Producto */}
+          <div className="mb-4">
+            <label className="block text-xs font-bold text-gray-700 mb-2">
+              Imagen del Producto
+            </label>
+            <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-emerald-500 transition bg-gray-50">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex flex-col items-center"
+              >
+                {imagePreview ? (
+                  <div className="flex flex-col items-center">
+                    <img src={imagePreview} alt="Preview" className="max-h-32 max-w-full object-contain mb-2 rounded" />
+                    <p className="text-xs text-gray-500">Haz clic para cambiar imagen</p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Upload size={24} className="text-gray-400 mx-auto mb-2" />
+                    <p className="text-xs font-semibold text-gray-600">Sube una imagen</p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF hasta 5MB</p>
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+
           {/* Nombre */}
           <div className="col-span-2">
             <label className="block text-xs font-bold text-gray-700 mb-1">
