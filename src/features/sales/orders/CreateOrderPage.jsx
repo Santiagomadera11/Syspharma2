@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { productService } from "../../inventory/products/services/productService";
 import { ordersService } from "./services/ordersService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
+import { getPaymentMethods } from "../../settings/services/parameterService";
 
 export const CreateOrderPage = () => {
   const navigate = useNavigate();
@@ -109,6 +110,29 @@ export const CreateOrderPage = () => {
     correo: "",
     metodoPago: "Efectivo",
   });
+
+  // Métodos de pago dinámicos
+  const [paymentMethods, setPaymentMethods] = useState([]);
+
+  // Cargar métodos de pago
+  useEffect(() => {
+    const methods = getPaymentMethods();
+    setPaymentMethods(methods);
+
+    // Listen for parameter updates
+    const handleParameterUpdate = () => {
+      const updatedMethods = getPaymentMethods();
+      setPaymentMethods(updatedMethods);
+    };
+
+    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    return () => {
+      window.removeEventListener(
+        "syspharma_parameters_updated",
+        handleParameterUpdate
+      );
+    };
+  }, []);
 
   const handleClientChange = (field, value) => {
     setClientInfo((prev) => ({ ...prev, [field]: value }));
@@ -549,11 +573,11 @@ export const CreateOrderPage = () => {
                       }
                       className={inputClass}
                     >
-                      <option value="Efectivo">Efectivo</option>
-                      <option value="Tarjeta Débito">Tarjeta Débito</option>
-                      <option value="Tarjeta Crédito">Tarjeta Crédito</option>
-                      <option value="Transferencia">Transferencia</option>
-                      <option value="Cheque">Cheque</option>
+                      {paymentMethods.map((method) => (
+                        <option key={method.id} value={method.value}>
+                          {method.value}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

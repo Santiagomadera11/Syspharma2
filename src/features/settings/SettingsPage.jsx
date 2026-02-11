@@ -1,9 +1,10 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Shield, Edit, Trash2, Info } from "lucide-react";
+import { Shield, Edit, Trash2, Info, Settings } from "lucide-react";
 import { PERMISSIONS_CONFIG } from "./rolesConfig";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { rolesService } from "./rolesService";
 import { userService } from "../users/services/userService";
+import ParameterManagement from "./components/ParameterManagement";
 
 const ROLES_KEY = "syspharma_roles";
 
@@ -18,6 +19,7 @@ const COLOR_OPTIONS = [
 ];
 
 export const SettingsPage = () => {
+  const [activeSection, setActiveSection] = useState("roles"); // 'roles' or 'parameters'
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState("form"); // 'form' | 'perms'
   const [roles, setRoles] = useState([]);
@@ -32,8 +34,15 @@ export const SettingsPage = () => {
   const [roleColor, setRoleColor] = useState(COLOR_OPTIONS[0].id);
   const [roleDesc, setRoleDesc] = useState("");
   const [selectedPerms, setSelectedPerms] = useState(() => ({}));
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    // Get current user from localStorage
+    const userData = localStorage.getItem("syspharma_user");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+
     // load roles from rolesService and normalize
     const stored = rolesService.getAll();
     const normalized = (Array.isArray(stored) ? stored : []).map((r) => ({
@@ -246,79 +255,119 @@ export const SettingsPage = () => {
         </div>
 
         <div>
-          <button
-            onClick={() => {
-              resetForm();
-              setModalStep("form");
-              setShowModal(true);
-            }}
-            className="bg-primary-400 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg font-bold text-sm flex items-center gap-2"
-          >
-            Crear rol
-          </button>
+          {activeSection === "roles" && (
+            <button
+              onClick={() => {
+                resetForm();
+                setModalStep("form");
+                setShowModal(true);
+              }}
+              className="bg-primary-400 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg font-bold text-sm flex items-center gap-2"
+            >
+              Crear rol
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <h2 className="text-sm font-bold mb-3">Roles existentes</h2>
+      {/* Pestañas de secciones */}
+      <div className="flex gap-2 border-b border-gray-200 bg-white rounded-t-lg p-2">
+        <button
+          onClick={() => setActiveSection("roles")}
+          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+            activeSection === "roles"
+              ? "border-emerald-600 text-emerald-600"
+              : "border-transparent text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <Shield size={16} />
+          Gestión de Roles
+        </button>
+        {user?.rol === "Administrador" && (
+          <button
+            onClick={() => setActiveSection("parameters")}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+              activeSection === "parameters"
+                ? "border-emerald-600 text-emerald-600"
+                : "border-transparent text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <Settings size={16} />
+            Gestión de Parámetros
+          </button>
+        )}
+      </div>
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-          <div className="flex items-center w-full md:w-1/2 gap-2">
-            <div className="flex-1">
-              <input
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                placeholder="Buscar por nombre, descripción o categoría..."
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm placeholder-gray-400"
-              />
-            </div>
-            <div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
-              >
-                <option value="all">Todos</option>
-                <option value="active">Activos</option>
-                <option value="inactive">Inactivos</option>
-              </select>
+      {/* Sección de Roles */}
+      {activeSection === "roles" && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <h2 className="text-sm font-bold mb-3">Roles existentes</h2>
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+            <div className="flex items-center w-full md:w-1/2 gap-2">
+              <div className="flex-1">
+                <input
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  placeholder="Buscar por nombre, descripción o categoría..."
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm placeholder-gray-400"
+                />
+              </div>
+              <div>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                >
+                  <option value="all">Todos</option>
+                  <option value="active">Activos</option>
+                  <option value="inactive">Inactivos</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="text-xs text-gray-500 border-b">
-                <th className="py-2 px-3">ID</th>
-                <th className="py-2 px-3">Nombre</th>
-                <th className="py-2 px-3">Descripción</th>
-                <th className="py-2 px-3">Usuarios</th>
-                <th className="py-2 px-3">Estado</th>
-                <th className="py-2 px-3">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRoles.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="p-4 text-gray-400">
-                    No se encontraron roles.
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-xs text-gray-500 border-b">
+                  <th className="py-2 px-3">ID</th>
+                  <th className="py-2 px-3">Nombre</th>
+                  <th className="py-2 px-3">Descripción</th>
+                  <th className="py-2 px-3">Usuarios</th>
+                  <th className="py-2 px-3">Estado</th>
+                  <th className="py-2 px-3">Acciones</th>
                 </tr>
-              )}
-              {filteredRoles.map((role) => (
-                <RoleRow
-                  key={role.id}
-                  role={role}
-                  onEdit={() => handleEditRole(role)}
-                  onDelete={() => handleDeleteRole(role.id)}
-                  onToggle={() => handleToggleActive(role.id)}
-                />
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredRoles.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-gray-400">
+                      No se encontraron roles.
+                    </td>
+                  </tr>
+                )}
+                {filteredRoles.map((role) => (
+                  <RoleRow
+                    key={role.id}
+                    role={role}
+                    onEdit={() => handleEditRole(role)}
+                    onDelete={() => handleDeleteRole(role.id)}
+                    onToggle={() => handleToggleActive(role.id)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Sección de Gestión de Parámetros - Solo para Administrador */}
+      {activeSection === "parameters" && user?.rol === "Administrador" && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <ParameterManagement user={user} />
+        </div>
+      )}
 
       {/* Delete confirm modal */}
       {deleteConfirm.show && (

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, Stethoscope, Clock, DollarSign, FileText, Eye, AlertCircle } from "lucide-react";
 import { formValidations } from "../../../shared/utils/formValidations";
+import { getServiceCategories } from "../../settings/services/parameterService";
 
 const ServiceFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) => {
   const [formData, setFormData] = useState({
     nombre: "",
-    categoria: "Enfermería",
+    categoria: "",
     estado: "Activo",
     precio: "",
     duracion: "",
@@ -13,14 +14,22 @@ const ServiceFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
   });
 
   const [errors, setErrors] = useState({});
+  const [categories, setCategories] = useState([]);
+  const [defaultCategory, setDefaultCategory] = useState("");
 
   useEffect(() => {
+    // Load categories from localStorage
+    const cats = getServiceCategories();
+    setCategories(cats);
+    const defaultCat = cats.length > 0 ? cats[0].value : "";
+    setDefaultCategory(defaultCat);
+
     if (initialData) {
       setFormData(initialData);
     } else {
       setFormData({
         nombre: "",
-        categoria: "Enfermería",
+        categoria: defaultCat,
         estado: "Activo",
         precio: "",
         duracion: "",
@@ -28,6 +37,20 @@ const ServiceFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
       });
     }
     setErrors({});
+
+    // Listen for parameter updates
+    const handleParameterUpdate = () => {
+      const updatedCats = getServiceCategories();
+      setCategories(updatedCats);
+    };
+
+    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    return () => {
+      window.removeEventListener(
+        "syspharma_parameters_updated",
+        handleParameterUpdate
+      );
+    };
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -101,7 +124,11 @@ const ServiceFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
             <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Categoría</label>
                 <select disabled={isViewMode} className="w-full pl-2 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 bg-white disabled:bg-gray-100 disabled:text-gray-500" value={formData.categoria} onChange={(e) => setFormData({...formData, categoria: e.target.value})}>
-                  <option>Enfermería</option><option>Medicina</option><option>Laboratorio</option><option>Terapia</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.value}>
+                      {cat.value}
+                    </option>
+                  ))}
                 </select>
             </div>
             <div>

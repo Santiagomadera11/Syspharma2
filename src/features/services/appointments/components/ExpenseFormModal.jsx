@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, DollarSign, FileText, Calendar, Tag, CreditCard, TrendingDown, AlertCircle } from "lucide-react";
 import { formValidations } from "../../../../shared/utils/formValidations";
+import { getPaymentMethods } from "../../../settings/services/parameterService";
 
 const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) => {
   const [formData, setFormData] = useState({
@@ -8,13 +9,21 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
     monto: "",
     categoria: "Servicios Básicos",
     fecha: new Date().toISOString().split('T')[0], // Fecha de hoy por defecto
-    metodoPago: "Efectivo",
+    metodoPago: "",
     observaciones: ""
   });
 
   const [errors, setErrors] = useState({});
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState("");
 
   useEffect(() => {
+    // Load payment methods from localStorage
+    const methods = getPaymentMethods();
+    setPaymentMethods(methods);
+    const defaultMethod = methods.length > 0 ? methods[0].value : "";
+    setDefaultPaymentMethod(defaultMethod);
+
     if (initialData) {
       setFormData(initialData);
     } else {
@@ -23,11 +32,25 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
         monto: "",
         categoria: "Servicios Básicos",
         fecha: new Date().toISOString().split('T')[0],
-        metodoPago: "Efectivo",
+        metodoPago: defaultMethod,
         observaciones: ""
       });
     }
     setErrors({});
+
+    // Listen for parameter updates
+    const handleParameterUpdate = () => {
+      const updatedMethods = getPaymentMethods();
+      setPaymentMethods(updatedMethods);
+    };
+
+    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    return () => {
+      window.removeEventListener(
+        "syspharma_parameters_updated",
+        handleParameterUpdate
+      );
+    };
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -138,10 +161,11 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
                     <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                     <select disabled={isViewMode} className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-red-500 bg-white disabled:bg-gray-100"
                       value={formData.metodoPago} onChange={(e) => setFormData({...formData, metodoPago: e.target.value})}>
-                      <option>Efectivo</option>
-                      <option>Transferencia</option>
-                      <option>Tarjeta Corporativa</option>
-                      <option>Cheque</option>
+                      {paymentMethods.map((method) => (
+                        <option key={method.id} value={method.value}>
+                          {method.value}
+                        </option>
+                      ))}
                     </select>
                 </div>
              </div>
