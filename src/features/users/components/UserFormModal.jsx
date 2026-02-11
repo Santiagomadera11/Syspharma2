@@ -3,6 +3,7 @@ import { X, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 import { rolesService } from "../../settings/rolesService";
 import { formValidations } from "../../../shared/utils/formValidations";
+import { getDocumentTypes } from "../../settings/services/parameterService";
 
 export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +22,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState(null);
   const [rolesOptions, setRolesOptions] = useState([]);
+  const [documentTypes, setDocumentTypes] = useState([]);
 
   useEffect(() => {
     if (userToEdit) {
@@ -42,6 +44,24 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
     setErrors({});
     // load roles from rolesService
     setRolesOptions(rolesService.getAll());
+    
+    // Load document types
+    const types = getDocumentTypes();
+    setDocumentTypes(types);
+
+    // Listen for parameter updates
+    const handleParameterUpdate = () => {
+      const updatedTypes = getDocumentTypes();
+      setDocumentTypes(updatedTypes);
+    };
+
+    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    return () => {
+      window.removeEventListener(
+        "syspharma_parameters_updated",
+        handleParameterUpdate
+      );
+    };
   }, [userToEdit, isOpen]);
 
   if (!isOpen) return null;
@@ -192,9 +212,11 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
                 required
               >
                 <option value="">--</option>
-                <option value="CC">CC</option>
-                <option value="TI">TI</option>
-                <option value="CE">CE</option>
+                {documentTypes.map((dt) => (
+                  <option key={dt.id} value={dt.value}>
+                    {dt.value}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="col-span-2">

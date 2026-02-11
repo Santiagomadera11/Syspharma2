@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   User,
@@ -11,12 +11,14 @@ import {
 } from "lucide-react"; // <--- Agregamos ChevronLeft
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { userService } from "../users/services/userService";
+import { getDocumentTypes } from "../settings/services/parameterService";
 
 // TU IMAGEN LOCAL
 import loginImage from "../../assets/login.jpg";
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
+  const [documentTypes, setDocumentTypes] = useState([]);
   const [formData, setFormData] = useState({
     tipoDocumento: "",
     documento: "",
@@ -28,6 +30,26 @@ export const RegisterPage = () => {
     confirmPassword: "",
   });
   const [toast, setToast] = useState(null);
+
+  // Load document types
+  useEffect(() => {
+    const types = getDocumentTypes();
+    setDocumentTypes(types);
+
+    // Listen for parameter updates
+    const handleParameterUpdate = () => {
+      const updatedTypes = getDocumentTypes();
+      setDocumentTypes(updatedTypes);
+    };
+
+    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    return () => {
+      window.removeEventListener(
+        "syspharma_parameters_updated",
+        handleParameterUpdate
+      );
+    };
+  }, []);
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -140,12 +162,10 @@ export const RegisterPage = () => {
                 icon: User,
                 name: "tipoDocumento",
                 type: "select",
-                options: [
-                  { value: "", label: "--" },
-                  { value: "CC", label: "CC" },
-                  { value: "TI", label: "TI" },
-                  { value: "CE", label: "CE" },
-                ],
+                options: documentTypes.map((dt) => ({
+                  value: dt.value,
+                  label: dt.value,
+                })),
               },
               {
                 label: "Número",
