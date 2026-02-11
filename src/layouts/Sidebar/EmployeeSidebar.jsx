@@ -1,6 +1,5 @@
-import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { authService } from "../../features/auth/authService";
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -8,38 +7,30 @@ import {
   Package,
   ClipboardList,
   Calendar,
-  Stethoscope, // Usaremos este para Servicios
+  Stethoscope,
   LogOut,
   X,
 } from "lucide-react";
 
-const EmployeeSidebar = ({ isOpen, onClose }) => {
+const EmployeeSidebar = ({ isOpen, onClose, onShowLogoutModal }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [showConfirmLogout, setShowConfirmLogout] = useState(false);
 
   const isActive = (path) => location.pathname === path;
-
-  const handleConfirmLogout = () => {
-    authService.logout();
-    setShowConfirmLogout(false);
-    navigate("/");
-  };
 
   return (
     <>
       {/* Backdrop en móvil */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:static w-60 h-screen bg-[#1E3A5F] flex flex-col text-white shadow-xl z-50 flex-shrink-0 border-l border-gray-700 transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        className={`fixed lg:static w-60 bg-[#1E3A5F] flex flex-col text-white shadow-xl z-50 flex-shrink-0 border-l border-gray-700 transition-transform duration-300 h-full ${
+          isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
         }`}
       >
         {/* Encabezado Sidebar */}
@@ -125,7 +116,7 @@ const EmployeeSidebar = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="p-3 border-t border-gray-700 bg-[#0F2A3F]">
           <button
-            onClick={() => setShowConfirmLogout(true)}
+            onClick={onShowLogoutModal}
             className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
           >
             <LogOut size={16} />
@@ -133,39 +124,6 @@ const EmployeeSidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
       </aside>
-
-      {/* Confirm Logout Modal */}
-      {showConfirmLogout && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-4"
-          >
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
-              ¿Cerrar sesión?
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              ¿Estás seguro de que quieres cerrar sesión? Serás redirigido a la
-              página principal.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowConfirmLogout(false)}
-                className="px-3 py-1.5 bg-gray-100 rounded-md text-sm text-gray-700"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmLogout}
-                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
-              >
-                Salir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

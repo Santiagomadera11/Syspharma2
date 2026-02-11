@@ -44,31 +44,32 @@ export const ClientHeader = ({ onMenuClick }) => {
   }, []);
 
   return (
-    <header className="h-14 bg-green-600 border-b border-green-700 flex items-center justify-between px-5 shadow-md z-20 text-white flex-shrink-0">
-      <div className="flex items-center gap-3">
+    <header className="h-14 bg-green-600 border-b border-green-700 flex items-center justify-between px-3 sm:px-5 shadow-md z-20 text-white flex-shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <button
           onClick={onMenuClick}
-          className="md:hidden text-white/80 hover:text-white p-1 rounded-md hover:bg-white/10 transition"
+          className="lg:hidden text-white/80 hover:text-white p-1 rounded-md hover:bg-white/10 transition flex-shrink-0"
+          aria-label="Toggle menu"
         >
           <Menu size={24} />
         </button>
 
-        <div className="flex items-center gap-2">
-          <div className="bg-white/20 p-1.5 rounded-lg backdrop-blur-sm">
-            <Stethoscope size={20} className="text-white" />
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="bg-white/20 p-1 sm:p-1.5 rounded-lg backdrop-blur-sm flex-shrink-0">
+            <Stethoscope size={18} className="text-white" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-wide leading-none">
+          <div className="hidden xs:block min-w-0">
+            <h1 className="text-base sm:text-lg font-bold tracking-wide leading-none truncate">
               SysPharma
             </h1>
-            <p className="text-[9px] text-green-100 uppercase tracking-wider font-medium opacity-80">
-              Panel Cliente
+            <p className="text-[8px] sm:text-[9px] text-green-100 uppercase tracking-wider font-medium opacity-80">
+              Cliente
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         <button className="relative text-green-100 hover:text-white transition-colors">
           <Heart size={20} />
           {favCount > 0 && (
@@ -96,16 +97,16 @@ export const ClientHeader = ({ onMenuClick }) => {
 
         <div className="h-6 w-[1px] bg-green-500 hidden sm:block"></div>
 
-        <div className="flex items-center gap-3 cursor-pointer group">
+        <div className="flex items-center gap-2 sm:gap-3 cursor-pointer group">
           <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-white leading-none group-hover:opacity-90">
+            <p className="text-xs font-bold text-white leading-none group-hover:opacity-90 truncate">
               {user.nombre}
             </p>
             <p className="text-[10px] text-green-100 font-medium uppercase mt-0.5">
               {user.rol}
             </p>
           </div>
-          <div className="w-8 h-8 bg-white text-green-600 rounded-full flex items-center justify-center font-bold border-2 border-green-200 shadow-sm text-xs">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-green-600 rounded-full flex items-center justify-center font-bold border-2 border-green-200 shadow-sm text-xs flex-shrink-0">
             {user.nombre.charAt(0)}
           </div>
         </div>

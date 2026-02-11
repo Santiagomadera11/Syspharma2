@@ -144,21 +144,21 @@ export const ProductsPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+    <div className="h-full flex flex-col p-3 sm:p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3 flex-shrink-0">
         <div>
-          <h1 className="text-xl font-bold">Productos</h1>
+          <h1 className="text-lg sm:text-xl font-bold">Productos</h1>
           <p className="text-xs text-gray-500">Inventario</p>
         </div>
         <button
           onClick={handleCreate}
-          className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm font-medium"
+          className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-2 sm:py-1.5 rounded-md text-sm font-medium w-full sm:w-auto justify-center sm:justify-start"
         >
           <Plus size={16} /> Nuevo
         </button>
       </div>
 
-      <div className="flex gap-3 mb-4 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 flex-shrink-0">
         <div className="relative flex-1">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -176,7 +176,7 @@ export const ProductsPage = () => {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-600"
+          className="px-3 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 w-full sm:w-auto"
         >
           <option value="todos">Todos</option>
           <option value="Activo">Activos</option>
@@ -184,26 +184,27 @@ export const ProductsPage = () => {
         </select>
       </div>
 
-      <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+      {/* VISTA TABLA EN DESKTOP */}
+      <div className="hidden sm:flex flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex-col overflow-hidden">
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-emerald-700 text-white sticky top-0 z-10">
               <tr>
-                <th className="py-3 px-4 text-[11px] font-semibold">ID</th>
-                <th className="py-3 px-4 text-[11px] font-semibold">Nombre</th>
-                <th className="py-3 px-4 text-[11px] font-semibold">
+                <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold">ID</th>
+                <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold">Nombre</th>
+                <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold hidden md:table-cell">
                   Categoría
                 </th>
-                <th className="py-3 px-4 text-[11px] text-center font-semibold">
+                <th className="py-3 px-3 sm:px-4 text-[11px] text-center font-semibold">
                   Stock
                 </th>
-                <th className="py-3 px-4 text-[11px] text-right font-semibold">
+                <th className="py-3 px-3 sm:px-4 text-[11px] text-right font-semibold hidden lg:table-cell">
                   Precio
                 </th>
-                <th className="py-3 px-4 text-[11px] text-center font-semibold">
+                <th className="py-3 px-3 sm:px-4 text-[11px] text-center font-semibold">
                   Estado
                 </th>
-                <th className="py-3 px-4 text-[11px] text-center font-semibold">
+                <th className="py-3 px-3 sm:px-4 text-[11px] text-center font-semibold">
                   Acciones
                 </th>
               </tr>
@@ -215,51 +216,51 @@ export const ProductsPage = () => {
                     key={prod.id}
                     className="hover:bg-emerald-50 transition-colors"
                   >
-                    <td className="py-3 px-4 text-xs font-medium text-gray-900">
+                    <td className="py-3 px-3 sm:px-4 text-xs font-medium text-gray-900">
                       {prod.id}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-3 sm:px-4">
                       <div className="flex items-center gap-2">
-                        <Package size={14} className="text-emerald-500" />
-                        <span className="text-xs font-semibold text-gray-900">
+                        <Package size={14} className="text-emerald-500 flex-shrink-0" />
+                        <span className="text-xs font-semibold text-gray-900 truncate">
                           {prod.nombre}
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-xs text-gray-600">
+                    <td className="py-3 px-3 sm:px-4 text-xs text-gray-600 hidden md:table-cell">
                       {prod.categoria}
                     </td>
-                    <td className="py-3 px-4 text-xs text-center font-semibold text-gray-900">
+                    <td className="py-3 px-3 sm:px-4 text-xs text-center font-semibold text-gray-900">
                       {prod.stock}
                     </td>
-                    <td className="py-3 px-4 text-xs text-right font-semibold text-emerald-600">
+                    <td className="py-3 px-3 sm:px-4 text-xs text-right font-semibold text-emerald-600 hidden lg:table-cell">
                       $ {prod.precio}
                     </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3 px-3 sm:px-4 text-center">
                       <StatusToggle estado={prod.estado} productId={prod.id} />
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="flex justify-center gap-2">
+                    <td className="py-3 px-3 sm:px-4">
+                      <div className="flex justify-center gap-1">
                         <button
                           onClick={() => handleViewDetail(prod)}
-                          className="p-2 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                          className="p-1.5 sm:p-2 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors"
                           title="Ver detalle"
                         >
-                          <Eye size={16} />
+                          <Eye size={14} />
                         </button>
                         <button
                           onClick={() => handleEdit(prod)}
-                          className="p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="p-1.5 sm:p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
                           title="Editar"
                         >
-                          <Edit size={16} />
+                          <Edit size={14} />
                         </button>
                         <button
                           onClick={() => setShowDeleteConfirm(prod)}
-                          className="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-1.5 sm:p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
                           title="Eliminar"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -294,6 +295,92 @@ export const ProductsPage = () => {
               className="p-1 border rounded bg-white disabled:opacity-50"
             >
               <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* VISTA TARJETAS EN MÓVIL */}
+      <div className="sm:hidden flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
+        {currentItems.length > 0 ? (
+          currentItems.map((prod) => (
+            <div
+              key={prod.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-2 flex-1 min-w-0">
+                  <Package size={18} className="text-emerald-500 flex-shrink-0 mt-1" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-gray-900 truncate">{prod.nombre}</p>
+                    <p className="text-xs text-gray-600">ID: {prod.id}</p>
+                  </div>
+                </div>
+                <StatusToggle estado={prod.estado} productId={prod.id} />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-gray-500 font-medium">Categoría</p>
+                  <p className="text-gray-900 font-semibold">{prod.categoria}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 font-medium">Stock</p>
+                  <p className="text-gray-900 font-semibold">{prod.stock}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-gray-500 font-medium">Precio</p>
+                  <p className="text-emerald-600 font-bold">$ {prod.precio}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleViewDetail(prod)}
+                  className="flex-1 py-2 px-3 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors text-xs font-medium"
+                >
+                  Ver
+                </button>
+                <button
+                  onClick={() => handleEdit(prod)}
+                  className="flex-1 py-2 px-3 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors text-xs font-medium"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(prod)}
+                  className="flex-1 py-2 px-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-xs font-medium"
+                >
+                  Borrar
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-400 text-sm">
+              No hay productos que coincidan
+            </p>
+          </div>
+        )}
+
+        {/* Paginación Móvil */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-3 py-2 flex justify-between items-center flex-shrink-0 sticky bottom-0">
+          <span className="text-[10px] text-gray-500">Pág {currentPage}</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setCurrentPage((c) => Math.max(1, c - 1))}
+              disabled={currentPage === 1}
+              className="p-1 border rounded bg-white disabled:opacity-50 hover:bg-gray-100"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={() => setCurrentPage((c) => Math.min(totalPages, c + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1 border rounded bg-white disabled:opacity-50 hover:bg-gray-100"
+            >
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
