@@ -55,24 +55,6 @@ const categoryButtons = [
   { id: 'cuidado', icon: Sparkles, label: 'Cuidado Personal' },
 ];
 
-// Productos mock (con soporte de imágenes Base64)
-const mockProducts = {
-  recomendados: [
-    { id: 1, name: 'Paracetamol 500mg', price: 12000, stock: 45, marca: 'Tafirol', category: 'medicamentos', image: null },
-    { id: 2, name: 'Ibupirac 400mg', price: 15000, stock: 32, marca: 'Actron', category: 'medicamentos', image: null },
-    { id: 3, name: 'Vitamina C 100 cáps', price: 45000, stock: 18, marca: 'Natura', category: 'suplementos', image: null },
-    { id: 4, name: 'Algodón 100g', price: 3000, stock: 120, marca: 'Genérico', category: 'insumos', image: null },
-    { id: 5, name: 'Suero Fisiológico 500ml', price: 8000, stock: 100, marca: 'Baxter', category: 'insumos', image: null },
-    { id: 6, name: 'Mascarilla N95 Premium', price: 5000, stock: 200, marca: '3M', category: 'insumos', image: null },
-  ],
-  ofertas: [
-    { id: 7, name: 'Bloqueador Solar SPF50', price: 42000, discount: 30, stock: 25, marca: 'Coppertone', category: 'cuidado', image: null },
-    { id: 8, name: 'Gel Antibacterial 500ml', price: 18000, discount: 20, stock: 60, marca: 'Dettol', category: 'insumos', image: null },
-    { id: 9, name: 'Multivitamínico Diario', price: 55000, discount: 15, stock: 40, marca: 'One-a-Day', category: 'suplementos', image: null },
-    { id: 10, name: 'Termómetro Digital', price: 85000, discount: 10, stock: 15, marca: 'Omron', category: 'medicamentos', image: null },
-  ],
-};
-
 const fmt = (v) =>
   v && typeof v === 'number'
     ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
@@ -190,16 +172,16 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => (
   <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
     {/* Image Area */}
     <div className="relative w-full h-48 bg-gray-50 flex items-center justify-center overflow-hidden">
-      {product.image ? (
-        <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
+      {product.imagen ? (
+        <img src={product.imagen} alt={product.nombre} className="w-full h-full object-contain" />
       ) : (
         <Pill size={56} className="text-gray-300" />
       )}
       
-      {/* Badge Descuento */}
-      {product.discount && (
+      {/* Badge Descuento - Dinámico */}
+      {product.enOferta && product.porcentajeDescuento > 0 && (
         <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-          -{product.discount}%
+          -{product.porcentajeDescuento}%
         </div>
       )}
 
@@ -214,8 +196,8 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => (
 
     {/* Info */}
     <div className="p-3 flex flex-col h-40">
-      <p className="text-xs text-gray-500 uppercase tracking-wider">{product.marca}</p>
-      <h4 className="font-semibold text-gray-900 text-sm line-clamp-2 mt-1 flex-1">{product.name}</h4>
+      <p className="text-xs text-gray-500 uppercase tracking-wider">{product.nombre}</p>
+      <h4 className="font-semibold text-gray-900 text-sm line-clamp-2 mt-1 flex-1">{product.nombre}</h4>
       
       {/* Stock */}
       <p className={`text-xs mt-2 ${product.stock > 20 ? 'text-emerald-600' : product.stock > 5 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -224,7 +206,18 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => (
 
       {/* Price & Button */}
       <div className="flex items-center justify-between gap-2 mt-3">
-        <div className="text-emerald-600 font-bold text-sm">{fmt(product.price)}</div>
+        <div className="flex flex-col">
+          {product.enOferta && product.porcentajeDescuento > 0 ? (
+            <>
+              <div className="text-xs text-gray-500 line-through">{fmt(product.precio)}</div>
+              <div className="text-emerald-600 font-bold text-sm">
+                {fmt(product.precio * (1 - product.porcentajeDescuento / 100))}
+              </div>
+            </>
+          ) : (
+            <div className="text-emerald-600 font-bold text-sm">{fmt(product.precio)}</div>
+          )}
+        </div>
         <button
           onClick={() => onAdd(product.id)}
           className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded flex items-center gap-1 transition"
@@ -275,6 +268,7 @@ export const ClientCatalogo = () => {
   const [favorites, setFavorites] = useState([]);
   const [userName, setUserName] = useState('Usuario');
   const [searchValue, setSearchValue] = useState('');
+  const [allProducts, setAllProducts] = useState([]);
 
   useEffect(() => {
     // Cargar usuario
@@ -292,6 +286,29 @@ export const ClientCatalogo = () => {
     } catch {
       setFavorites([]);
     }
+
+    // Cargar productos desde localStorage
+    try {
+      const products = JSON.parse(localStorage.getItem('syspharma_products') || '[]');
+      setAllProducts(Array.isArray(products) ? products : []);
+    } catch {
+      setAllProducts([]);
+    }
+
+    // Escuchar actualizaciones de productos
+    const handleProductsUpdate = () => {
+      try {
+        const products = JSON.parse(localStorage.getItem('syspharma_products') || '[]');
+        setAllProducts(Array.isArray(products) ? products : []);
+      } catch {
+        setAllProducts([]);
+      }
+    };
+
+    window.addEventListener('syspharma_products_updated', handleProductsUpdate);
+    return () => {
+      window.removeEventListener('syspharma_products_updated', handleProductsUpdate);
+    };
   }, []);
 
   const toggleFavorite = (id) => {
@@ -314,42 +331,23 @@ export const ClientCatalogo = () => {
     }
   };
 
-  const handleSaveProduct = (productData) => {
-    let updatedProducts = { ...products };
-
-    if (editingProduct) {
-      // Editar producto existente - mantener imagen anterior si no se sube nueva
-      const updatedData = editingProduct.id > 6 
-        ? updatedProducts.ofertas.find(p => p.id === editingProduct.id)
-        : updatedProducts.recomendados.find(p => p.id === editingProduct.id);
-      
-      if (updatedData) {
-        Object.assign(updatedData, { ...productData, image: productData.image || updatedData.image });
-      }
-    } else {
-      // Crear nuevo producto
-      const newId = Math.max(...updatedProducts.recomendados.map(p => p.id), ...updatedProducts.ofertas.map(p => p.id)) + 1;
-      const newProduct = { ...productData, id: newId };
-      updatedProducts.recomendados.push(newProduct);
-    }
-
-    setProducts(updatedProducts);
-    localStorage.setItem('syspharma_products', JSON.stringify(updatedProducts));
-    setEditingProduct(null);
-  };
-
   const filterBySearchAndCategory = (productList) => {
     return productList.filter((p) => {
-      const matchesCategory = !selectedCategory || p.category === selectedCategory;
+      const matchesCategory = !selectedCategory || p.categoria === selectedCategory;
       const matchesSearch = !searchValue || 
-        p.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        p.marca.toLowerCase().includes(searchValue.toLowerCase());
+        p.nombre.toLowerCase().includes(searchValue.toLowerCase());
       return matchesCategory && matchesSearch;
     });
   };
 
-  const filteredRecomendados = filterBySearchAndCategory(mockProducts.recomendados);
-  const filteredOfertas = filterBySearchAndCategory(mockProducts.ofertas);
+  // Filtros dinámicos basados en los switches del admin
+  const productosDestacados = allProducts.filter(p => p.esDestacado);
+  const productosEnOferta = allProducts.filter(p => p.enOferta);
+  const productosRecomendados = allProducts.filter(p => p.esRecomendado);
+
+  const filteredDestacados = filterBySearchAndCategory(productosDestacados);
+  const filteredOfertas = filterBySearchAndCategory(productosEnOferta);
+  const filteredRecomendados = filterBySearchAndCategory(productosRecomendados);
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4">
@@ -396,23 +394,49 @@ export const ClientCatalogo = () => {
         </div>
 
         {/* Nuestros Recomendados */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Nuestros Recomendados</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredRecomendados.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                isFav={favorites.includes(product.id)}
-                onToggleFav={toggleFavorite}
-                onAdd={saveCartAndNotify}
-              />
-            ))}
+        {filteredRecomendados.length > 0 ? (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Nuestros Recomendados</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredRecomendados.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  isFav={favorites.includes(product.id)}
+                  onToggleFav={toggleFavorite}
+                  onAdd={saveCartAndNotify}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mb-12 bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+            <p className="text-blue-800 text-sm">
+              ℹ️ No hay productos recomendados configurados por el administrador
+            </p>
+          </div>
+        )}
+
+        {/* Destacados */}
+        {filteredDestacados.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">⭐ Destacados</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredDestacados.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  isFav={favorites.includes(product.id)}
+                  onToggleFav={toggleFavorite}
+                  onAdd={saveCartAndNotify}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Ofertas para ti */}
-        {filteredOfertas.length > 0 && (
+        {filteredOfertas.length > 0 ? (
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">⚡ Ofertas para ti</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -426,6 +450,12 @@ export const ClientCatalogo = () => {
                 />
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+            <p className="text-blue-800 text-sm">
+              ℹ️ No hay ofertas disponibles en este momento
+            </p>
           </div>
         )}
       </div>

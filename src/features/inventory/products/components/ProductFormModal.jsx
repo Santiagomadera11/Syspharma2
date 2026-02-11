@@ -19,6 +19,11 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] })
     viaAdministracion: "",
     registroSanitario: "",
     requiereFormula: false,
+    // Configuración de Visibilidad
+    esDestacado: false,
+    enOferta: false,
+    porcentajeDescuento: 0,
+    esRecomendado: false,
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -45,6 +50,10 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] })
         viaAdministracion: "",
         registroSanitario: "",
         requiereFormula: false,
+        esDestacado: false,
+        enOferta: false,
+        porcentajeDescuento: 0,
+        esRecomendado: false,
       });
       setImagePreview(null);
     }
@@ -390,6 +399,124 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] })
               </div>
             </div>
           )}
+
+          {/* Sección Configuración de Visibilidad */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h4 className="text-xs font-bold text-gray-800 mb-4">
+              📍 Configuración de Visibilidad
+            </h4>
+
+            <div className="space-y-3">
+              {/* Switch Destacado */}
+              <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
+                <label className="text-xs font-bold text-gray-700">
+                  Mostrar en Destacados
+                </label>
+                <button
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      esDestacado: !formData.esDestacado,
+                    })
+                  }
+                  className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${
+                    formData.esDestacado
+                      ? "bg-emerald-600 shadow-md shadow-emerald-200"
+                      : "bg-gray-300 shadow-md shadow-gray-200"
+                  }`}
+                  role="switch"
+                  aria-checked={formData.esDestacado}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.esDestacado ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Switch Oferta */}
+              <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
+                <label className="text-xs font-bold text-gray-700">
+                  Mostrar en Ofertas
+                </label>
+                <button
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      enOferta: !formData.enOferta,
+                    })
+                  }
+                  className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${
+                    formData.enOferta
+                      ? "bg-emerald-600 shadow-md shadow-emerald-200"
+                      : "bg-gray-300 shadow-md shadow-gray-200"
+                  }`}
+                  role="switch"
+                  aria-checked={formData.enOferta}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.enOferta ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Porcentaje Descuento - Solo si está en Oferta */}
+              {formData.enOferta && (
+                <div className="pl-3 pr-3 py-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                    Porcentaje de Descuento (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    className="w-full text-sm border border-emerald-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    placeholder="Ej: 15"
+                    value={formData.porcentajeDescuento}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        porcentajeDescuento: Math.min(100, Math.max(0, Number(e.target.value))),
+                      })
+                    }
+                  />
+                </div>
+              )}
+
+              {/* Switch Recomendado */}
+              <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
+                <label className="text-xs font-bold text-gray-700">
+                  Mostrar en Recomendados
+                </label>
+                <button
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      esRecomendado: !formData.esRecomendado,
+                    })
+                  }
+                  className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${
+                    formData.esRecomendado
+                      ? "bg-emerald-600 shadow-md shadow-emerald-200"
+                      : "bg-gray-300 shadow-md shadow-gray-200"
+                  }`}
+                  role="switch"
+                  aria-checked={formData.esRecomendado}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.esRecomendado
+                        ? "translate-x-5"
+                        : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0">

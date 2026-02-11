@@ -91,6 +91,10 @@ export const ProductsPage = () => {
         duration: 3000,
       });
     }
+    
+    // Emitir evento de actualización de productos para ClientCatalogo
+    window.dispatchEvent(new CustomEvent('syspharma_products_updated'));
+    
     setIsModalOpen(false);
     setEditingItem(null);
   };
@@ -501,9 +505,23 @@ export const ProductsPage = () => {
                   <label className="text-xs font-semibold text-gray-600 uppercase">
                     Precio
                   </label>
-                  <p className="text-sm text-emerald-600 font-bold">
-                    $ {detailProduct.precio}
-                  </p>
+                  <div className="space-y-1">
+                    {detailProduct.enOferta && detailProduct.porcentajeDescuento > 0 ? (
+                      <>
+                        <p className="text-xs text-gray-500 line-through">
+                          $ {detailProduct.precio}
+                        </p>
+                        <p className="text-sm text-emerald-600 font-bold">
+                          $ {Math.round(detailProduct.precio * (1 - detailProduct.porcentajeDescuento / 100))}
+                          <span className="ml-1 text-red-500">(-{detailProduct.porcentajeDescuento}%)</span>
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-emerald-600 font-bold">
+                        $ {detailProduct.precio}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 uppercase">
