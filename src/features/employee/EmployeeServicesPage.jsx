@@ -171,7 +171,7 @@ export const EmployeeServicesPage = () => {
       <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#1E3A5F] text-white sticky top-0 z-10">
+            <thead className="bg-blue-600 text-white sticky top-0 z-10">
               <tr>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase">
                   ID

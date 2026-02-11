@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Plus, Search, Eye, Edit, Trash2, 
   ChevronLeft, ChevronRight, Filter, Tag
@@ -6,6 +6,7 @@ import {
 
 // ✅ IMPORTACIÓN CORRECTA DEL COMPONENTE
 import CategoryFormModal from "./components/CategoryFormModal";
+import { categoryService } from "./services/categoryService";
 
 export const CategoriesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,22 +21,35 @@ export const CategoriesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; 
 
-  const [categories, setCategories] = useState([
-    { id: "CAT-001", nombre: "Antibióticos", descripcion: "Medicamentos para combatir infecciones bacterianas", productos: 45, estado: "Activo" },
-    { id: "CAT-002", nombre: "Analgésicos", descripcion: "Para el alivio del dolor y la inflamación", productos: 32, estado: "Activo" },
-    { id: "CAT-003", nombre: "Vitaminas", descripcion: "Suplementos vitamínicos y minerales", productos: 18, estado: "Activo" },
-    { id: "CAT-004", nombre: "Dermatología", descripcion: "Cuidado de la piel y afecciones cutáneas", productos: 24, estado: "Activo" },
-    { id: "CAT-005", nombre: "Cardiología", descripcion: "Medicamentos para el corazón y presión arterial", productos: 15, estado: "Activo" },
-    { id: "CAT-006", nombre: "Respiratorio", descripcion: "Tratamientos para asma y alergias", productos: 20, estado: "Inactivo" },
-    { id: "CAT-007", nombre: "Gastrointestinal", descripcion: "Salud estomacal y digestiva", productos: 28, estado: "Activo" },
-    { id: "CAT-008", nombre: "Primeros Auxilios", descripcion: "Vendas, alcohol, curitas", productos: 50, estado: "Activo" },
-  ]);
+  const [categories, setCategories] = useState([]);
+
+  // Cargar categorías desde el servicio
+  useEffect(() => {
+    const loadCategories = () => {
+      const data = categoryService.getAll();
+      setCategories(data);
+    };
+
+    loadCategories();
+
+    // Escuchar cambios en categorías
+    const handleCategoryChange = () => {
+      loadCategories();
+    };
+    window.addEventListener("categories:changed", handleCategoryChange);
+
+    return () => {
+      window.removeEventListener("categories:changed", handleCategoryChange);
+    };
+  }, []);
 
   // Filtrado
   const filteredItems = categories.filter((cat) => {
     const texto = searchTerm.toLowerCase();
-    const matchTexto = cat.nombre.toLowerCase().includes(texto) || cat.id.toLowerCase().includes(texto);
-    const matchEstado = statusFilter === "Todos" || cat.estado === statusFilter;
+    const matchTexto = cat.nombre.toLowerCase().includes(texto) || (cat.id && cat.id.toLowerCase().includes(texto));
+    const matchEstado = statusFilter === "Todos" || 
+      (statusFilter === "Activo" && cat.estado) || 
+      (statusFilter === "Inactivo" && !cat.estado);
     return matchTexto && matchEstado;
   });
 
@@ -50,7 +64,7 @@ export const CategoriesPage = () => {
 
   const getStatusBadge = (estado) => {
     const baseClass = "px-2 py-0.5 rounded text-[10px] font-bold border";
-    return estado === "Activo" 
+    return estado 
       ? <span className={`${baseClass} bg-green-50 text-green-700 border-green-200`}>Activo</span>
       : <span className={`${baseClass} bg-red-50 text-red-700 border-red-200`}>Inactivo</span>;
   };
@@ -69,28 +83,26 @@ export const CategoriesPage = () => {
 
   const handleDelete = (cat) => {
     if (!window.confirm(`Eliminar categoría ${cat.nombre}?`)) return;
-    setCategories(prev => prev.filter(c => c.id !== cat.id));
+    categoryService.delete(cat.id);
+    setCategories(categoryService.getAll());
   };
 
   const handleSave = (data) => {
     if (modalMode === 'edit') {
-      setCategories(prev => prev.map(c => c.id === data.id ? data : c));
+      categoryService.update(data);
     } else {
       // create
-      const max = categories.reduce((acc, cur) => {
-        const n = parseInt(cur.id.split('-')[1]) || 0; return Math.max(acc, n);
-      }, 0);
-      const newId = `CAT-${String(max + 1).padStart(3,'0')}`;
-      setCategories(prev => [{ ...data, id: newId }, ...prev]);
+      categoryService.create(data);
     }
+    setCategories(categoryService.getAll());
     setIsModalOpen(false);
     setSelectedCategory(null);
     setModalMode('create');
   };
 
   const confirmStatusChange = (cat) => {
-    const newStatus = cat.estado === 'Activo' ? 'Inactivo' : 'Activo';
-    setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, estado: newStatus } : c));
+    categoryService.toggleStatus(cat.id);
+    setCategories(categoryService.getAll());
   };
 
   return (
@@ -174,14 +186,14 @@ export const CategoriesPage = () => {
                       <button
                         onClick={() => confirmStatusChange(cat)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
-                          cat.estado === 'Activo'
+                          cat.estado
                             ? 'bg-emerald-600'
                             : 'bg-gray-400'
                         }`}
                       >
                         <span
                           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
-                            cat.estado === 'Activo' ? 'translate-x-5' : 'translate-x-0.5'
+                            cat.estado ? 'translate-x-5' : 'translate-x-0.5'
                           }`}
                         />
                       </button>
@@ -235,7 +247,14 @@ export const CategoriesPage = () => {
       </div>
 
       {/* ✅ MODAL INTEGRADO */}
-      <CategoryFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <CategoryFormModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
+        initialData={selectedCategory}
+        mode={modalMode}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
 
     </div>
   );

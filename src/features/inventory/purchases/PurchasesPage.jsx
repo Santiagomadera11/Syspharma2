@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Plus, Search, Eye, Edit, Trash2, 
   ChevronLeft, ChevronRight, Filter, ShoppingBag, Settings
@@ -6,6 +6,7 @@ import {
 
 // ✅ IMPORTACIÓN CORRECTA DEL COMPONENTE
 import PurchaseModal from "./components/PurchaseFormModal";
+import { purchaseService } from "./services/purchaseService";
 
 export const PurchasesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,22 +17,32 @@ export const PurchasesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; 
 
-  const [compras, setCompras] = useState([
-    { id: "CMP-101", proveedor: "Farmacéutica Global", fecha: "2024-01-15", total: 450000, items: 12, estado: "Recibido" },
-    { id: "CMP-102", proveedor: "Distribuidora MedRx", fecha: "2024-01-18", total: 125500, items: 5, estado: "Pendiente" },
-    { id: "CMP-103", proveedor: "Laboratorios Pfizer", fecha: "2024-01-20", total: 890000, items: 24, estado: "En Camino" },
-    { id: "CMP-104", proveedor: "Insumos Médicos CR", fecha: "2024-01-21", total: 35000, items: 2, estado: "Cancelado" },
-    { id: "CMP-105", proveedor: "Bayer S.A.", fecha: "2024-01-22", total: 210000, items: 8, estado: "Pendiente" },
-    { id: "CMP-106", proveedor: "Genéricos del Valle", fecha: "2024-01-23", total: 15000, items: 1, estado: "Recibido" },
-    { id: "CMP-107", proveedor: "Droguería Central", fecha: "2024-01-24", total: 67000, items: 3, estado: "Recibido" },
-    { id: "CMP-108", proveedor: "Meditech Devices", fecha: "2024-01-25", total: 540000, items: 10, estado: "En Camino" },
-  ]);
-
+  const [compras, setCompras] = useState([]);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [modalMode, setModalMode] = useState("create"); // 'create' | 'view' | 'edit'
   const [dateFilter, setDateFilter] = useState("");
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [purchaseToChangeStatus, setPurchaseToChangeStatus] = useState(null);
+
+  // Cargar compras desde el servicio
+  useEffect(() => {
+    const loadPurchases = () => {
+      const data = purchaseService.getAll();
+      setCompras(data);
+    };
+
+    loadPurchases();
+
+    // Escuchar cambios en compras
+    const handlePurchaseChange = () => {
+      loadPurchases();
+    };
+    window.addEventListener("purchases:changed", handlePurchaseChange);
+
+    return () => {
+      window.removeEventListener("purchases:changed", handlePurchaseChange);
+    };
+  }, []);
 
   const filtered = compras.filter(c => {
     const texto = searchTerm.toLowerCase();
@@ -74,30 +85,31 @@ export const PurchasesPage = () => {
 
   const handleDelete = (compra) => {
     if (!window.confirm(`Eliminar compra ${compra.id}?`)) return;
-    setCompras(prev => prev.filter(p => p.id !== compra.id));
+    purchaseService.delete(compra.id);
+    setCompras(purchaseService.getAll());
   };
 
   const handleSave = (data) => {
     if (modalMode === "edit") {
-      setCompras(prev => prev.map(p => p.id === data.id ? data : p));
-    } else { // create
-      const max = compras.reduce((acc, cur) => {
-        const n = parseInt(cur.id.split("-")[1]) || 0; return Math.max(acc, n);
-      }, 100);
-      const newId = `CMP-${String(max + 1).padStart(3, '0')}`;
-      const nuevo = { ...data, id: newId };
-      setCompras(prev => [nuevo, ...prev]);
+      purchaseService.update(data);
+    } else { 
+      purchaseService.create(data);
     }
+    setCompras(purchaseService.getAll());
     setIsModalOpen(false);
+    setSelectedPurchase(null);
+    setModalMode("create");
   };
 
   const handleChangeStatus = (compraId, newStatus) => {
-    setCompras(prev => prev.map(p => p.id === compraId ? { ...p, estado: newStatus } : p));
+    purchaseService.changeStatus(compraId, newStatus);
+    setCompras(purchaseService.getAll());
   };
 
   const confirmStatusChange = (newStatus) => {
     if (purchaseToChangeStatus) {
-      setCompras(prev => prev.map(p => p.id === purchaseToChangeStatus.id ? { ...p, estado: newStatus } : p));
+      purchaseService.changeStatus(purchaseToChangeStatus.id, newStatus);
+      setCompras(purchaseService.getAll());
       setIsStatusModalOpen(false);
       setPurchaseToChangeStatus(null);
     }
@@ -113,7 +125,11 @@ export const PurchasesPage = () => {
           <p className="text-xs text-gray-500">Gestión de adquisiciones</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { 
+            setSelectedPurchase(null); 
+            setModalMode("create"); 
+            setIsModalOpen(true); 
+          }}
           className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
         >
           <Plus size={16} /> Nueva
