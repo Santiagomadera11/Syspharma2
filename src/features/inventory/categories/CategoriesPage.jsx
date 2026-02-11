@@ -13,12 +13,14 @@ export const CategoriesPage = () => {
   
   // Estado del Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [modalMode, setModalMode] = useState("create"); // 'create' | 'view' | 'edit'
 
   // --- CONFIGURACIÓN COMPACTA (6 ITEMS) ---
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; 
 
-  const [categories] = useState([
+  const [categories, setCategories] = useState([
     { id: "CAT-001", nombre: "Antibióticos", descripcion: "Medicamentos para combatir infecciones bacterianas", productos: 45, estado: "Activo" },
     { id: "CAT-002", nombre: "Analgésicos", descripcion: "Para el alivio del dolor y la inflamación", productos: 32, estado: "Activo" },
     { id: "CAT-003", nombre: "Vitaminas", descripcion: "Suplementos vitamínicos y minerales", productos: 18, estado: "Activo" },
@@ -51,6 +53,44 @@ export const CategoriesPage = () => {
     return estado === "Activo" 
       ? <span className={`${baseClass} bg-green-50 text-green-700 border-green-200`}>Activo</span>
       : <span className={`${baseClass} bg-red-50 text-red-700 border-red-200`}>Inactivo</span>;
+  };
+
+  const handleView = (cat) => {
+    setSelectedCategory(cat);
+    setModalMode('view');
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (cat) => {
+    setSelectedCategory(cat);
+    setModalMode('edit');
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (cat) => {
+    if (!window.confirm(`Eliminar categoría ${cat.nombre}?`)) return;
+    setCategories(prev => prev.filter(c => c.id !== cat.id));
+  };
+
+  const handleSave = (data) => {
+    if (modalMode === 'edit') {
+      setCategories(prev => prev.map(c => c.id === data.id ? data : c));
+    } else {
+      // create
+      const max = categories.reduce((acc, cur) => {
+        const n = parseInt(cur.id.split('-')[1]) || 0; return Math.max(acc, n);
+      }, 0);
+      const newId = `CAT-${String(max + 1).padStart(3,'0')}`;
+      setCategories(prev => [{ ...data, id: newId }, ...prev]);
+    }
+    setIsModalOpen(false);
+    setSelectedCategory(null);
+    setModalMode('create');
+  };
+
+  const confirmStatusChange = (cat) => {
+    const newStatus = cat.estado === 'Activo' ? 'Inactivo' : 'Activo';
+    setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, estado: newStatus } : c));
   };
 
   return (
@@ -130,16 +170,31 @@ export const CategoriesPage = () => {
                     <td className="py-1.5 px-3 text-xs text-gray-500 truncate max-w-[200px]">{cat.descripcion}</td>
                     <td className="py-1.5 px-3 text-xs text-center font-bold text-gray-600">{cat.productos}</td>
                     
-                    <td className="py-1.5 px-3 text-center">
-                      {getStatusBadge(cat.estado)}
+                    <td className="py-1.5 px-3">
+                      <button
+                        onClick={() => confirmStatusChange(cat)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
+                          cat.estado === 'Activo'
+                            ? 'bg-emerald-600'
+                            : 'bg-gray-400'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                            cat.estado === 'Activo' ? 'translate-x-5' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
                     </td>
-
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar">
+                        <button onClick={() => handleView(cat)} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver">
+                          <Eye size={14} />
+                        </button>
+                        <button onClick={() => handleEdit(cat)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar">
                           <Edit size={14} />
                         </button>
-                        <button className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar">
+                        <button onClick={() => handleDelete(cat)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar">
                           <Trash2 size={14} />
                         </button>
                       </div>

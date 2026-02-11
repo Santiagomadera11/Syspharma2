@@ -214,7 +214,7 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData }) => {
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
-                Precio (₡)
+                Precio ($)
               </label>
               <input
                 type="number"

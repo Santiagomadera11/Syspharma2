@@ -1,8 +1,61 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { X, Save, ShoppingCart, Plus, Trash2 } from "lucide-react";
 
-const PurchaseModal = ({ isOpen, onClose }) => {
+const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave, onDelete }) => {
+  const [formData, setFormData] = useState({
+    proveedor: "",
+    fecha: new Date().toISOString().slice(0,10),
+    factura: "",
+    total: 25000,
+    items: 1,
+    estado: "Pendiente",
+  });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        proveedor: initialData.proveedor || "",
+        fecha: initialData.fecha || new Date().toISOString().slice(0,10),
+        factura: initialData.factura || "",
+        total: initialData.total || 0,
+        items: initialData.items || 0,
+        estado: initialData.estado || "Pendiente",
+        id: initialData.id,
+      });
+    } else {
+      setFormData({
+        proveedor: "",
+        fecha: new Date().toISOString().slice(0,10),
+        factura: "",
+        total: 0,
+        items: 0,
+        estado: "Pendiente",
+      });
+    }
+  }, [initialData, isOpen]);
+
   if (!isOpen) return null;
+
+  const isView = mode === 'view';
+
+  const handleSubmit = () => {
+    const payload = {
+      id: formData.id,
+      proveedor: formData.proveedor,
+      fecha: formData.fecha,
+      total: Number(formData.total) || 0,
+      items: Number(formData.items) || 0,
+      estado: formData.estado || 'Pendiente',
+      factura: formData.factura || ''
+    };
+    if (onSave) onSave(payload);
+  };
+
+  const handleDelete = () => {
+    if (onDelete && formData.id) onDelete({ id: formData.id });
+  };
+
+  const title = isView ? 'Ver Compra' : (mode === 'edit' ? 'Editar Compra' : 'Registrar Compra');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -12,7 +65,7 @@ const PurchaseModal = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
           <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-            <ShoppingCart size={16} className="text-emerald-600"/> Registrar Compra
+            <ShoppingCart size={16} className="text-primary-500"/> {title}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
             <X size={18} />
@@ -26,19 +79,38 @@ const PurchaseModal = ({ isOpen, onClose }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Proveedor</label>
-              <select className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500 bg-white">
-                <option>Seleccionar...</option>
+              <select 
+                disabled={isView}
+                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500 bg-white"
+                value={formData.proveedor}
+                onChange={(e) => setFormData({...formData, proveedor: e.target.value})}
+              >
+                <option value="">Seleccionar...</option>
                 <option>Farmacéutica Global</option>
                 <option>Laboratorios Pfizer</option>
+                <option>Droguería Central</option>
               </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Fecha de Compra</label>
-              <input type="date" className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500" />
+              <input 
+                disabled={isView}
+                type="date" 
+                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500"
+                value={formData.fecha}
+                onChange={(e) => setFormData({...formData, fecha: e.target.value})}
+              />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">N° Factura</label>
-              <input type="text" className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500" placeholder="FAC-0000" />
+              <input 
+                disabled={isView}
+                type="text" 
+                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500" 
+                placeholder="FAC-0000"
+                value={formData.factura}
+                onChange={(e) => setFormData({...formData, factura: e.target.value})}
+              />
             </div>
           </div>
 
@@ -61,9 +133,9 @@ const PurchaseModal = ({ isOpen, onClose }) => {
                    <label className="block text-[10px] font-bold text-gray-600 mb-1">Cantidad</label>
                    <input type="number" className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" placeholder="1" />
                 </div>
-                <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium h-[34px] flex items-center justify-center gap-1 shadow-sm transition-colors w-full md:w-auto">
+                 <button className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-1.5 rounded-md text-sm font-medium h-[34px] flex items-center justify-center gap-1 shadow-sm transition-colors w-full md:w-auto">
                    <Plus size={14}/> Agregar
-                </button>
+                 </button>
              </div>
           </div>
 
@@ -82,14 +154,14 @@ const PurchaseModal = ({ isOpen, onClose }) => {
                <tbody className="divide-y divide-gray-100">
                   {/* Ejemplo de item agregado */}
                   <tr>
-                     <td className="px-4 py-2 text-xs font-medium text-gray-700">Amoxicilina 500mg</td>
-                     <td className="px-4 py-2 text-center text-xs text-gray-600">10</td>
-                     <td className="px-4 py-2 text-right text-xs text-gray-600">2,500</td>
-                     <td className="px-4 py-2 text-right text-xs font-bold text-gray-800">25,000</td>
-                     <td className="px-4 py-2 text-center">
-                       <button className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
-                     </td>
-                  </tr>
+                       <td className="px-4 py-2 text-xs font-medium text-gray-700">Amoxicilina 500mg</td>
+                       <td className="px-4 py-2 text-center text-xs text-gray-600">{formData.items || 1}</td>
+                       <td className="px-4 py-2 text-right text-xs text-gray-600">{(formData.total && formData.items) ? Math.round(formData.total / formData.items).toLocaleString() : '0'}</td>
+                       <td className="px-4 py-2 text-right text-xs font-bold text-gray-800">{(formData.total).toLocaleString()}</td>
+                       <td className="px-4 py-2 text-center">
+                         <button className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14}/></button>
+                       </td>
+                    </tr>
                   {/* Fila vacía para relleno visual */}
                   <tr>
                     <td colSpan={5} className="px-4 py-6 text-center text-xs text-gray-400 italic bg-gray-50/30">
@@ -99,9 +171,9 @@ const PurchaseModal = ({ isOpen, onClose }) => {
                </tbody>
                <tfoot className="bg-gray-50 border-t border-gray-200">
                   <tr>
-                     <td colSpan={3} className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total a Pagar:</td>
-                     <td className="px-4 py-3 text-right text-sm font-bold text-emerald-600">₡ 25,000</td>
-                     <td></td>
+                    <td colSpan={3} className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total a Pagar:</td>
+                    <td className="px-4 py-3 text-right text-sm font-bold text-primary-500">$ { (formData.total || 0).toLocaleString() }</td>
+                    <td></td>
                   </tr>
                </tfoot>
             </table>
@@ -116,9 +188,11 @@ const PurchaseModal = ({ isOpen, onClose }) => {
           >
             Cancelar
           </button>
-          <button className="px-4 py-2 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded-md flex items-center gap-1 shadow-sm transition-colors">
-             <Save size={16} /> Finalizar Compra
-          </button>
+           {!isView && (
+            <button onClick={handleSubmit} className="px-4 py-2 text-xs font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-md flex items-center gap-1 shadow-sm transition-colors">
+              <Save size={16} /> {mode === 'edit' ? 'Guardar' : 'Finalizar Compra'}
+            </button>
+           )}
         </div>
 
       </div>

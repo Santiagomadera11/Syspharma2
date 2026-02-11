@@ -13,12 +13,14 @@ export const ProvidersPage = () => {
   
   // Estado para abrir/cerrar el modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [modalMode, setModalMode] = useState("create"); // 'create' | 'view' | 'edit'
 
   // Paginación (5 items para no scroll)
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5; 
 
-  const [providers] = useState([
+  const [providers, setProviders] = useState([
     { id: "PRV-001", empresa: "Farmacéutica Global S.A.", contacto: "Carlos Ruiz", telefono: "+506 2222-1111", email: "ventas@fglobal.com", estado: "Activo" },
     { id: "PRV-002", empresa: "Distribuidora MedRx", contacto: "Ana Gómez", telefono: "+506 2222-3333", email: "ana.g@medrx.cr", estado: "Activo" },
     { id: "PRV-003", empresa: "Laboratorios Pfizer", contacto: "Roberto Díaz", telefono: "+506 2222-5555", email: "rdiaz@pfizer.com", estado: "Activo" },
@@ -53,6 +55,43 @@ export const ProvidersPage = () => {
       : <span className={`${baseClass} bg-red-50 text-red-700 border-red-200`}>Inactivo</span>;
   };
 
+  const handleView = (prov) => {
+    setSelectedProvider(prov);
+    setModalMode('view');
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (prov) => {
+    setSelectedProvider(prov);
+    setModalMode('edit');
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (prov) => {
+    if (!window.confirm(`Eliminar proveedor ${prov.empresa}?`)) return;
+    setProviders(prev => prev.filter(p => p.id !== prov.id));
+  };
+
+  const handleSave = (data) => {
+    if (modalMode === 'edit') {
+      setProviders(prev => prev.map(p => p.id === data.id ? data : p));
+    } else {
+      const max = providers.reduce((acc, cur) => {
+        const n = parseInt(cur.id.split('-')[1]) || 0; return Math.max(acc, n);
+      }, 0);
+      const newId = `PRV-${String(max + 1).padStart(3,'0')}`;
+      setProviders(prev => [{ ...data, id: newId }, ...prev]);
+    }
+    setIsModalOpen(false);
+    setSelectedProvider(null);
+    setModalMode('create');
+  };
+
+  const confirmStatusChange = (prov) => {
+    const newStatus = prov.estado === 'Activo' ? 'Inactivo' : 'Activo';
+    setProviders(prev => prev.map(p => p.id === prov.id ? { ...p, estado: newStatus } : p));
+  };
+
   return (
     <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
       
@@ -63,8 +102,8 @@ export const ProvidersPage = () => {
           <p className="text-xs text-gray-500">Gestión de socios comerciales</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)} // ABRIR MODAL
-          className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
+          onClick={() => { setSelectedProvider(null); setModalMode('create'); setIsModalOpen(true); }}
+          className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
         >
           <Plus size={16} /> Nuevo
         </button>
@@ -139,19 +178,31 @@ export const ProvidersPage = () => {
                       </div>
                     </td>
                     
-                    <td className="py-1.5 px-3 text-center">
-                      {getStatusBadge(prov.estado)}
+                    <td className="py-1.5 px-3">
+                      <button
+                        onClick={() => confirmStatusChange(prov)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
+                          prov.estado === 'Activo'
+                            ? 'bg-emerald-600'
+                            : 'bg-gray-400'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                            prov.estado === 'Activo' ? 'translate-x-5' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
                     </td>
-
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver">
+                        <button onClick={() => handleView(prov)} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver">
                           <Eye size={14} />
                         </button>
-                        <button className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar">
+                        <button onClick={() => handleEdit(prov)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar">
                           <Edit size={14} />
                         </button>
-                        <button className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar">
+                        <button onClick={() => handleDelete(prov)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -184,7 +235,14 @@ export const ProvidersPage = () => {
       </div>
 
       {/* ✅ RENDERIZAMOS EL MODAL AQUÍ */}
-      <ProviderFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <ProviderFormModal 
+        isOpen={isModalOpen} 
+        onClose={() => { setIsModalOpen(false); setSelectedProvider(null); setModalMode('create'); }}
+        initialData={selectedProvider}
+        mode={modalMode}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
 
     </div>
   );
