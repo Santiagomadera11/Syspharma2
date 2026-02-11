@@ -16,9 +16,10 @@ import {
   ChevronDown,
   ChevronRight,
   LogOut,
+  X,
 } from "lucide-react";
 
-const Sidebar = () => {
+const Sidebar = ({ onClose, onShowLogoutModal }) => {
   const location = useLocation();
   // Estado para controlar qué menús están desplegados
   const [openMenus, setOpenMenus] = useState({
@@ -34,32 +35,32 @@ const Sidebar = () => {
   const isActive = (path) => location.pathname === path;
   const isGroupActive = (path) => location.pathname.startsWith(path);
 
-  const navigate = useNavigate();
-  const [showConfirmLogout, setShowConfirmLogout] = useState(false);
-
-  const handleConfirmLogout = () => {
-    authService.logout();
-    setShowConfirmLogout(false);
-    navigate("/");
-  };
-
   return (
-    <aside className="w-60 h-screen bg-[#2C3E50] flex flex-col text-white shadow-xl flex-shrink-0 border-l border-gray-700">
+    <aside className="w-60 bg-[#2C3E50] flex flex-col text-white shadow-xl flex-shrink-0 border-l border-gray-700 h-full overflow-hidden">
       {/* Encabezado Sidebar */}
-      <div className="h-14 flex items-center gap-3 px-5 border-b border-gray-700 bg-[#243342]">
-        <div className="bg-primary-400 p-1 rounded-md shadow-lg shadow-primary-400/20">
-          <Stethoscope size={18} className="text-white" />
+      <div className="h-14 flex items-center justify-between gap-3 px-5 border-b border-gray-700 bg-[#243342] flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="bg-primary-400 p-1 rounded-md shadow-lg shadow-primary-400/20 flex-shrink-0">
+            <Stethoscope size={18} className="text-white" />
+          </div>
+          <div className="hidden sm:block min-w-0">
+            <h1 className="text-base font-bold tracking-wide truncate">SysPharma</h1>
+            <p className="text-[9px] text-gray-400 uppercase tracking-wider">
+              Menú
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-base font-bold tracking-wide">SysPharma</h1>
-          <p className="text-[9px] text-gray-400 uppercase tracking-wider">
-            Menú
-          </p>
-        </div>
+        <button
+          onClick={onClose}
+          className="lg:hidden p-1 hover:bg-white/10 rounded-md transition flex-shrink-0"
+          aria-label="Close menu"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Navegación */}
-      <nav className="flex-1 overflow-y-auto py-4 space-y-0.5 px-2 custom-scrollbar">
+      <nav className="flex-1 overflow-y-auto py-3 sm:py-4 space-y-0.5 px-1 sm:px-2 no-scrollbar\">
         <MenuItem
           to="/admin/dashboard"
           icon={LayoutDashboard}
@@ -160,7 +161,7 @@ const Sidebar = () => {
       {/* Footer */}
       <div className="p-3 border-t border-gray-700 bg-[#243342]">
         <button
-          onClick={() => setShowConfirmLogout(true)}
+          onClick={onShowLogoutModal}
           className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
         >
           <LogOut size={16} />
@@ -168,38 +169,7 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* Confirm Logout Modal (match ProductFormModal styles: blurred backdrop) */}
-      {showConfirmLogout && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-4"
-          >
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
-              ¿Cerrar sesión?
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              ¿Estás seguro de que quieres cerrar sesión? Serás redirigido a la
-              página principal.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowConfirmLogout(false)}
-                className="px-3 py-1.5 bg-gray-100 rounded-md text-sm text-gray-700"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmLogout}
-                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
-              >
-                Salir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirm Logout Modal - Renderizado a nivel de Layout */}
     </aside>
   );
 };
