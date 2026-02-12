@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Plus, Search, Eye, Edit, Trash2, 
   ChevronLeft, ChevronRight, Filter, Stethoscope, Clock
@@ -21,7 +21,22 @@ export const ServicesPage = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [isViewMode, setIsViewMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; 
+  const itemsPerPage = 5;
+
+  // Escuchar cambios en servicios desde otras páginas
+  useEffect(() => {
+    const handleServicesChange = () => {
+      // Forzar re-renderizado leyendo del localStorage
+      const stored = localStorage.getItem("sys_services");
+      if (stored) {
+        // El hook se re-subscribirá automáticamente
+        setCurrentPage(1);
+      }
+    };
+
+    window.addEventListener("services:changed", handleServicesChange);
+    return () => window.removeEventListener("services:changed", handleServicesChange);
+  }, []); 
 
   const handleCreate = () => {
     setEditingItem(null);
@@ -44,16 +59,19 @@ export const ServicesPage = () => {
   const handleDelete = (id) => {
     if (!window.confirm(`¿Eliminar este servicio?`)) return;
     deleteItem(id);
+    window.dispatchEvent(new CustomEvent('services:changed'));
   };
 
   const confirmStatusChange = (service) => {
     const newStatus = service.estado === 'Activo' ? 'Inactivo' : 'Activo';
     updateItem(service.id, { ...service, estado: newStatus });
+    window.dispatchEvent(new CustomEvent('services:changed'));
   };
 
   const handleSave = (formData) => {
     if (editingItem) updateItem(editingItem.id, formData);
     else addItem({ ...formData, id: `SRV-${Date.now().toString().slice(-4)}` });
+    window.dispatchEvent(new CustomEvent('services:changed'));
   };
 
   const filteredItems = services.filter((srv) => {

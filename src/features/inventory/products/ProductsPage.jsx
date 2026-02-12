@@ -14,11 +14,13 @@ import {
 import ProductModal from "./components/ProductFormModal";
 import { productService } from "./services/productService";
 import { categoryService } from "../categories/services/categoryService";
+import { providerService } from "../providers/services/providerService";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
 
 export const ProductsPage = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,17 +31,20 @@ export const ProductsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const itemsPerPage = 20;
 
-  // Cargar productos y categorías al montar el componente
+  // Cargar productos, categorías y proveedores al montar el componente
   useEffect(() => {
     setProducts(productService.getAll());
     setCategories(categoryService.getAll());
+    setProviders(providerService.getAll());
     
-    // Refrescar cada 1 segundo para sincronizar cambios de stock y categorías
+    // Refrescar cada 1 segundo para sincronizar cambios de stock, categorías y proveedores
     const interval = setInterval(() => {
       const updatedProducts = productService.getAll();
       const updatedCategories = categoryService.getAll();
+      const updatedProviders = providerService.getAll();
       setProducts(updatedProducts);
       setCategories(updatedCategories);
+      setProviders(updatedProviders);
     }, 1000);
     
     // Escuchar eventos de cambio de categorías
@@ -414,6 +419,7 @@ export const ProductsPage = () => {
         onSave={handleSave}
         initialData={editingItem}
         categories={categories}
+        providers={providers}
       />
 
       {notification && (
