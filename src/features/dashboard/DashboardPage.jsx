@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   DollarSign,
   ShoppingBag,
@@ -31,11 +32,15 @@ import { turnService } from "../sales/services/turnService";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 
 export const DashboardPage = () => {
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [period, setPeriod] = useState("Año"); // Día, Mes, Año
   const [appointments, setAppointments] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Al cargar el dashboard, verifica si hay turno activo
   useEffect(() => {
@@ -45,18 +50,26 @@ export const DashboardPage = () => {
     }
   }, []);
 
-  // Cargar citas y gastos del localStorage y sincronizar en tiempo real
+  // Cargar citas, gastos, productos y ventas del localStorage y sincronizar en tiempo real
   useEffect(() => {
     const loadData = () => {
       try {
         const appointmentsData = localStorage.getItem("sys_appointments_db");
         const expensesData = localStorage.getItem("sys_expenses_db");
+        const productsData = localStorage.getItem("syspharma_products");
+        const salesData = localStorage.getItem("sys_sales_db");
         
         if (appointmentsData) {
           setAppointments(JSON.parse(appointmentsData));
         }
         if (expensesData) {
           setExpenses(JSON.parse(expensesData));
+        }
+        if (productsData) {
+          setProducts(JSON.parse(productsData));
+        }
+        if (salesData) {
+          setSales(JSON.parse(salesData));
         }
       } catch (error) {
         console.error("Error cargando datos:", error);
@@ -65,9 +78,31 @@ export const DashboardPage = () => {
 
     loadData();
 
-    // Escuchar cambios en el localStorage (para sincronización en tiempo real)
-    window.addEventListener("storage", loadData);
-    return () => window.removeEventListener("storage", loadData);
+    // Escuchar eventos personalizados de cambios en datos
+    const handleDataChange = () => {
+      loadData();
+      setRefreshKey(prev => prev + 1);
+    };
+
+    window.addEventListener("appointments:changed", handleDataChange);
+    window.addEventListener("expenses:changed", handleDataChange);
+    window.addEventListener("products:changed", handleDataChange);
+    window.addEventListener("sales:changed", handleDataChange);
+    window.addEventListener("syspharma_products_updated", handleDataChange);
+    window.addEventListener("services:changed", handleDataChange);
+
+    // Refrescar cada 2 segundos para sincronización en tiempo real
+    const interval = setInterval(loadData, 2000);
+
+    return () => {
+      window.removeEventListener("appointments:changed", handleDataChange);
+      window.removeEventListener("expenses:changed", handleDataChange);
+      window.removeEventListener("products:changed", handleDataChange);
+      window.removeEventListener("sales:changed", handleDataChange);
+      window.removeEventListener("syspharma_products_updated", handleDataChange);
+      window.removeEventListener("services:changed", handleDataChange);
+      clearInterval(interval);
+    };
   }, []);
 
   // LÓGICA DE FILTRADO DE FECHAS
@@ -105,31 +140,68 @@ export const DashboardPage = () => {
     setShowOpenShiftModal(false);
   };
 
-  // --- DATOS SIMULADOS PARA GRÁFICAS ---
-  const dataVentas = [
-    { name: "lun", valor: 0 },
-    { name: "mar", valor: 0 },
-    { name: "mié", valor: 0 },
-    { name: "jue", valor: 0 },
-    { name: "vie", valor: 0 },
-    { name: "sáb", valor: 0 },
-    { name: "dom", valor: 0 },
-  ];
+  // Funciones de navegación para Accesos Rápidos
+  const handleGoToSales = () => {
+    navigate("/admin/ventas");
+  };
+
+  const handleAddProduct = () => {
+    navigate("/admin/productos");
+  };
+
+  const handleScheduleAppointment = () => {
+    navigate("/admin/citas");
+  };
+
+  // --- DATOS DINÁMICOS PARA GRÁFICAS ---
+  // Gráfica de Ventas por día de la semana
+  const dataVentas = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    const dateStr = date.toISOString().split('T')[0];
+    const dayName = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"][date.getDay()];
+    
+    const dayIncome = filteredAppointments
+      .filter(appt => {
+        const apptDate = new Date(appt.fecha);
+        return apptDate.toISOString().split('T')[0] === dateStr;
+      })
+      .reduce((sum, appt) => sum + (Number(appt.precio) || 0), 0);
+    
+    return { name: dayName, valor: dayIncome };
+  });
+
+  // Gráfica de Métodos de Pago
+  const dataPagos = sales.length > 0
+    ? Object.entries(
+        sales.reduce((acc, sale) => {
+          const method = sale.metodoPago || "Efectivo";
+          acc[method] = (acc[method] || 0) + (Number(sale.total) || 0);
+          return acc;
+        }, {})
+      ).map(([name, value]) => ({ name, value }))
+    : [
+        { name: "Efectivo", value: 0 },
+        { name: "Tarjeta", value: 0 },
+        { name: "Nequi", value: 0 },
+      ];
+
+  // Gráfica de Estados (usando estado de productos o citas)
   const dataPedidos = [
-    { name: "Pendiente", cantidad: 5 },
-    { name: "Proceso", cantidad: 2 },
-    { name: "Listo", cantidad: 8 },
-    { name: "Cancelado", cantidad: 1 },
+    { name: "Completado", cantidad: filteredAppointments.filter(a => a.estado === "Completado").length },
+    { name: "Pendiente", cantidad: filteredAppointments.filter(a => a.estado === "Pendiente").length },
+    { name: "Cancelado", cantidad: filteredAppointments.filter(a => a.estado === "Cancelado").length },
+    { name: "Reprogramado", cantidad: filteredAppointments.filter(a => a.estado === "Reprogramado").length },
   ];
-  const dataPagos = [
-    { name: "Efectivo", value: 400 },
-    { name: "Tarjeta", value: 300 },
-    { name: "Nequi", value: 300 },
-  ];
+
+  // Alertas de Stock Bajo (productos con stock <= 5)
+  const lowStockProducts = products.filter(p => Number(p.stock) <= 5);
+  const stockAlertCount = lowStockProducts.length;
+
   const COLORS = ["#10B981", "#3B82F6", "#F59E0B"];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" key={refreshKey}>
       {/* 1. Banner de Bienvenida */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-400 rounded-xl p-6 text-white shadow-md flex justify-between items-center">
         <div>
@@ -203,27 +275,31 @@ export const DashboardPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Ventas Hoy"
-          value="$0"
+          value={`$${filteredAppointments.filter(a => {
+            const today = new Date().toISOString().split('T')[0];
+            const apptDate = new Date(a.fecha).toISOString().split('T')[0];
+            return apptDate === today;
+          }).reduce((sum, a) => sum + (Number(a.precio) || 0), 0).toLocaleString()}`}
           icon={DollarSign}
           color="bg-green-100 text-green-600"
         />
         <KpiCard
-          title="Pedidos"
-          value="12"
+          title="Total Citas"
+          value={filteredAppointments.length}
           icon={ShoppingBag}
           color="bg-blue-100 text-blue-600"
         />
         <KpiCard
-          title="Clientes"
-          value="5"
+          title="Productos"
+          value={products.length}
           icon={Users}
           color="bg-purple-100 text-purple-600"
         />
         <KpiCard
           title="Stock Bajo"
-          value="8"
+          value={stockAlertCount}
           icon={AlertCircle}
-          color="bg-red-100 text-red-600"
+          color={stockAlertCount > 0 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}
         />
       </div>
 
@@ -344,18 +420,34 @@ export const DashboardPage = () => {
           title="Alertas de Stock"
           subtitle="Inventario crítico"
           icon={AlertCircle}
-          iconColor="text-red-500"
+          iconColor={stockAlertCount > 0 ? "text-red-500" : "text-green-500"}
         >
-          <div className="h-[200px] flex flex-col items-center justify-center text-center">
-            <div className="bg-green-50 text-green-500 p-3 rounded-full mb-2">
-              <Package size={24} />
-            </div>
-            <p className="text-gray-600 font-medium text-sm">
-              Inventario Saludable
-            </p>
-            <p className="text-gray-400 text-xs">
-              No hay alertas críticas por ahora.
-            </p>
+          <div className="h-[200px] flex flex-col items-center justify-center text-center overflow-y-auto">
+            {stockAlertCount > 0 ? (
+              <div className="w-full space-y-2">
+                {lowStockProducts.slice(0, 5).map((product) => (
+                  <div key={product.id} className="text-left bg-red-50 p-2 rounded border border-red-200">
+                    <p className="text-xs font-bold text-red-700 truncate">{product.nombre}</p>
+                    <p className="text-xs text-red-600">Stock: {product.stock} unidades</p>
+                  </div>
+                ))}
+                {stockAlertCount > 5 && (
+                  <p className="text-xs text-red-600 mt-2">+{stockAlertCount - 5} productos más</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="bg-green-50 text-green-500 p-3 rounded-full mb-2">
+                  <Package size={24} />
+                </div>
+                <p className="text-gray-600 font-medium text-sm">
+                  Inventario Saludable
+                </p>
+                <p className="text-gray-400 text-xs">
+                  No hay alertas críticas.
+                </p>
+              </>
+            )}
           </div>
         </ChartCard>
       </div>
@@ -365,13 +457,24 @@ export const DashboardPage = () => {
         Accesos Rápidos
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
-        <ActionCard title="Registrar Venta" desc="Nueva factura" icon="🛒" />
+        <ActionCard 
+          title="Registrar Venta" 
+          desc="Nueva factura" 
+          icon="🛒"
+          onClick={handleGoToSales}
+        />
         <ActionCard
           title="Agregar Producto"
           desc="Nuevo inventario"
           icon="📦"
+          onClick={handleAddProduct}
         />
-        <ActionCard title="Agendar Cita" desc="Servicio médico" icon="📅" />
+        <ActionCard 
+          title="Agendar Cita" 
+          desc="Servicio médico" 
+          icon="📅"
+          onClick={handleScheduleAppointment}
+        />
       </div>
 
       {/* Modal de Apertura de Turno */}
@@ -439,9 +542,12 @@ const ChartCard = ({ title, subtitle, icon: Icon, iconColor, children }) => (
   </div>
 );
 
-const ActionCard = ({ title, desc, icon }) => (
-  <div className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer bg-white flex items-center gap-3">
-    <div className="text-2xl bg-gray-50 p-2 rounded-lg">{icon}</div>
+const ActionCard = ({ title, desc, icon, onClick }) => (
+  <div 
+    onClick={onClick}
+    className="border border-gray-200 rounded-xl p-4 hover:shadow-lg hover:border-primary-400 transition-all cursor-pointer bg-white flex items-center gap-3 hover:bg-primary-50"
+  >
+    <div className="text-2xl bg-gray-50 p-2 rounded-lg hover:bg-primary-100 transition-colors">{icon}</div>
     <div>
       <h3 className="font-bold text-gray-700 text-sm">{title}</h3>
       <p className="text-xs text-gray-500">{desc}</p>

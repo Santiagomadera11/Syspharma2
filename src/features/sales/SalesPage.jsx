@@ -57,6 +57,12 @@ export const SalesPage = () => {
     setSales(salesService.getAll());
     setExpenses(expensesService.getTodayExpenses());
 
+    // Escuchar eventos de sincronización
+    const handleSync = () => {
+      setSales(salesService.getAll());
+      setExpenses(expensesService.getTodayExpenses());
+    };
+
     // Refrescar datos cuando la ventana regresa al foco
     const handleFocus = () => {
       setSales(salesService.getAll());
@@ -64,15 +70,19 @@ export const SalesPage = () => {
     };
 
     window.addEventListener("focus", handleFocus);
+    window.addEventListener("sales:changed", handleSync);
+    window.addEventListener("expenses:changed", handleSync);
 
-    // Actualizar datos cada 30 segundos para capturar ventas desde otros módulos
+    // Actualizar datos cada 2 segundos para sincronización en tiempo real
     const interval = setInterval(() => {
       setSales(salesService.getAll());
       setExpenses(expensesService.getTodayExpenses());
-    }, 30000);
+    }, 2000);
 
     return () => {
       window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("sales:changed", handleSync);
+      window.removeEventListener("expenses:changed", handleSync);
       clearInterval(interval);
     };
   }, []);

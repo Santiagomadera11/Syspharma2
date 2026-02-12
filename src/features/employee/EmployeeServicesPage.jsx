@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -59,6 +59,21 @@ export const EmployeeServicesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  // Escuchar cambios en servicios desde otras páginas
+  useEffect(() => {
+    const handleServicesChange = () => {
+      // Forzar re-renderizado leyendo del localStorage
+      const stored = localStorage.getItem("sys_services");
+      if (stored) {
+        // El hook se re-subscribirá automáticamente
+        setCurrentPage(1);
+      }
+    };
+
+    window.addEventListener("services:changed", handleServicesChange);
+    return () => window.removeEventListener("services:changed", handleServicesChange);
+  }, []);
+
   // --- ACCIONES ---
   const handleCreate = () => {
     setEditingItem(null);
@@ -80,11 +95,13 @@ export const EmployeeServicesPage = () => {
 
   const handleDelete = (id) => {
     deleteItem(id);
+    window.dispatchEvent(new CustomEvent('services:changed'));
   };
 
   const handleSave = (formData) => {
     if (editingItem) updateItem(editingItem.id, formData);
     else addItem({ ...formData, id: `SRV-${Date.now().toString().slice(-4)}` });
+    window.dispatchEvent(new CustomEvent('services:changed'));
   };
 
   // --- FILTROS Y PAGINACIÓN ---

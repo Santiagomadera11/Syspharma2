@@ -393,7 +393,7 @@ export const AppointmentsPage = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-blue-600 text-white">
+              <thead className={`${currentUserRole === "Administrador" ? "bg-emerald-600" : "bg-blue-600"} text-white`}>
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold">
                     Paciente
@@ -695,6 +695,7 @@ export const AppointmentsPage = () => {
           }}
           onSave={() => {
             loadData();
+            window.dispatchEvent(new CustomEvent('appointments:changed'));
             setIsAppointmentModalOpen(false);
             setEditingAppointment(null);
           }}
@@ -832,6 +833,7 @@ export const AppointmentsPage = () => {
               "sys_expenses_db",
               JSON.stringify(updatedExpenses),
             );
+            window.dispatchEvent(new CustomEvent('expenses:changed'));
             loadData();
             setIsExpenseModalOpen(false);
             setEditingExpense(null);
