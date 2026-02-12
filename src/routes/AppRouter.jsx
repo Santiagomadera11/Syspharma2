@@ -67,6 +67,8 @@ import ClientProductos from "../features/client/ClientProductos";
 import ClientMisPedidos from "../features/client/ClientMisPedidos";
 import ClientMisCitas from "../features/client/ClientMisCitas";
 import ClientMiPerfil from "../features/client/ClientMiPerfil";
+import FavoritosPage from "../features/client/FavoritosPage";
+import CarritoPage from "../features/client/CarritoPage";
 
 /* -------------------------------------------------------------------------- */
 /*                 COMPONENTES TEMPORALES (PLACEHOLDERS)                      */
@@ -178,6 +180,8 @@ export const AppRouter = () => {
           <Route index element={<Navigate to="catalogo" replace />} />
           <Route path="catalogo" element={<ClientCatalogo />} />
           <Route path="productos" element={<ClientProductos />} />
+          <Route path="favoritos" element={<FavoritosPage />} />
+          <Route path="carrito" element={<CarritoPage />} />
           <Route path="mis-pedidos" element={<ClientMisPedidos />} />
           <Route path="mis-citas" element={<ClientMisCitas />} />
           <Route path="mi-perfil" element={<ClientMiPerfil />} />
