@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Camera, Lock, Edit2, Check, X } from "lucide-react";
 import { ChangePasswordModal } from "./components/ChangePasswordModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
+import { userService } from "../users/services/userService";
+import { getDocumentTypes } from "../settings/services/parameterService";
 
 /**
  * ClientMiPerfil - Vista de perfil para clientes (Fiel a Figma)
@@ -10,42 +12,97 @@ import { ToastNotification } from "../../shared/ui/ToastNotification";
  * Card 3: Seguridad (ancho completo)
  */
 export const ClientMiPerfil = () => {
-  const [user, setUser] = useState({
-    nombres: "",
-    apellidos: "",
-    rol: "cliente",
-    numeroContacto: "",
-    documento: "",
-    fechaNacimiento: "",
-    correo: "",
-    direccion: "",
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+    } catch {
+      return {};
+    }
   });
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [toast, setToast] = useState(null);
-  const [formData, setFormData] = useState({
-    nombres: "",
-    apellidos: "",
-    numeroContacto: "",
-    documento: "",
-    fechaNacimiento: "",
-    correo: "",
-    direccion: "",
+  const [formData, setFormData] = useState(() => {
+    try {
+      const sessionUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      // Get complete user data from syspharma_users by email
+      const allUsers = JSON.parse(localStorage.getItem("syspharma_users") || "[]");
+      const completeUser = allUsers.find((u) => u.email === sessionUser.email) || sessionUser;
+      
+      // If registration used a single `nombre` field, split it into nombres/apellidos
+      const full = (completeUser.nombre || completeUser.nombres || "").trim();
+      let first = "";
+      let last = "";
+      if (full) {
+        const parts = full.split(/\s+/);
+        first = parts.slice(0, 1).join(" ") || "";
+        last = parts.slice(1).join(" ") || completeUser.apellidos || "";
+      }
+      return {
+        nombres: first || completeUser.nombres || "",
+        apellidos: last || completeUser.apellidos || "",
+        telefono: completeUser.telefono || completeUser.numeroContacto || "",
+        documento: completeUser.documento || completeUser.identificacion || completeUser.numeroDocumento || "",
+        correo: completeUser.correo || completeUser.email || "",
+        direccion: completeUser.direccion || "",
+        tipoDocumento: completeUser.tipoDocumento || completeUser.tipo_doc || "",
+      };
+    } catch {
+      return {
+        nombres: "",
+        apellidos: "",
+        telefono: "",
+        documento: "",
+        correo: "",
+        direccion: "",
+        tipoDocumento: "",
+      };
+    }
   });
+  const [tempAvatar, setTempAvatar] = useState(null);
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const fileInputRef = useRef(null);
 
   // Cargar datos del usuario al montar
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-    setUser(userData);
-    setFormData({
-      nombres: userData.nombres || "",
-      apellidos: userData.apellidos || "",
-      numeroContacto: userData.numeroContacto || "",
-      documento: userData.documento || "",
-      fechaNacimiento: userData.fechaNacimiento || "",
-      correo: userData.correo || userData.email || "",
-      direccion: userData.direccion || "",
-    });
+    const sessionUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+    setUser(sessionUser);
+    // Get complete user data from syspharma_users by email
+    try {
+      const allUsers = JSON.parse(localStorage.getItem("syspharma_users") || "[]");
+      const completeUser = allUsers.find((u) => u.email === sessionUser.email) || sessionUser;
+      // derive names from single `nombre` if present
+      const full = (completeUser.nombre || completeUser.nombres || "").trim();
+      const derivedFirst = full ? full.split(/\s+/).slice(0, 1).join(" ") : completeUser.nombres || "";
+      const derivedLast = full ? full.split(/\s+/).slice(1).join(" ") || completeUser.apellidos || "" : completeUser.apellidos || "";
+      setFormData({
+        nombres: derivedFirst,
+        apellidos: derivedLast,
+        telefono: completeUser.telefono || completeUser.numeroContacto || "",
+        documento: completeUser.documento || completeUser.identificacion || completeUser.numeroDocumento || "",
+        correo: completeUser.correo || completeUser.email || "",
+        direccion: completeUser.direccion || "",
+        tipoDocumento: completeUser.tipoDocumento || completeUser.tipo_doc || "",
+      });
+    } catch (err) {
+      // fallback to session user only
+      setFormData({
+        nombres: (sessionUser.nombre || "").split(/\s+/).slice(0, 1).join(" "),
+        apellidos: (sessionUser.nombre || "").split(/\s+/).slice(1).join(" "),
+        telefono: "",
+        documento: "",
+        correo: sessionUser.email || "",
+        direccion: "",
+        tipoDocumento: "",
+      });
+    }
+    // cargar tipos de documento
+    try {
+      const types = getDocumentTypes();
+      setDocumentTypes(types || []);
+    } catch (err) {
+      setDocumentTypes([]);
+    }
   }, []);
 
   const handleInputChange = (e) => {
@@ -62,7 +119,8 @@ export const ClientMiPerfil = () => {
       !formData.nombres ||
       !formData.apellidos ||
       !formData.documento ||
-      !formData.correo
+      !formData.telefono ||
+      !formData.direccion
     ) {
       setToast({
         message: "Completa los campos requeridos",
@@ -73,13 +131,59 @@ export const ClientMiPerfil = () => {
     }
 
     try {
-      // Actualizar en localStorage
+      // Use stored syspharma_user as source of truth and merge changes
+      const stored = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
       const updatedUser = {
-        ...user,
+        ...stored,
         ...formData,
       };
+      // Recreate single `nombre` field to keep registration shape
+      try {
+        const n = (formData.nombres || "").trim();
+        const a = (formData.apellidos || "").trim();
+        if (n || a) {
+          updatedUser.nombre = `${n} ${a}`.trim();
+        }
+      } catch (err) {
+        // ignore
+      }
+      // normalize common aliases so global users array keys are updated too
+      if (updatedUser.correo && !updatedUser.email) updatedUser.email = updatedUser.correo;
+      if (updatedUser.telefono && !updatedUser.numeroContacto) updatedUser.numeroContacto = updatedUser.telefono;
+      if (updatedUser.numeroContacto && !updatedUser.telefono) updatedUser.telefono = updatedUser.numeroContacto;
+      if (updatedUser.tipoDocumento && !updatedUser.tipo_doc) updatedUser.tipo_doc = updatedUser.tipoDocumento;
+      if (updatedUser.tipo_doc && !updatedUser.tipoDocumento) updatedUser.tipoDocumento = updatedUser.tipo_doc;
+      // Preserve sensitive fields explicitly
+      if (stored.password) updatedUser.password = stored.password;
+      if (stored.rol) updatedUser.rol = stored.rol;
+
       localStorage.setItem("syspharma_user", JSON.stringify(updatedUser));
       setUser(updatedUser);
+      // Also update global users array if user has an id or email match
+      try {
+        const allUsers = userService.getAll();
+        const found = allUsers.find((u) => {
+          // match by id
+          if (u.id && updatedUser.id && u.id === updatedUser.id) return true;
+          // match by email/correo
+          const uEmail = u.email || u.correo || "";
+          const updatedEmail = updatedUser.email || updatedUser.correo || updatedUser.mail || "";
+          if (uEmail && updatedEmail && uEmail === updatedEmail) return true;
+          // match by documento as fallback
+          const uDoc = u.documento || u.identificacion || "";
+          const updatedDoc = updatedUser.documento || updatedUser.identificacion || "";
+          if (uDoc && updatedDoc && uDoc === updatedDoc) return true;
+          return false;
+        });
+        if (found) {
+          const merged = { ...found, ...updatedUser };
+          if (found.password && !merged.password) merged.password = found.password;
+          if (found.rol && !merged.rol) merged.rol = found.rol;
+          userService.update(merged);
+        }
+      } catch (err) {
+        // ignore
+      }
       setIsEditing(false);
       setToast({
         message: "Perfil actualizado correctamente",
@@ -104,13 +208,22 @@ export const ClientMiPerfil = () => {
   };
 
   const getInitials = () => {
-    const names = `${formData.nombres || ""} ${formData.apellidos || ""}`;
-    return names
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+    // Use first name and first last name initials (supports `nombre` single-field)
+    const full = (user.nombre || formData.nombres || "").trim();
+    let firstName = "";
+    let firstLast = "";
+    if (full && user.nombre) {
+      // If user has single `nombre`, split it
+      const parts = full.split(/\s+/);
+      firstName = parts[0] || "";
+      firstLast = parts[1] || "";
+    } else {
+      // Otherwise use nombres/apellidos from formData
+      firstName = (formData.nombres || "").split(" ")[0] || "";
+      firstLast = (formData.apellidos || "").split(" ")[0] || "";
+    }
+    const initials = `${firstName.charAt(0) || ""}${firstLast.charAt(0) || ""}`;
+    return initials.toUpperCase();
   };
 
   const lastPasswordUpdate = user.lastPasswordUpdate
@@ -133,20 +246,88 @@ export const ClientMiPerfil = () => {
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 flex flex-col items-center justify-start">
           {/* Avatar */}
           <div className="relative mb-4">
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center border-4 border-blue-300 shadow-lg">
-              <span className="text-3xl font-bold text-blue-600">
-                {getInitials()}
-              </span>
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center border-4 border-blue-300 shadow-lg overflow-hidden">
+              {tempAvatar ? (
+                <img src={tempAvatar} alt="avatar-preview" className="w-full h-full object-cover" />
+              ) : user.avatar ? (
+                <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-3xl font-bold text-blue-600">{getInitials()}</span>
+              )}
             </div>
-            <button className="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-full shadow-lg transition-all active:scale-95 hover:shadow-xl">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                try {
+                  const reader = new FileReader();
+                  reader.onload = function (ev) {
+                    const dataUrl = ev.target.result;
+                    // set preview only, do NOT persist yet
+                    setTempAvatar(dataUrl);
+                  };
+                  reader.readAsDataURL(file);
+                } catch (err) {
+                  // ignore
+                }
+              }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-full shadow-lg transition-all active:scale-95 hover:shadow-xl"
+            >
               <Camera size={18} />
             </button>
+            {/* Confirmar Foto - solo aparece si hay preview */}
+            {tempAvatar && (
+              <div className="mt-3 text-center w-full">
+                <button
+                  onClick={() => {
+                    try {
+                      // Persist avatar to current session user
+                      const stored = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+                      const updated = { ...stored, avatar: tempAvatar, lastAvatarUpdate: new Date().toISOString() };
+                      // Ensure we don't remove password/rol
+                      if (stored.password) updated.password = stored.password;
+                      if (stored.rol) updated.rol = stored.rol;
+                      localStorage.setItem("syspharma_user", JSON.stringify(updated));
+                      setUser(updated);
+
+                      // update global users if exists
+                      try {
+                        const allUsers = userService.getAll();
+                        const found = allUsers.find((u) => u.id === updated.id || u.email === updated.email);
+                        if (found) {
+                          userService.update({ ...found, avatar: tempAvatar });
+                        }
+                      } catch (err) {
+                        // ignore
+                      }
+
+                      setTempAvatar(null);
+                      setToast({ message: "Foto actualizada", type: "success", zIndex: 70 });
+                    } catch (err) {
+                      setToast({ message: "Error guardando la foto", type: "error", zIndex: 70 });
+                    }
+                  }}
+                  className="mt-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-bold"
+                >
+                  Confirmar Foto
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Nombre - De user state */}
-          <h2 className="text-base font-bold text-gray-900 text-center mt-3 line-clamp-2">
-            {user.nombres || "Usuario"} {user.apellidos || ""}
-          </h2>
+          <h3 className="text-base font-bold text-gray-900 text-center mt-3 line-clamp-2">
+            {(user.nombres || user.nombre || "").trim() || (user.apellidos || "").trim()
+              ? `${(user.nombres || user.nombre || "").trim()} ${(user.apellidos || "").trim()}`.trim()
+              : "Nombre no asignado"}
+          </h3>
 
           {/* Correo Electrónico */}
           <p className="text-xs text-gray-600 text-center mt-1 truncate">
@@ -226,10 +407,31 @@ export const ClientMiPerfil = () => {
               />
             </div>
 
-            {/* Fila 2: Documento */}
+            {/* Fila 2: Tipo de Documento */}
             <div>
               <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-                Documento <span className="text-red-500">*</span>
+                Tipo de Documento
+              </label>
+              <select
+                name="tipoDocumento"
+                value={formData.tipoDocumento}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm bg-white disabled:bg-gray-50 disabled:text-gray-700 disabled:cursor-default disabled:border-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+              >
+                <option value="">--</option>
+                {documentTypes.map((dt) => (
+                  <option key={dt.id} value={dt.value}>
+                    {dt.value}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Fila 2: Número de Documento */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+                Número de Documento <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -241,34 +443,18 @@ export const ClientMiPerfil = () => {
               />
             </div>
 
-            {/* Fila 2: Teléfono */}
+            {/* Fila 3: Celular */}
             <div>
               <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-                Teléfono
+                Celular <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
-                name="numeroContacto"
-                value={formData.numeroContacto}
+                name="telefono"
+                value={formData.telefono}
                 onChange={handleInputChange}
                 readOnly={!isEditing}
-                placeholder="+57 300 0000000"
                 className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm read-only:bg-gray-50 read-only:text-gray-700 read-only:cursor-default read-only:border-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all placeholder-gray-400"
-              />
-            </div>
-
-            {/* Fila 3: Fecha de Nacimiento */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-                F. Nacimiento
-              </label>
-              <input
-                type="date"
-                name="fechaNacimiento"
-                value={formData.fechaNacimiento}
-                onChange={handleInputChange}
-                readOnly={!isEditing}
-                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm read-only:bg-gray-50 read-only:text-gray-700 read-only:cursor-default read-only:border-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
               />
             </div>
 
@@ -298,7 +484,7 @@ export const ClientMiPerfil = () => {
                 value={formData.direccion}
                 onChange={handleInputChange}
                 readOnly={!isEditing}
-                placeholder="Calle, número, apartamento, ciudad..."
+               
                 className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm read-only:bg-gray-50 read-only:text-gray-700 read-only:cursor-default read-only:border-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all placeholder-gray-400"
               />
             </div>

@@ -26,7 +26,24 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
 
   useEffect(() => {
     if (userToEdit) {
-      setFormData({ ...userToEdit, password: "", confirmPassword: "" });
+      // Map userToEdit shape (which may have `nombre` single field) to modal fields
+      const nombreFull = userToEdit.nombre || userToEdit.nombres || "";
+      const nameParts = (nombreFull || "").trim().split(/\s+/);
+      const firstName = nameParts.slice(0, 1).join(" ") || "";
+      const lastName = nameParts.slice(1).join(" ") || userToEdit.apellidos || "";
+
+      setFormData({
+        tipoDocumento: userToEdit.tipoDocumento || userToEdit.tipo_doc || "",
+        documento: userToEdit.documento || "",
+        nombres: userToEdit.nombres || firstName,
+        apellidos: userToEdit.apellidos || lastName,
+        email: userToEdit.email || userToEdit.correo || "",
+        rol: userToEdit.rol || "",
+        password: "",
+        confirmPassword: "",
+        telefono: userToEdit.telefono || userToEdit.numeroContacto || "",
+        estado: typeof userToEdit.estado === "boolean" ? userToEdit.estado : true,
+      });
     } else {
       setFormData({
         tipoDocumento: "",
@@ -142,8 +159,22 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
     }
 
     // prepare payload (exclude confirmPassword)
-    const payload = { ...formData };
+    let payload = { ...formData };
     delete payload.confirmPassword;
+
+    // If editing existing user, avoid overwriting password when left empty
+    if (userToEdit) {
+      // Merge with original user to preserve fields like password/avatar/email when empty in the form
+      payload = {
+        ...userToEdit,
+        ...payload,
+      };
+
+      // If password field is empty, remove it from payload so update() won't overwrite existing password
+      if (!formData.password) {
+        delete payload.password;
+      }
+    }
 
     onSave(payload);
     setToast({

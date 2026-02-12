@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Lock, AlertCircle, CheckCircle } from "lucide-react";
+import { userService } from "../../users/services/userService";
 
 /**
  * Modal para cambiar contraseña con validación en 2 pasos
@@ -25,8 +26,12 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
 
     const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
 
-    // Validar contraseña (asumiendo que se guarda en plain text por ahora)
-    if (currentPassword !== (user.password || "")) {
+    // Validar contra el usuario global en syspharma_users si existe, sino contra syspharma_user
+    const allUsers = userService.getAll();
+    const found = allUsers.find((u) => u.id === user.id || u.email === user.email);
+    const storedPassword = found?.password || user.password || "";
+
+    if (currentPassword !== storedPassword) {
       setError("La contraseña actual no es correcta");
       return;
     }
@@ -58,11 +63,18 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
     try {
       setLoading(true);
 
-      // Actualizar contraseña en localStorage
+      // Actualizar contraseña en localStorage para el usuario actual
       const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
       user.password = newPassword;
       user.lastPasswordUpdate = new Date().toISOString();
       localStorage.setItem("syspharma_user", JSON.stringify(user));
+
+      // Actualizar también en el array global de usuarios (syspharma_users)
+      const allUsers = userService.getAll();
+      const found = allUsers.find((u) => u.id === user.id || u.email === user.email);
+      if (found) {
+        userService.update({ ...found, password: newPassword, lastPasswordUpdate: new Date().toISOString() });
+      }
 
       // Reset form
       setStep(1);
