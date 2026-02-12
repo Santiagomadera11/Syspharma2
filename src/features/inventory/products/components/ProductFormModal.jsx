@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, Save, AlertCircle, Upload } from "lucide-react";
 import { formValidations } from "../../../../shared/utils/formValidations";
 
-const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] }) => {
+const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [], providers = [] }) => {
   const [formData, setFormData] = useState({
     nombre: "",
     tipoProducto: "Producto General",
@@ -76,19 +76,6 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] })
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    const newErrors = {};
-    
-    if (!formData.nombre) {
-      newErrors.nombre = "Nombre requerido";
-    } else {
-      newErrors.nombre = formValidations.validateName(formData.nombre);
-    }
-
-    if (Object.values(newErrors).some(error => error)) {
-      setErrors(newErrors);
-      return;
-    }
-
     onSave(formData);
     onClose();
   };
@@ -109,7 +96,7 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] })
             <X size={18} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+        <div className="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar">
           {/* Imagen del Producto */}
           <div className="mb-4">
             <label className="block text-xs font-bold text-gray-700 mb-2">
@@ -151,24 +138,12 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] })
             </label>
             <input
               type="text"
-              className={`w-full text-sm border rounded px-3 py-2 ${
-                errors.nombre
-                  ? "border-red-500 focus:ring-1 focus:ring-red-300"
-                  : "border-gray-300"
-              }`}
+              className="w-full text-sm border border-gray-300 rounded px-3 py-2"
               value={formData.nombre}
               onChange={(e) => {
                 setFormData({ ...formData, nombre: e.target.value });
-                const error = formValidations.validateName(e.target.value);
-                setErrors({ ...errors, nombre: error });
               }}
             />
-            {errors.nombre && (
-              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
-                <AlertCircle size={12} />
-                {errors.nombre}
-              </div>
-            )}
           </div>
 
           {/* Tipo de Producto */}
@@ -225,7 +200,15 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [] })
                 }
               >
                 <option value="">Seleccionar...</option>
-                <option value="Farmacéutica Global">Farmacéutica Global</option>
+                {providers.length > 0 ? (
+                  providers.map((provider) => (
+                    <option key={provider.id} value={provider.nombre}>
+                      {provider.nombre}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No hay proveedores disponibles</option>
+                )}
               </select>
             </div>
             <div>
