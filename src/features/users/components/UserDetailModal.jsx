@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { X, Edit, Save, ArrowLeft } from "lucide-react";
+import { X, Save } from "lucide-react";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 import { rolesService } from "../../settings/rolesService";
 
@@ -66,12 +66,6 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setEditing((v) => !v)}
-              className="px-2 py-1 bg-gray-50 rounded-md border text-sm flex items-center gap-2"
-            >
-              <Edit size={14} /> {editing ? "Cancelar" : "Editar"}
-            </button>
             <button
               onClick={onClose}
               className="text-gray-500 p-1 rounded-full"
