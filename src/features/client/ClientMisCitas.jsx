@@ -3,6 +3,7 @@ import { Search, Calendar, List, Plus, X, CheckCircle, Clock, XCircle, AlertCirc
 import { appointmentService } from "../services/appointments/services/appointmentService";
 import AppointmentFormModal from "../services/appointments/components/AppointmentFormModal";
 import AppointmentDetailModal from "../services/appointments/components/AppointmentDetailModal";
+import AppointmentsCalendarView from "./components/AppointmentsCalendarView";
 import { availabilityService } from "../services/appointments/services/availabilityService";
 
 export const ClientMisCitas = () => {
@@ -253,7 +254,7 @@ export const ClientMisCitas = () => {
       </div>
 
       <div className="flex-1 overflow-auto no-scrollbar">
-        {activeTab === "citas" ? renderAppointmentsList() : <div className="p-4 text-center">Calendario (Vista Simple)</div>}
+        {activeTab === "citas" ? renderAppointmentsList() : <AppointmentsCalendarView appointments={appointments} doctors={doctors} availabilityService={availabilityService} />}
       </div>
 
       {isAppointmentModalOpen && (
