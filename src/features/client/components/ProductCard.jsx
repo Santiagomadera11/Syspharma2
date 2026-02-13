@@ -29,13 +29,11 @@ export const ProductCardGrid = ({ product, isFav, onToggleFav, onAdd, disabled, 
         {product.marca && <p className="text-xs text-gray-500 mt-1">{product.marca}</p>}
         {typeof product.stock !== 'undefined' && (
           <div className="mt-2">
-            {product.stock <= 0 ? (
-              <span className="text-sm text-red-600">Agotado</span>
-            ) : product.stock <= 3 ? (
-              <span className="text-sm text-red-600">Stock: {product.stock} (¡Pocas unidades!)</span>
-            ) : (
-              <span className="text-sm text-gray-500">Stock: {product.stock}</span>
-            )}
+            {product.stock === 0 ? (
+              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">Producto agotado</span>
+            ) : product.stock < 50 ? (
+              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">Pocas unidades</span>
+            ) : null}
           </div>
         )}
       </div>
@@ -73,13 +71,11 @@ export const ProductRowList = ({ product, isFav, onToggleFav, onAdd, disabled, c
       {product.marca && <p className="text-sm text-gray-500">{product.marca}</p>}
       {typeof product.stock !== 'undefined' && (
         <div className="mt-1">
-          {product.stock <= 0 ? (
-            <span className="text-sm text-red-600">Agotado</span>
-          ) : product.stock <= 3 ? (
-            <span className="text-sm text-red-600">Stock: {product.stock} (¡Pocas unidades!)</span>
-          ) : (
-            <span className="text-sm text-gray-500">Stock: {product.stock}</span>
-          )}
+          {product.stock === 0 ? (
+            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">Producto agotado</span>
+          ) : product.stock < 50 ? (
+            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">Pocas unidades</span>
+          ) : null}
         </div>
       )}
     </div>
