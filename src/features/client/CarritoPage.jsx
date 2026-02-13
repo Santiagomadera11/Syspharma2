@@ -136,9 +136,9 @@ const CarritoPage = () => {
                       <div className="mt-2">
                         {(() => {
                           const stock = (it.producto && (it.producto.stock ?? it.producto.existencia)) ?? 0;
-                          if (stock === 0) return <div className="text-sm text-red-600 font-bold">Agotado</div>;
-                          if (stock > 0 && stock < 3) return <div className="text-sm text-red-600">Stock: {stock} (¡Pocas unidades!)</div>;
-                          return <div className="text-sm text-gray-500">Stock: {stock}</div>;
+                          if (stock === 0) return <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">Producto agotado</span>;
+                          if (stock < 50) return <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">Pocas unidades</span>;
+                          return null;
                         })()}
                       </div>
                     </div>

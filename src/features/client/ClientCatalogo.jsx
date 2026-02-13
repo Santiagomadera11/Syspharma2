@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Heart, Plus, ChevronLeft, ChevronRight, Pill, Leaf, Droplet, Sparkles, Search } from 'lucide-react';
+import ProductCardGrid, { fmt as cardFmt } from './components/ProductCard';
 
 // Hero Carousel Data (con imágenes placeholder - reemplaza URLs con imágenes reales)
 const heroSlides = [
@@ -168,66 +169,26 @@ const MiniPromos = () => (
   </div>
 );
 
-const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
-    {/* Image Area */}
-    <div className="relative w-full h-48 bg-gray-50 flex items-center justify-center overflow-hidden">
-      {product.imagen ? (
-        <img src={product.imagen} alt={product.nombre} className="w-full h-full object-contain" />
-      ) : (
-        <Pill size={56} className="text-gray-300" />
-      )}
-      
-      {/* Badge Descuento - Dinámico */}
-      {product.enOferta && product.porcentajeDescuento > 0 && (
-        <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-          -{product.porcentajeDescuento}%
-        </div>
-      )}
-
-      {/* Heart Button */}
-      <button
-        onClick={() => onToggleFav(product.id)}
-        className="absolute top-2 left-2 bg-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition"
-      >
-        <Heart size={16} className={isFav ? 'text-red-500 fill-red-500' : 'text-gray-400'} />
-      </button>
-    </div>
-
-    {/* Info */}
-    <div className="p-3 flex flex-col h-40">
-      <p className="text-xs text-gray-500 uppercase tracking-wider">{product.nombre}</p>
-      <h4 className="font-semibold text-gray-900 text-sm line-clamp-2 mt-1 flex-1">{product.nombre}</h4>
-      
-      {/* Stock */}
-      <p className={`text-xs mt-2 ${product.stock > 20 ? 'text-emerald-600' : product.stock > 5 ? 'text-yellow-600' : 'text-red-600'}`}>
-        {product.stock > 0 ? `${product.stock} en stock` : 'Sin stock'}
-      </p>
-
-      {/* Price & Button */}
-      <div className="flex items-center justify-between gap-2 mt-3">
-        <div className="flex flex-col">
-          {product.enOferta && product.porcentajeDescuento > 0 ? (
-            <>
-              <div className="text-xs text-gray-500 line-through">{fmt(product.precio)}</div>
-              <div className="text-emerald-600 font-bold text-sm">
-                {fmt(product.precio * (1 - product.porcentajeDescuento / 100))}
-              </div>
-            </>
-          ) : (
-            <div className="text-emerald-600 font-bold text-sm">{fmt(product.precio)}</div>
-          )}
-        </div>
-        <button
-          onClick={() => onAdd(product.id)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded flex items-center gap-1 transition"
-        >
-          <Plus size={14} /> Añadir
-        </button>
-      </div>
-    </div>
-  </div>
-);
+const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
+  // Map from product schema (with campo nombreo, precio, imagen, laboratorio) to ProductCardGrid schema
+  const mappedProduct = {
+    id: product.id,
+    name: product.nombre,
+    price: product.precio,
+    image: product.imagen || '',
+    marca: product.laboratorio || '',
+    stock: product.stock ?? product.existencia ?? 0,
+  };
+  return (
+    <ProductCardGrid 
+      product={mappedProduct} 
+      isFav={isFav} 
+      onToggleFav={onToggleFav} 
+      onAdd={() => onAdd(product.id)}
+      disabled={(product.stock ?? 0) <= 0}
+    />
+  );
+};
 
 const CouponBanner = ({ userName }) => {
   const [current, setCurrent] = useState(0);
