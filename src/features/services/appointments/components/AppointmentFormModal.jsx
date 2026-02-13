@@ -14,6 +14,15 @@ import {
   DollarSign,
 } from "lucide-react";
 import { appointmentService } from "../services/appointmentService";
+import CalendarPicker from "./CalendarPicker";
+
+// Helper para obtener fecha en formato YYYY-MM-DD
+const getDateString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 // Helper para obtener fecha local "YYYY-MM-DD" sin restar días por zona horaria
 const getLocalToday = () => {
@@ -45,12 +54,12 @@ const AppointmentFormModal = ({
     notas: "",
     userId: "", // Agregamos userId al estado
   };
-
   const [formData, setFormData] = useState(initialFormState);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [servicesList, setServicesList] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCalendarPicker, setShowCalendarPicker] = useState(false);
 
   // 1. CARGAR DATOS
   useEffect(() => {
@@ -108,6 +117,45 @@ const AppointmentFormModal = ({
       slots.push(`${i.toString().padStart(2, "0")}:30`);
     }
     return slots;
+  };
+
+  // Obtener fechas no disponibles del médico seleccionado
+  const getDisabledDatesForDoctor = (doctorId) => {
+    if (!availabilityService || !doctorId) return [];
+    
+    try {
+      // Obtener disponibilidad del médico
+      const doctorAvailability = availabilityService.getAvailabilityByDoctor(parseInt(doctorId));
+      const unavailableDays = availabilityService.getUnavailableDays() || [];
+      
+      const disabledDates = [];
+      
+      // Agregar días globalmente no disponibles
+      unavailableDays.forEach(day => {
+        disabledDates.push(day.date);
+      });
+      
+      // Agregar días que no están programados para el médico (sábados y domingos)
+      if (doctorAvailability) {
+        const today = new Date();
+        const maxDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 días adelante
+        
+        for (let d = new Date(today); d <= maxDate; d.setDate(d.getDate() + 1)) {
+          const dayOfWeek = d.getDay();
+          const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+          const dayName = dayNames[dayOfWeek];
+          
+          if (!doctorAvailability.schedule[dayName]) {
+            disabledDates.push(getDateString(d));
+          }
+        }
+      }
+      
+      return disabledDates;
+    } catch (error) {
+      console.warn("Error getting disabled dates:", error);
+      return [];
+    }
   };
 
   // 2. BUSCAR HORARIOS
@@ -168,6 +216,15 @@ const AppointmentFormModal = ({
       newErrors.documento = "Documento obligatorio";
     if (!formData.doctorId) newErrors.doctorId = "Seleccione médico";
     if (!formData.fecha) newErrors.fecha = "Seleccione fecha";
+    
+    // Validar que la fecha no esté en la lista de días no disponibles
+    if (formData.fecha && formData.doctorId) {
+      const disabledDates = getDisabledDatesForDoctor(formData.doctorId);
+      if (disabledDates.includes(formData.fecha)) {
+        newErrors.fecha = "El médico no está disponible este día";
+      }
+    }
+    
     if (!formData.hora) newErrors.hora = "Seleccione hora";
     if (!formData.servicio) newErrors.servicio = "Seleccione servicio";
     if (!formData.precio) newErrors.precio = "Precio requerido";
@@ -355,15 +412,16 @@ const AppointmentFormModal = ({
                   </label>
                   <div className="relative">
                     <Calendar
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
                       size={16}
                     />
                     <input
                       name="fecha"
                       type="date"
-                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${errors.fecha ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 cursor-pointer ${errors.fecha ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
                       value={formData.fecha}
                       onChange={handleGenericInput}
+                      onClick={() => formData.doctorId && setShowCalendarPicker(!showCalendarPicker)}
                       min={getLocalToday()}
                     />
                   </div>
@@ -371,6 +429,28 @@ const AppointmentFormModal = ({
                     <p className="text-[10px] text-red-500 mt-1">
                       {errors.fecha}
                     </p>
+                  )}
+                  {formData.fecha && formData.doctorId && getDisabledDatesForDoctor(formData.doctorId).includes(formData.fecha) && (
+                    <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                      <AlertCircle size={12} />
+                      El médico no está disponible
+                    </p>
+                  )}
+                  
+                  {/* Calendar Picker Expandible */}
+                  {showCalendarPicker && formData.doctorId && (
+                    <div className="mt-3 absolute z-10 bg-white p-3 rounded-lg border border-gray-200 shadow-xl">
+                      <CalendarPicker
+                        selectedDate={formData.fecha}
+                        onDateSelect={(date) => {
+                          setFormData((prev) => ({ ...prev, fecha: date, hora: "" }));
+                          setShowCalendarPicker(false);
+                          if (errors.fecha) setErrors((prev) => ({ ...prev, fecha: null }));
+                        }}
+                        disabledDates={getDisabledDatesForDoctor(formData.doctorId)}
+                        minDate={getLocalToday()}
+                      />
+                    </div>
                   )}
                 </div>
                 <div>
