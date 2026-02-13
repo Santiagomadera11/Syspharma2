@@ -1,0 +1,105 @@
+import React from 'react';
+import { Plus, Heart, Pill } from 'lucide-react';
+
+export const fmt = (v) => {
+  const n = Number(v) || 0;
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+};
+
+export const ProductCardGrid = ({ product, isFav, onToggleFav, onAdd, disabled, children }) => (
+  <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition h-full flex flex-col">
+    <div className="relative h-40 bg-gray-50 flex items-center justify-center overflow-hidden group">
+      {product.image ? (
+        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+      ) : (
+        <Pill size={48} className="text-gray-300" />
+      )}
+      {!children && (
+        <button
+          onClick={() => onToggleFav && onToggleFav(product.id)}
+          className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition"
+        >
+          <Heart size={18} className={isFav ? 'text-red-500 fill-red-500' : 'text-gray-400'} />
+        </button>
+      )}
+    </div>
+    <div className="p-4 flex flex-col flex-1">
+      <div className="flex-1">
+        <h4 className="font-semibold text-gray-800 text-sm line-clamp-2">{product.name}</h4>
+        {product.marca && <p className="text-xs text-gray-500 mt-1">{product.marca}</p>}
+        {typeof product.stock !== 'undefined' && (
+          <div className="mt-2">
+            {product.stock <= 0 ? (
+              <span className="text-sm text-red-600">Agotado</span>
+            ) : product.stock <= 3 ? (
+              <span className="text-sm text-red-600">Stock: {product.stock} (¡Pocas unidades!)</span>
+            ) : (
+              <span className="text-sm text-gray-500">Stock: {product.stock}</span>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="mt-3">
+        <div className="text-emerald-600 font-semibold text-lg">{fmt(product.price ?? product.precio ?? product.precioActual)}</div>
+      </div>
+
+      {/* If caller provided children, render them as actions; otherwise render default add button */}
+      {children ? (
+        <div className="mt-3">{children}</div>
+      ) : (
+        <button
+          onClick={() => onAdd && onAdd(product.id)}
+          disabled={disabled}
+          className={`mt-3 ${disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'} px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition`}
+        >
+          <Plus size={14} /> {disabled ? 'Stock máximo alcanzado' : 'Añadir'}
+        </button>
+      )}
+    </div>
+  </div>
+);
+
+export const ProductRowList = ({ product, isFav, onToggleFav, onAdd, disabled, children }) => (
+  <div className="bg-white border border-gray-100 rounded-lg p-4 flex items-center gap-4 hover:shadow-sm transition">
+    <div className="h-20 w-20 bg-gray-50 rounded flex-shrink-0 flex items-center justify-center">
+      {product.image ? (
+        <img src={product.image} alt={product.name} className="h-full w-full object-cover rounded" />
+      ) : (
+        <Pill size={32} className="text-gray-300" />
+      )}
+    </div>
+    <div className="flex-1 min-w-0">
+      <h4 className="font-semibold text-gray-800">{product.name}</h4>
+      {product.marca && <p className="text-sm text-gray-500">{product.marca}</p>}
+      {typeof product.stock !== 'undefined' && (
+        <div className="mt-1">
+          {product.stock <= 0 ? (
+            <span className="text-sm text-red-600">Agotado</span>
+          ) : product.stock <= 3 ? (
+            <span className="text-sm text-red-600">Stock: {product.stock} (¡Pocas unidades!)</span>
+          ) : (
+            <span className="text-sm text-gray-500">Stock: {product.stock}</span>
+          )}
+        </div>
+      )}
+    </div>
+    <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="text-right">
+        <div className="text-emerald-600 font-bold text-lg">{fmt(product.price)}</div>
+      </div>
+      {!children && (
+        <>
+          <button onClick={() => onToggleFav && onToggleFav(product.id)} className="p-1 text-gray-400 hover:text-red-500 transition">
+            <Heart size={18} className={isFav ? 'text-red-500 fill-red-500' : ''} />
+          </button>
+          <button onClick={() => onAdd && onAdd(product.id)} disabled={disabled} className={`${disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'} px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition`}>
+            <Plus size={14} /> {disabled ? 'Stock máximo alcanzado' : 'Añadir'}
+          </button>
+        </>
+      )}
+      {children}
+    </div>
+  </div>
+);
+
+export default ProductCardGrid;

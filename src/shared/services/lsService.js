@@ -5,7 +5,8 @@ export const LS = {
   USER: 'syspharma_user',
   FAVORITES: 'syspharma_favorites',
   CART: 'syspharma_cart',
-  NOTIFICATIONS: 'syspharma_notifications'
+  NOTIFICATIONS: 'syspharma_notifications',
+  PEDIDOS: 'syspharma_pedidos'
 };
 
 export const read = (key) => {
