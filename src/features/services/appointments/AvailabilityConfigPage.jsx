@@ -87,7 +87,7 @@ export const AvailabilityConfigPage = () => {
         });
       }
     }
-  }, [selectedDoctor, availability]);
+  }, [selectedDoctor?.id]);
 
   const loadData = () => {
     setDoctors(appointmentService.getDoctors());
@@ -129,6 +129,8 @@ export const AvailabilityConfigPage = () => {
         message: "Horario guardado exitosamente",
         type: "success",
       });
+      // Emitir evento para actualizar clientes en tiempo real
+      window.dispatchEvent(new Event("availability:changed"));
       loadData(); // Recargar datos
     } catch {
       setNotification({
@@ -157,6 +159,10 @@ export const AvailabilityConfigPage = () => {
         message: "Día no disponible agregado correctamente",
         type: "success",
       });
+      
+      // Emitir evento para actualizar clientes en tiempo real
+      window.dispatchEvent(new Event("availability:changed"));
+      
       loadData(); // Recargar datos
     } catch {
       setNotification({
@@ -428,6 +434,8 @@ export const AvailabilityConfigPage = () => {
                             message: "Día removido de la lista",
                             type: "success",
                           });
+                          // Emitir evento para actualizar clientes en tiempo real
+                          window.dispatchEvent(new Event("availability:changed"));
                           loadData();
                         }}
                         className="text-red-600 hover:text-red-800 p-1"
