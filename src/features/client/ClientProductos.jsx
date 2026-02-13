@@ -1,111 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Heart, Grid3x3, List, Search, Pill } from "lucide-react";
+import { LS, read, write } from '../../shared/services/lsService';
+import { ToastNotification } from '../../shared/ui/ToastNotification';
+import ProductCardGrid, { ProductRowList, fmt as cardFmt } from './components/ProductCard';
 
-const fmt = (v) =>
-  v && typeof v === "number"
-    ? new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v)
-    : "$0";
-
-const ProductCardGrid = ({ product, isFav, onToggleFav, onAdd }) => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition h-full flex flex-col">
-    <div className="relative h-40 bg-gray-50 flex items-center justify-center overflow-hidden group">
-      {product.image ? (
-        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-      ) : (
-        <Pill size={48} className="text-gray-300" />
-      )}
-      <button
-        onClick={() => onToggleFav(product.id)}
-        className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition"
-      >
-        <Heart size={18} className={isFav ? "text-red-500 fill-red-500" : "text-gray-400"} />
-      </button>
-    </div>
-    <div className="p-4 flex flex-col flex-1">
-      <div className="flex-1">
-        <h4 className="font-semibold text-gray-800 text-sm line-clamp-2">{product.name}</h4>
-        {product.marca && <p className="text-xs text-gray-500 mt-1">{product.marca}</p>}
-      </div>
-      <div className="text-emerald-600 font-bold text-lg mt-3">{fmt(product.price)}</div>
-      <button
-        onClick={() => onAdd(product.id)}
-        className="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition"
-      >
-        <Plus size={14} /> Añadir
-      </button>
-    </div>
-  </div>
-);
-
-const ProductRowList = ({ product, isFav, onToggleFav, onAdd }) => (
-  <div className="bg-white border border-gray-100 rounded-lg p-4 flex items-center gap-4 hover:shadow-sm transition">
-    <div className="h-20 w-20 bg-gray-50 rounded flex-shrink-0 flex items-center justify-center">
-      {product.image ? (
-        <img src={product.image} alt={product.name} className="h-full w-full object-cover rounded" />
-      ) : (
-        <Pill size={32} className="text-gray-300" />
-      )}
-    </div>
-    <div className="flex-1 min-w-0">
-      <h4 className="font-semibold text-gray-800">{product.name}</h4>
-      {product.marca && <p className="text-sm text-gray-500">{product.marca}</p>}
-    </div>
-    <div className="flex items-center gap-3 flex-shrink-0">
-      <div className="text-right">
-        <div className="text-emerald-600 font-bold text-lg">{fmt(product.price)}</div>
-      </div>
-      <button
-        onClick={() => onToggleFav(product.id)}
-        className="p-1 text-gray-400 hover:text-red-500 transition"
-      >
-        <Heart size={18} className={isFav ? "text-red-500 fill-red-500" : ""} />
-      </button>
-      <button
-        onClick={() => onAdd(product.id)}
-        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition"
-      >
-        <Plus size={14} /> Añadir
-      </button>
-    </div>
-  </div>
-);
-
-export const ClientProductos = () => {
+const ClientProductos = () => {
   const [products, setProducts] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [priceRange, setPriceRange] = useState([0, 500000]);
   const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
+  const [cartCounts, setCartCounts] = useState({});
+  const [notification, setNotification] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    // Cargar productos desde localStorage
-    try {
-      const storedProducts = JSON.parse(localStorage.getItem("syspharma_products") || "[]");
-      // Mapear campos del servicio al formato esperado
-      const mappedProducts = Array.isArray(storedProducts) ? storedProducts.map(p => ({
-        id: p.id,
-        name: p.nombre,
-        price: p.precio,
-        image: p.imagen || "",
-        category: p.categoria || "Otros",
-        marca: p.laboratorio || "Genérico",
-      })) : [];
-      setProducts(mappedProducts);
-    } catch {
-      setProducts([]);
-    }
-
-    // Cargar favoritos
-    try {
-      const fav = JSON.parse(localStorage.getItem("syspharma_favorites") || "[]");
-      setFavorites(Array.isArray(fav) ? fav : []);
-    } catch {
-      setFavorites([]);
-    }
-
-    // Escuchar actualizaciones de productos
-    const handleProductsUpdate = () => {
+    const load = () => {
       try {
         const storedProducts = JSON.parse(localStorage.getItem("syspharma_products") || "[]");
         const mappedProducts = Array.isArray(storedProducts) ? storedProducts.map(p => ({
@@ -115,37 +26,88 @@ export const ClientProductos = () => {
           image: p.imagen || "",
           category: p.categoria || "Otros",
           marca: p.laboratorio || "Genérico",
+          stock: p.stock ?? p.existencia ?? 0,
         })) : [];
         setProducts(mappedProducts);
       } catch {
         setProducts([]);
       }
+
+      try {
+        const fav = read(LS.FAVORITES) || [];
+        setFavorites(Array.isArray(fav) ? fav : []);
+      } catch {
+        setFavorites([]);
+      }
     };
 
-    window.addEventListener("syspharma_products_updated", handleProductsUpdate);
+    load();
+
+    const handleProductsUpdate = () => load();
+    window.addEventListener(`${LS.PRODUCTS}_updated`, handleProductsUpdate);
+    return () => window.removeEventListener(`${LS.PRODUCTS}_updated`, handleProductsUpdate);
+  }, []);
+
+  useEffect(() => {
+    const loadCartCounts = () => {
+      try {
+        const saved = read(LS.CART) || [];
+        const arr = (saved || []).map((it) => (it && typeof it === 'object' ? it : { id: it, cantidad: 1 }));
+        const map = {};
+        arr.forEach((it) => { map[it.id] = (map[it.id] || 0) + (it.cantidad || 1); });
+        setCartCounts(map);
+      } catch {
+        setCartCounts({});
+      }
+    };
+
+    loadCartCounts();
+    window.addEventListener(`${LS.CART}_updated`, loadCartCounts);
+    window.addEventListener(`${LS.PRODUCTS}_updated`, loadCartCounts);
     return () => {
-      window.removeEventListener("syspharma_products_updated", handleProductsUpdate);
+      window.removeEventListener(`${LS.CART}_updated`, loadCartCounts);
+      window.removeEventListener(`${LS.PRODUCTS}_updated`, loadCartCounts);
     };
   }, []);
 
   const saveCartAndNotify = (id) => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("syspharma_cart") || "[]");
-      const arr = Array.isArray(saved) ? saved : [];
-      arr.push(id);
-      localStorage.setItem("syspharma_cart", JSON.stringify(arr));
-      window.dispatchEvent(new Event("syspharma_cart_updated"));
-    } catch {
-      localStorage.setItem("syspharma_cart", JSON.stringify([id]));
-      window.dispatchEvent(new Event("syspharma_cart_updated"));
+    const raw = read(LS.CART) || [];
+    const prods = products || [];
+    const prod = prods.find((p) => p.id === id || p.id === Number(id));
+    const stock = prod ? (prod.stock ?? 0) : 0;
+
+    const arr = (raw || []).map((it) => (it && typeof it === 'object' ? it : { id: it, cantidad: 1 }));
+    const existing = arr.find((it) => it.id === id);
+    const currentQty = existing ? existing.cantidad : 0;
+    if (currentQty >= stock) {
+      setNotification('Stock máximo alcanzado');
+      setTimeout(() => setNotification(null), 2500);
+      return;
     }
+
+    if (existing) {
+      existing.cantidad = Math.min(stock, existing.cantidad + 1);
+      existing.precio = Number(prod ? prod.price ?? prod.precio ?? existing.precio : existing.precio) || 0;
+    } else {
+      arr.push({ id, cantidad: 1, precio: Number(prod ? prod.price ?? prod.precio ?? 0 : 0) || 0 });
+    }
+
+    write(LS.CART, arr);
+    setToast({ message: 'Producto añadido al carrito', type: 'success', zIndex: 70 });
   };
 
   const toggleFavorite = (id) => {
-    const next = favorites.includes(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
-    setFavorites(next);
-    localStorage.setItem("syspharma_favorites", JSON.stringify(next));
-    window.dispatchEvent(new Event("syspharma_favorites_updated"));
+    try {
+      const raw = read(LS.FAVORITES) || [];
+      const arr = Array.isArray(raw) ? raw : [];
+      const exists = arr.find((it) => (it && typeof it === 'object' ? it.id === id : it === id));
+      let next;
+      if (exists) next = arr.filter((it) => (it && typeof it === 'object' ? it.id !== id : it !== id));
+      else next = [...arr, id];
+      write(LS.FAVORITES, next);
+    } catch {
+      write(LS.FAVORITES, [id]);
+    }
   };
 
   const categories = Array.from(new Set(products.map((p) => p.category)));
@@ -264,9 +226,10 @@ export const ClientProductos = () => {
                 <ProductCardGrid
                   key={p.id}
                   product={p}
-                  isFav={favorites.includes(p.id)}
+                  isFav={favorites.some(f => (f && typeof f === 'object') ? f.id === p.id : f === p.id)}
                   onToggleFav={toggleFavorite}
                   onAdd={saveCartAndNotify}
+                  disabled={(cartCounts[p.id] || 0) >= (p.stock || 0) || (p.stock || 0) <= 0}
                 />
               ))}
             </div>
@@ -276,15 +239,19 @@ export const ClientProductos = () => {
                 <ProductRowList
                   key={p.id}
                   product={p}
-                  isFav={favorites.includes(p.id)}
+                  isFav={favorites.some(f => (f && typeof f === 'object') ? f.id === p.id : f === p.id)}
                   onToggleFav={toggleFavorite}
                   onAdd={saveCartAndNotify}
+                  disabled={(cartCounts[p.id] || 0) >= (p.stock || 0) || (p.stock || 0) <= 0}
                 />
               ))}
             </div>
           )}
         </main>
       </div>
+    {toast && (
+      <ToastNotification message={toast.message} type={toast.type} zIndex={toast.zIndex} onClose={() => setToast(null)} />
+    )}
     </div>
   );
 };
