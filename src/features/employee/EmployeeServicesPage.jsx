@@ -10,15 +10,18 @@ import {
   Filter,
   Stethoscope,
   Clock,
+  AlertCircle,
 } from "lucide-react";
 
 // ✅ REUTILIZAMOS EL MODAL QUE YA CREASTE PARA EL ADMIN
 // Así, si cambias el diseño del formulario, cambia para todos.
 import ServiceFormModal from "../services/components/ServiceFormModal";
+import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 
 // ✅ USAMOS EL MISMO HOOK Y LA MISMA "KEY" (sys_services)
 // Esto asegura que el Empleado vea LOS MISMOS datos que el Admin.
 import { useCrud } from "../../shared/hooks/useCrud";
+import { turnService } from "../sales/services/turnService";
 
 const INITIAL_SERVICES = [
   {
@@ -58,8 +61,12 @@ export const EmployeeServicesPage = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [hasActiveTurn, setHasActiveTurn] = useState(turnService.hasActiveTurn());
+  const [showTurnTooltip, setShowTurnTooltip] = useState(false);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+  const [user] = useState(JSON.parse(localStorage.getItem("syspharma_user") || "{}"));
 
-  // Escuchar cambios en servicios desde otras páginas
+  // Escuchar cambios en servicios y estado de turno desde otras páginas
   useEffect(() => {
     const handleServicesChange = () => {
       // Forzar re-renderizado leyendo del localStorage
@@ -70,15 +77,39 @@ export const EmployeeServicesPage = () => {
       }
     };
 
+    const handleTurnChange = () => {
+      // Actualizar estado del turno cuando cambie
+      setHasActiveTurn(turnService.hasActiveTurn());
+    };
+
     window.addEventListener("services:changed", handleServicesChange);
-    return () => window.removeEventListener("services:changed", handleServicesChange);
+    window.addEventListener("turn:changed", handleTurnChange);
+    return () => {
+      window.removeEventListener("services:changed", handleServicesChange);
+      window.removeEventListener("turn:changed", handleTurnChange);
+    };
   }, []);
 
   // --- ACCIONES ---
   const handleCreate = () => {
+    // Intercepción: Solo empleados deben chequear turno
+    if (user.rol !== "Administrador" && !turnService.hasActiveTurn()) {
+      setShowOpenShiftModal(true);
+      return;
+    }
     setEditingItem(null);
     setIsViewMode(false);
     setIsModalOpen(true);
+  };
+
+  const handleShiftOpenedThenCreate = () => {
+    setShowOpenShiftModal(false);
+    // Después de abrir turno, abrir modal de crear servicio
+    setTimeout(() => {
+      setEditingItem(null);
+      setIsViewMode(false);
+      setIsModalOpen(true);
+    }, 300);
   };
 
   const handleEdit = (service) => {
@@ -144,12 +175,27 @@ export const EmployeeServicesPage = () => {
           <h1 className="text-lg font-bold text-gray-800">Servicios</h1>
           <p className="text-xs text-gray-500">Gestión de procedimientos</p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors"
-        >
-          <Plus size={16} /> Nuevo
-        </button>
+        <div className="relative">
+          <button
+            onClick={handleCreate}
+            disabled={!hasActiveTurn}
+            onMouseEnter={() => !hasActiveTurn && setShowTurnTooltip(true)}
+            onMouseLeave={() => setShowTurnTooltip(false)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors ${
+              hasActiveTurn
+                ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+            }`}
+          >
+            <Plus size={16} /> Nuevo
+          </button>
+          {showTurnTooltip && !hasActiveTurn && (
+            <div className="absolute top-full mt-2 right-0 bg-gray-800 text-white text-xs rounded-md px-3 py-2 whitespace-nowrap shadow-lg z-50 flex items-center gap-1.5">
+              <AlertCircle size={14} />
+              Debes abrir caja para realizar esta operación
+            </div>
+          )}
+        </div>
       </div>
 
       {/* FILTROS */}
@@ -306,6 +352,15 @@ export const EmployeeServicesPage = () => {
         onSave={handleSave}
         initialData={editingItem}
         isViewMode={isViewMode}
+      />
+
+      {/* Modal para abrir caja si no hay turno */}
+      <OpenShiftModal
+        isOpen={showOpenShiftModal}
+        onShiftOpened={handleShiftOpenedThenCreate}
+        user={user}
+        canClose={user.rol === "Administrador"}
+        onCancel={() => setShowOpenShiftModal(false)}
       />
     </div>
   );

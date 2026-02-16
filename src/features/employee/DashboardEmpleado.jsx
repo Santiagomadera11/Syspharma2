@@ -13,6 +13,8 @@ import {
   Stethoscope
 } from "lucide-react";
 import { appointmentService } from "../services/appointments/services/appointmentService";
+import { turnService } from "../sales/services/turnService";
+import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 import { useCrud } from "../../shared/hooks/useCrud";
 
 const LOW_STOCK_THRESHOLD = 15;
@@ -34,6 +36,7 @@ export const DashboardEmpleado = () => {
   const [nextAppointment, setNextAppointment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
   // Productos (hook comparte items)
   const { items: products } = useCrud("sys_products", []);
@@ -80,8 +83,16 @@ export const DashboardEmpleado = () => {
     return () => clearInterval(id);
   }, []);
 
+  // Verificar turno activo al cargar - Solo empleados ven modal si no hay turno
+  useEffect(() => {
+    if (!turnService.hasActiveTurn()) {
+      setShowOpenShiftModal(true);
+    }
+  }, []);
+
   return (
-    <div className="p-4 font-sans bg-gray-50">
+    <>
+      <div className="p-4 font-sans bg-gray-50">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-800">
@@ -259,6 +270,16 @@ export const DashboardEmpleado = () => {
         </div>
       </div>
     </div>
+
+    {/* Modal para abrir caja si no hay turno al cargar */}
+    <OpenShiftModal
+      isOpen={showOpenShiftModal}
+      onShiftOpened={() => setShowOpenShiftModal(false)}
+      user={currentUser}
+      canClose={false}
+      onCancel={() => setShowOpenShiftModal(false)}
+    />
+    </>
   );
 };
 

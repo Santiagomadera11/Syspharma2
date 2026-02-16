@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { appointmentService } from "../services/appointmentService";
 import CalendarPicker from "./CalendarPicker";
+import { turnService } from "../../../sales/services/turnService";
 
 // Helper para obtener fecha en formato YYYY-MM-DD
 const getDateString = (date) => {
@@ -236,6 +237,14 @@ const AppointmentFormModal = ({
     e.preventDefault();
     const isValid = validateForm();
     if (!isValid) return;
+    
+    // Validar turno activo
+    const turnValidation = turnService.validateOperationAllowed();
+    if (!turnValidation.valid) {
+      alert(turnValidation.message);
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       const appointmentData = {
@@ -260,6 +269,20 @@ const AppointmentFormModal = ({
         // Es una creación
         try {
           const created = await appointmentService.createAppointment(appointmentData);
+          
+          // Registrar venta de servicio en el turno actual
+          const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+          turnService.recordSale({
+            userId: appointmentData.userId || currentUser.id,
+            userName: currentUser.nombre || "Usuario",
+            tipo: 'servicio',
+            monto: parseFloat(formData.precio) || 0,
+            descripcion: formData.servicio,
+            categoria: 'servicio',
+            referencia: created?.id || 'CITA',
+            paciente: formData.paciente,
+          });
+          
           onSave && onSave(created);
         } catch (err) {
           console.error(err);

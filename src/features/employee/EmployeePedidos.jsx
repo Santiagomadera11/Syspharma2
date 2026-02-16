@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Search,
   Eye,
@@ -14,6 +14,8 @@ import { ordersService } from "../sales/orders/services/ordersService";
 import { productService } from "../inventory/products/services/productService";
 import { salesService } from "../sales/services/salesService";
 import { OrderDetailModal } from "../sales/orders/components/OrderDetailModal";
+import { OpenShiftModal } from "../sales/components/OpenShiftModal";
+import { turnService } from "../sales/services/turnService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 export const EmployeePedidos = () => {
@@ -30,8 +32,26 @@ export const EmployeePedidos = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [orderToChangeStatus, setOrderToChangeStatus] = useState(null);
   const [viewMode, setViewMode] = useState("activos"); // "activos" para Pendiente/En proceso, "historial" para Entregado/Cancelado
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+  const [user] = useState(JSON.parse(localStorage.getItem("syspharma_user") || "{}"));
 
   const itemsPerPage = 10;
+
+  // Lógica de intercepción: Si no hay turno, abre modal (solo para empleados)
+  const handleCreatePedido = () => {
+    // Solo empleados deben ver el modal de turno
+    if (user.rol !== "Administrador" && !turnService.hasActiveTurn()) {
+      setShowOpenShiftModal(true);
+      return;
+    }
+    navigate("/employee/pedidos/crear");
+  };
+
+  const handleShiftOpened = () => {
+    setShowOpenShiftModal(false);
+    // Auto-redirigir a crear pedido después de abrir turno
+    navigate("/employee/pedidos/crear");
+  };
 
   const handleOpenDetail = (order) => {
     setSelectedOrder(order);
@@ -254,7 +274,7 @@ export const EmployeePedidos = () => {
         </div>
 
         <button
-          onClick={() => navigate("/employee/pedidos/crear")}
+          onClick={handleCreatePedido}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all"
         >
           <Plus size={16} />
@@ -560,6 +580,15 @@ export const EmployeePedidos = () => {
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         order={selectedOrder}
+      />
+
+      {/* Modal para abrir caja si no hay turno */}
+      <OpenShiftModal
+        isOpen={showOpenShiftModal}
+        onShiftOpened={handleShiftOpened}
+        user={user}
+        canClose={user.rol === "Administrador"}
+        onCancel={() => setShowOpenShiftModal(false)}
       />
     </div>
   );

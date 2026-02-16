@@ -7,7 +7,7 @@ import { turnService } from "../services/turnService";
  * Se muestra cuando no hay turno activo
  * No permite cerrar sin completar la apertura
  */
-export const OpenShiftModal = ({ isOpen, onShiftOpened, user }) => {
+export const OpenShiftModal = ({ isOpen, onShiftOpened, user, canClose = false, onCancel = null }) => {
   const [montoBase, setMontoBase] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -43,6 +43,9 @@ export const OpenShiftModal = ({ isOpen, onShiftOpened, user }) => {
       setMontoBase("");
       setError("");
 
+      // Dispara evento global para actualizar botones en toda la app
+      window.dispatchEvent(new CustomEvent("turn:opened", { detail: newTurn }));
+
       // Callback al componente padre
       if (onShiftOpened) {
         onShiftOpened(newTurn);
@@ -61,7 +64,17 @@ export const OpenShiftModal = ({ isOpen, onShiftOpened, user }) => {
       {/* Overlay oscuro - NO se puede cerrar clickeando aquí */}
       <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
         {/* Modal */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-200 relative">
+          {/* Close button - Solo visible para Admin (canClose=true) */}
+          {canClose && (
+            <button
+              onClick={onCancel}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+          )}
+
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -143,6 +156,17 @@ export const OpenShiftModal = ({ isOpen, onShiftOpened, user }) => {
             >
               {loading ? "Abriendo caja..." : "Abrir Caja"}
             </button>
+
+            {/* Botón Cancelar - Solo para Admin (canClose=true) */}
+            {canClose && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="w-full mt-2 py-2.5 rounded-lg font-bold text-gray-700 transition-all duration-200 bg-gray-200 hover:bg-gray-300 active:scale-95"
+              >
+                Cancelar
+              </button>
+            )}
           </form>
 
           {/* Footer: Nota sobre cierre */}

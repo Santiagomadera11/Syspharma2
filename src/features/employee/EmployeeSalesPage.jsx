@@ -1,17 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Search,
-  Plus,
-  Eye,
-  ChevronLeft,
-  ChevronRight,
-  ShoppingCart,
-  AlertCircle,
-  DollarSign,
-  Clock,
-  User,
-} from "lucide-react";
+import { Search, Plus, Eye, ChevronLeft, ChevronRight, ShoppingCart, AlertCircle, DollarSign, Clock, User } from "lucide-react";
 import { turnService } from "../sales/services/turnService";
 import { ordersService } from "../sales/orders/services/ordersService";
 import { expensesService } from "../sales/services/expensesService";
@@ -54,8 +43,6 @@ export const EmployeeSalesPage = () => {
     const activeTurn = turnService.getActiveTurn();
     if (activeTurn) {
       setCurrentTurn(activeTurn);
-    } else {
-      setShowOpenShiftModal(true);
     }
     // Recargar ventas desde BD
     setSales(salesService.getAll());
@@ -96,14 +83,9 @@ export const EmployeeSalesPage = () => {
   };
 
   const handleNewSale = () => {
-    // Validar turno antes de crear venta
-    const validation = turnService.validateOperationAllowed();
-    if (!validation.valid) {
-      setToast({
-        message: validation.message,
-        type: "error",
-        zIndex: 70,
-      });
+    // Intercepción: Solo empleados deben chequear turno
+    if (user.rol !== "Administrador" && !turnService.hasActiveTurn()) {
+      setShowOpenShiftModal(true);
       return;
     }
     navigate("/employee/ventas/nueva");
@@ -379,6 +361,8 @@ export const EmployeeSalesPage = () => {
         isOpen={showOpenShiftModal}
         onShiftOpened={handleShiftOpened}
         user={user}
+        canClose={user.rol === "Administrador"}
+        onCancel={() => setShowOpenShiftModal(false)}
       />
 
       <CloseShiftModal

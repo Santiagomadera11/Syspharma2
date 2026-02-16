@@ -5,6 +5,7 @@ import { productService } from "../../inventory/products/services/productService
 import { ordersService } from "./services/ordersService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 import { getPaymentMethods } from "../../settings/services/parameterService";
+import { authService } from "../../auth/authService";
 
 export const CreateOrderPage = () => {
   const navigate = useNavigate();
@@ -267,6 +268,8 @@ export const CreateOrderPage = () => {
 
     if (isEditing && editingOrderId) {
       // Actualizar pedido existente
+      const currentUser = authService.getCurrentUser();
+      
       ordersService.update({
         id: editingOrderId,
         cliente: clientInfo.nombre,
@@ -275,7 +278,7 @@ export const CreateOrderPage = () => {
           nombre: p.nombre,
           cantidad: p.cantidad,
           precio: p.precio,
-          id: p.id, // Necesario para manejar stock
+          id: p.id,
         })),
         cantidadProductos: cart.reduce((sum, p) => sum + p.cantidad, 0),
         total: cartTotal,
@@ -283,9 +286,14 @@ export const CreateOrderPage = () => {
         notas: `Teléfono: ${clientInfo.telefono}${
           clientInfo.correo ? ` | Correo: ${clientInfo.correo}` : ""
         }`,
+        origin: isEmployee ? "empleado" : "web",
+        userId: isEmployee ? currentUser?.id : null,
+        userName: isEmployee ? currentUser?.nombre : null,
       });
     } else {
       // Crear nuevo pedido
+      const currentUser = authService.getCurrentUser();
+      
       ordersService.create({
         cliente: clientInfo.nombre,
         documento: clientInfo.documento,
@@ -293,7 +301,7 @@ export const CreateOrderPage = () => {
           nombre: p.nombre,
           cantidad: p.cantidad,
           precio: p.precio,
-          id: p.id, // Necesario para manejar stock
+          id: p.id,
         })),
         total: cartTotal,
         estado: "Pendiente",
@@ -302,6 +310,9 @@ export const CreateOrderPage = () => {
           clientInfo.correo ? ` | Correo: ${clientInfo.correo}` : ""
         }`,
         creadoPor: isEmployee ? "Empleado" : "Administrador",
+        origin: isEmployee ? "empleado" : "web",
+        userId: isEmployee ? currentUser?.id : null,
+        userName: isEmployee ? currentUser?.nombre : null,
       });
     }
 
@@ -328,7 +339,6 @@ export const CreateOrderPage = () => {
       });
     } else {
       // Para creación: reducir stock normalmente
-
       cart.forEach((item) => {
         const currentProduct = productService.getById(item.id);
         console.log(

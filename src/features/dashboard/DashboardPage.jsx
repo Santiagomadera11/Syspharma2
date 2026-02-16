@@ -45,7 +45,9 @@ export const DashboardPage = () => {
   // Al cargar el dashboard, verifica si hay turno activo
   useEffect(() => {
     const activeTurn = turnService.getActiveTurn();
-    if (!activeTurn) {
+    // Admin NO ve modal automático
+    // Solo usuarios con rol de empleado verían esto, pero como es admin dashboard, no es necesario
+    if (!activeTurn && user.rol !== "Administrador") {
       setShowOpenShiftModal(true);
     }
   }, []);
