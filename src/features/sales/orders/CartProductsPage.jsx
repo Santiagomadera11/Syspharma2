@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Package, Trash2 } from "lucide-react";
 import { productService } from "../../inventory/products/services/productService";
+import { read, write, LS } from '../../../shared/services/lsService';
 
 export const CartProductsPage = () => {
   const navigate = useNavigate();
@@ -53,26 +54,18 @@ export const CartProductsPage = () => {
   };
 
   useEffect(() => {
-    const savedCart = localStorage.getItem("syspharma_cart");
-    if (savedCart) {
-      try {
-        const parsedCart = JSON.parse(savedCart);
-        if (Array.isArray(parsedCart) && parsedCart.length > 0) {
-          const syncedCart = syncCartStock(parsedCart);
-          setCart(syncedCart);
-        }
-      } catch (error) {
-        console.error("Error parsing saved cart:", error);
-        localStorage.removeItem("syspharma_cart");
-      }
+    const savedCart = read(LS.CART) || [];
+    if (Array.isArray(savedCart) && savedCart.length > 0) {
+      const syncedCart = syncCartStock(savedCart);
+      setCart(syncedCart);
     }
 
     // Refrescar stock cada 5 segundos
     const interval = setInterval(() => {
-      setCart((currentCart) => {
+        setCart((currentCart) => {
         const syncedCart = syncCartStock(currentCart);
         // Guardar cambios en localStorage si hubo ajustes
-        localStorage.setItem("syspharma_cart", JSON.stringify(syncedCart));
+        write(LS.CART, syncedCart);
         return syncedCart;
       });
     }, 5000);
@@ -113,14 +106,14 @@ export const CartProductsPage = () => {
         item.id === productId ? { ...item, cantidad: newQuantity } : item,
       );
       setCart(updatedCart);
-      localStorage.setItem("syspharma_cart", JSON.stringify(updatedCart));
+      write(LS.CART, updatedCart);
     }
   };
 
   const handleRemoveFromCart = (productId) => {
     const updatedCart = cart.filter((item) => item.id !== productId);
     setCart(updatedCart);
-    localStorage.setItem("syspharma_cart", JSON.stringify(updatedCart));
+    write(LS.CART, updatedCart);
   };
 
   const total = cart.reduce(

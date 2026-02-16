@@ -37,6 +37,20 @@ export const EmployeePedidos = () => {
 
   const itemsPerPage = 10;
 
+  // Listen for order updates (e.g., from landing guest orders)
+  useEffect(() => {
+    const handleOrdersUpdated = () => {
+      setOrders(ordersService.getAll());
+    };
+
+    window.addEventListener('syspharma_orders_updated', handleOrdersUpdated);
+    window.addEventListener('storage', handleOrdersUpdated);
+    return () => {
+      window.removeEventListener('syspharma_orders_updated', handleOrdersUpdated);
+      window.removeEventListener('storage', handleOrdersUpdated);
+    };
+  }, []);
+
   // Lógica de intercepción: Si no hay turno, abre modal (solo para empleados)
   const handleCreatePedido = () => {
     // Solo empleados deben ver el modal de turno
@@ -202,8 +216,8 @@ export const EmployeePedidos = () => {
 
       // Filtro por viewMode
       if (viewMode === "activos") {
-        // Mostrar solo Pendiente y En proceso
-        if (!["Pendiente", "En proceso"].includes(order.estado)) {
+        // Mostrar Pendiente, En proceso, y Pendientes de Validación (de landing)
+        if (!["Pendiente", "En proceso", "Pendientes de Validación"].includes(order.estado)) {
           return false;
         }
       } else if (viewMode === "historial") {
@@ -249,6 +263,8 @@ export const EmployeePedidos = () => {
     switch (estado) {
       case "Pendiente":
         return "bg-yellow-100 text-yellow-700";
+      case "Pendientes de Validación":
+        return "bg-orange-100 text-orange-700";
       case "En proceso":
         return "bg-blue-100 text-blue-700";
       case "Entregado":

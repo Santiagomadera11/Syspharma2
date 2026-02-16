@@ -38,8 +38,8 @@ export const DashboardEmpleado = () => {
   const [error, setError] = useState(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
-  // Productos (hook comparte items)
-  const { items: products } = useCrud("sys_products", []);
+  // Productos (hook comparte items) - usar la misma clave que productService
+  const { items: products } = useCrud("syspharma_products", []);
 
   const lowStockProducts = useMemo(() => {
     return (products || [])

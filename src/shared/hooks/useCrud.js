@@ -17,6 +17,34 @@ export const useCrud = (storageKey, initialData) => {
     localStorage.setItem(storageKey, JSON.stringify(items));
   }, [items, storageKey]);
 
+  // 3. Escuchar eventos externos para sincronizar cambios realizados fuera del hook
+  useEffect(() => {
+    const onCustomUpdate = () => {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        setItems(stored ? JSON.parse(stored) : initialData);
+      } catch (err) {
+        // ignore
+      }
+    };
+
+    const onStorage = (evt) => {
+      if (!evt) return;
+      // evt.key puede ser null en algunos navegadores - en ese caso recargar todo
+      if (!evt.key || evt.key === storageKey) {
+        onCustomUpdate();
+      }
+    };
+
+    window.addEventListener(`${storageKey}_updated`, onCustomUpdate);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener(`${storageKey}_updated`, onCustomUpdate);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [storageKey, initialData]);
+
   // --- ACCIONES ---
 
   // AGREGAR

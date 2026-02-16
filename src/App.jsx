@@ -1,5 +1,7 @@
 import React from "react";
 import { AppRouter } from "./routes/AppRouter";
+import { CartProvider } from './shared/context/CartContext';
+import CartDrawer from './features/landing/components/CartDrawer';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -37,10 +39,13 @@ class ErrorBoundary extends React.Component {
 function App() {
   return (
     <ErrorBoundary>
-      <div className="app-container">
-        {/* Aquí cargamos todo el sistema de rutas */}
-        <AppRouter />
-      </div>
+      <CartProvider>
+        <div className="app-container">
+          {/* Aquí cargamos todo el sistema de rutas */}
+          <AppRouter />
+          <CartDrawer />
+        </div>
+      </CartProvider>
     </ErrorBoundary>
   );
 }

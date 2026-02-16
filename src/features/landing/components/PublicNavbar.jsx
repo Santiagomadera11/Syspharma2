@@ -1,9 +1,23 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ShoppingCart, User, Stethoscope } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { read, LS } from '../../../shared/services/lsService';
+import useCart from '../../../shared/context/CartContext';
 
 export const PublicNavbar = () => {
   const location = useLocation();
+
+  const cart = useCart();
+  const CartButton = () => {
+    return (
+      <button onClick={() => cart.setIsCartOpen(true)} className="relative p-1.5 text-gray-400 hover:text-primary-400 transition-colors">
+        <ShoppingCart size={20} />
+        <span className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full h-3.5 w-3.5 flex items-center justify-center">
+          {cart.cartCount}
+        </span>
+      </button>
+    );
+  };
 
   const navItems = [
     { label: "Inicio", path: "/" },
@@ -46,12 +60,7 @@ export const PublicNavbar = () => {
 
           {/* BOTONES DERECHA */}
           <div className="flex items-center space-x-3">
-            <button className="relative p-1.5 text-gray-400 hover:text-primary-400 transition-colors">
-              <ShoppingCart size={20} />
-              <span className="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-bold rounded-full h-3.5 w-3.5 flex items-center justify-center">
-                0
-              </span>
-            </button>
+            <CartButton />
 
             {/* ENLACE REGISTRARSE (SOLO CLIENTES) */}
             <Link

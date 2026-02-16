@@ -1,15 +1,25 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { PublicNavbar } from "./components/PublicNavbar";
-import { Zap, Shield, DollarSign, Pill, Facebook, Instagram, Mail, Phone } from "lucide-react";
+import useCart from '../../shared/context/CartContext';
+import { Zap, Shield, DollarSign, Pill, Mail, Phone } from "lucide-react";
+import { useCrud } from "../../shared/hooks/useCrud";
+import { useState } from "react";
+import ProductDetailModal from "../../shared/ui/ProductDetailModal";
 
 export const LandingPage = () => {
-  const featuredProducts = [
-    { id: 1, name: "Paracetamol 500mg", price: 12000, marca: "Tafirol" },
-    { id: 2, name: "Ibupirac 400mg", price: 15000, marca: "Actron" },
-    { id: 3, name: "Vitamina C 100 cáps", price: 45000, marca: "Natura" },
-    { id: 4, name: "Suero Fisiológico 500ml", price: 8000, marca: "Baxter" },
-  ];
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const cart = useCart();
+  // Productos dinámicos: se sincronizan con el storage principal `syspharma_products`
+  const { items: products } = useCrud("syspharma_products", []);
+  const featuredProducts = (products && products.length > 0)
+    ? products.slice(0, 4)
+    : [
+        { id: 1, nombre: "Paracetamol 500mg", precio: 12000, proveedor: "Tafirol" },
+        { id: 2, nombre: "Ibupirac 400mg", precio: 15000, proveedor: "Actron" },
+        { id: 3, nombre: "Vitamina C 100 cáps", precio: 45000, proveedor: "Natura" },
+        { id: 4, nombre: "Suero Fisiológico 500ml", precio: 8000, proveedor: "Baxter" },
+      ];
 
   const testimonials = [
     { name: "Pfizer", logo: "💊" },
@@ -51,8 +61,8 @@ export const LandingPage = () => {
 
           {/* Right: Illustration/Image */}
           <div className="relative hidden md:flex items-center justify-center">
-            <div className="w-full h-96 bg-gradient-to-br from-emerald-100 to-transparent rounded-2xl flex items-center justify-center shadow-2xl">
-              <Pill size={180} className="text-emerald-600 opacity-40" />
+            <div className="w-full h-96 bg-gradient-to-br from-emerald-100 to-transparent rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden">
+              <img src="/src/assets/farmacia.avif" alt="Farmacia" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
@@ -109,38 +119,45 @@ export const LandingPage = () => {
             {featuredProducts.map((product) => (
               <div
                 key={product.id}
-                className="group relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                onClick={() => setSelectedProduct(product)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') setSelectedProduct(product); }}
+                className="group relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
               >
                 {/* Product Image */}
                 <div className="relative h-48 bg-gradient-to-br from-emerald-50 to-gray-50 flex items-center justify-center overflow-hidden">
-                  <Pill size={80} className="text-gray-300" />
+                  {product.imagen || product.image ? (
+                    <img
+                      src={product.imagen || product.image}
+                      alt={product.nombre || product.name}
+                      className="object-contain h-full w-full p-6"
+                    />
+                  ) : (
+                    <Pill size={80} className="text-gray-300" />
+                  )}
                 </div>
 
                 {/* Product Info */}
                 <div className="p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">{product.marca}</p>
-                  <h3 className="font-semibold text-gray-900 mt-2 line-clamp-2">{product.name}</h3>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider">{product.proveedor || product.marca}</p>
+                  <h3 className="font-semibold text-gray-900 mt-2 line-clamp-2">{product.nombre || product.name}</h3>
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-emerald-600 font-bold text-lg">
-                      ${product.price.toLocaleString()}
+                      ${Number(product.precio ?? product.price ?? 0).toLocaleString()}
                     </span>
                   </div>
                 </div>
 
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <Link
-                    to="/login"
-                    className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-lg transition-all"
-                  >
-                    Inicia sesión para comprar
-                  </Link>
-                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      {selectedProduct && (
+        <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+      )}
 
       {/* TRUST SECTION */}
       <section className="py-16 px-4 md:px-6 bg-white border-y border-gray-100">
@@ -201,26 +218,13 @@ export const LandingPage = () => {
               <ul className="space-y-3 text-sm">
                 <li className="flex items-center gap-2">
                   <Phone size={16} className="text-emerald-500" />
-                  <span className="text-gray-400">+57 123 456 7890</span>
+                  <span className="text-gray-400">313 616 0504</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Mail size={16} className="text-emerald-500" />
-                  <span className="text-gray-400">info@syspharma.com</span>
+                  <span className="text-gray-400">farmacenterla10@gmail.com</span>
                 </li>
               </ul>
-            </div>
-
-            {/* Sociales */}
-            <div>
-              <h4 className="text-white font-semibold mb-4">Síguenos</h4>
-              <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 hover:bg-emerald-600 flex items-center justify-center transition-colors">
-                  <Facebook size={20} />
-                </a>
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 hover:bg-emerald-600 flex items-center justify-center transition-colors">
-                  <Instagram size={20} />
-                </a>
-              </div>
             </div>
           </div>
 

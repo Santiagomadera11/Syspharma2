@@ -17,6 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
 import { productService } from "../../inventory/products/services/productService";
+import { write, LS } from '../../../shared/services/lsService';
 import { salesService } from "../services/salesService";
 import { OrderDetailModal } from "./components/OrderDetailModal";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
@@ -40,6 +41,20 @@ export const AdminPedidos = () => {
   const [viewMode, setViewMode] = useState("activos"); // "activos" para Pendiente/En proceso, "historial" para Entregado/Cancelado
 
   const itemsPerPage = 10;
+
+  // Listen for order updates (e.g., from landing guest orders)
+  React.useEffect(() => {
+    const handleOrdersUpdated = () => {
+      setOrders(ordersService.getAll());
+    };
+
+    window.addEventListener('syspharma_orders_updated', handleOrdersUpdated);
+    window.addEventListener('storage', handleOrdersUpdated);
+    return () => {
+      window.removeEventListener('syspharma_orders_updated', handleOrdersUpdated);
+      window.removeEventListener('storage', handleOrdersUpdated);
+    };
+  }, []);
 
   const handleOpenDetail = (order) => {
     setSelectedOrder(order);
@@ -206,7 +221,12 @@ export const AdminPedidos = () => {
     );
 
     // Limpiar carrito actual y navegar
-    localStorage.removeItem("syspharma_cart");
+    try {
+      write(LS.CART, []);
+    } catch (e) {
+      localStorage.removeItem("syspharma_cart");
+      try { window.dispatchEvent(new Event('syspharma_cart_updated')); } catch (e) {}
+    }
     navigate("/admin/pedidos/crear");
   };
 
@@ -240,7 +260,7 @@ export const AdminPedidos = () => {
   // Estadísticas para los cards
   const stats = useMemo(() => {
     const total = orders.length;
-    const pendientes = orders.filter((o) => o.estado === "Pendiente").length;
+    const pendientes = orders.filter((o) => o.estado === "Pendiente" || o.estado === "Pendientes de Validación").length;
     const entregados = orders.filter((o) => o.estado === "Entregado").length;
     const totalCartera = orders.reduce((sum, order) => sum + order.total, 0);
 
@@ -308,6 +328,8 @@ export const AdminPedidos = () => {
     switch (estado) {
       case "Pendiente":
         return "bg-yellow-100 text-yellow-700";
+      case "Pendientes de Validación":
+        return "bg-orange-100 text-orange-700";
       case "En proceso":
         return "bg-blue-100 text-blue-700";
       case "Entregado":
