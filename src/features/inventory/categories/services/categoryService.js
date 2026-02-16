@@ -1,13 +1,5 @@
 const DB_KEY = 'syspharma_categories';
 
-const initialData = [
-  { id: 1, nombre: "Analgésicos", descripcion: "Para el dolor y la fiebre", estado: true },
-  { id: 2, nombre: "Antibióticos", descripcion: "Requieren receta médica", estado: true },
-  { id: 3, nombre: "Vitaminas", descripcion: "Suplementos dietarios", estado: true },
-  { id: 4, nombre: "Cuidado Personal", descripcion: "Aseo y cosmética", estado: true },
-  { id: 5, nombre: "Infantil", descripcion: "Pañales y fórmulas", estado: false },
-];
-
 // Función auxiliar para disparar eventos de cambio
 const notifyChange = () => {
   window.dispatchEvent(new CustomEvent("categories:changed"));
@@ -17,7 +9,36 @@ const notifyChange = () => {
 export const categoryService = {
   getAll: () => {
     const data = localStorage.getItem(DB_KEY);
-    return data ? JSON.parse(data) : (localStorage.setItem(DB_KEY, JSON.stringify(initialData)), initialData);
+
+    if (!data) return [];
+
+    try {
+      const parsed = JSON.parse(data);
+
+      // Si el localStorage contiene exactamente el dataset demo original, lo eliminamos
+      const demoNames = [
+        "Analgésicos",
+        "Antibióticos",
+        "Vitaminas",
+        "Cuidado Personal",
+        "Infantil",
+      ];
+
+      const looksLikeDemo = Array.isArray(parsed)
+        && parsed.length === demoNames.length
+        && parsed.every((c) => c && typeof c.nombre === 'string' && demoNames.includes(c.nombre));
+
+      if (looksLikeDemo) {
+        localStorage.removeItem(DB_KEY);
+        return [];
+      }
+
+      return parsed;
+    } catch (err) {
+      // Si el JSON está corrupto, limpiamos la clave para evitar comportamientos inesperados
+      localStorage.removeItem(DB_KEY);
+      return [];
+    }
   },
   create: (item) => {
     const list = categoryService.getAll();

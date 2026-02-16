@@ -30,6 +30,9 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [], p
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
 
+  // Control del panel colapsable de "Configuración de Visibilidad"
+  const [showVisibility, setShowVisibility] = useState(false);
+
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
@@ -202,8 +205,8 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [], p
                 <option value="">Seleccionar...</option>
                 {providers.length > 0 ? (
                   providers.map((provider) => (
-                    <option key={provider.id} value={provider.nombre}>
-                      {provider.nombre}
+                    <option key={provider.id} value={provider.empresa || provider.nombre}>
+                      {provider.empresa || provider.nombre}
                     </option>
                   ))
                 ) : (
@@ -383,122 +386,103 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData, categories = [], p
             </div>
           )}
 
-          {/* Sección Configuración de Visibilidad */}
+          {/* Sección Configuración de Visibilidad (colapsable) */}
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h4 className="text-xs font-bold text-gray-800 mb-4">
-              📍 Configuración de Visibilidad
-            </h4>
+            <button
+              type="button"
+              aria-expanded={showVisibility ? "true" : "false"}
+              onClick={() => setShowVisibility((v) => !v)}
+              className="w-full flex items-center justify-between gap-3 p-2 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-800">📍 Configuración de Visibilidad</span>
 
-            <div className="space-y-3">
-              {/* Switch Destacado */}
-              <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
-                <label className="text-xs font-bold text-gray-700">
-                  Mostrar en Destacados
-                </label>
-                <button
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      esDestacado: !formData.esDestacado,
-                    })
-                  }
-                  className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${
-                    formData.esDestacado
-                      ? "bg-emerald-600 shadow-md shadow-emerald-200"
-                      : "bg-gray-300 shadow-md shadow-gray-200"
-                  }`}
-                  role="switch"
-                  aria-checked={formData.esDestacado}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.esDestacado ? "translate-x-5" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Switch Oferta */}
-              <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
-                <label className="text-xs font-bold text-gray-700">
-                  Mostrar en Ofertas
-                </label>
-                <button
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      enOferta: !formData.enOferta,
-                    })
-                  }
-                  className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${
-                    formData.enOferta
-                      ? "bg-emerald-600 shadow-md shadow-emerald-200"
-                      : "bg-gray-300 shadow-md shadow-gray-200"
-                  }`}
-                  role="switch"
-                  aria-checked={formData.enOferta}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.enOferta ? "translate-x-5" : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Porcentaje Descuento - Solo si está en Oferta */}
-              {formData.enOferta && (
-                <div className="pl-3 pr-3 py-2">
-                  <label className="block text-xs font-bold text-gray-700 mb-2">
-                    Porcentaje de Descuento (%)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="w-full text-sm border border-emerald-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                    placeholder="Ej: 15"
-                    value={formData.porcentajeDescuento}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        porcentajeDescuento: Math.min(100, Math.max(0, Number(e.target.value))),
-                      })
-                    }
-                  />
+                {/* Resumen rápido */}
+                <div className="flex items-center gap-2">
+                  {formData.esDestacado && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Destacado</span>
+                  )}
+                  {formData.enOferta && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Oferta</span>
+                  )}
+                  {formData.esRecomendado && (
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-200">Recomendado</span>
+                  )}
                 </div>
-              )}
-
-              {/* Switch Recomendado */}
-              <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
-                <label className="text-xs font-bold text-gray-700">
-                  Mostrar en Recomendados
-                </label>
-                <button
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      esRecomendado: !formData.esRecomendado,
-                    })
-                  }
-                  className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${
-                    formData.esRecomendado
-                      ? "bg-emerald-600 shadow-md shadow-emerald-200"
-                      : "bg-gray-300 shadow-md shadow-gray-200"
-                  }`}
-                  role="switch"
-                  aria-checked={formData.esRecomendado}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.esRecomendado
-                        ? "translate-x-5"
-                        : "translate-x-0.5"
-                    }`}
-                  />
-                </button>
               </div>
-            </div>
+
+              <svg
+                className={`w-4 h-4 text-gray-500 transition-transform ${showVisibility ? 'rotate-180' : 'rotate-0'}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {showVisibility && (
+              <div className="mt-3 space-y-3">
+                {/* Switch Destacado */}
+                <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
+                  <label className="text-xs font-bold text-gray-700">Mostrar en Destacados</label>
+                  <button
+                    onClick={() => setFormData({ ...formData, esDestacado: !formData.esDestacado })}
+                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${formData.esDestacado ? 'bg-emerald-600 shadow-md shadow-emerald-200' : 'bg-gray-300 shadow-md shadow-gray-200'}`}
+                    role="switch"
+                    aria-checked={formData.esDestacado}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.esDestacado ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+
+                {/* Switch Oferta */}
+                <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
+                  <label className="text-xs font-bold text-gray-700">Mostrar en Ofertas</label>
+                  <button
+                    onClick={() => setFormData({ ...formData, enOferta: !formData.enOferta })}
+                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${formData.enOferta ? 'bg-emerald-600 shadow-md shadow-emerald-200' : 'bg-gray-300 shadow-md shadow-gray-200'}`}
+                    role="switch"
+                    aria-checked={formData.enOferta}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.enOferta ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+
+                {/* Porcentaje Descuento - Solo si está en Oferta */}
+                {formData.enOferta && (
+                  <div className="pl-3 pr-3 py-2">
+                    <label className="block text-xs font-bold text-gray-700 mb-2">Porcentaje de Descuento (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      className="w-full text-sm border border-emerald-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      placeholder="Ej: 15"
+                      value={formData.porcentajeDescuento}
+                      onChange={(e) => setFormData({ ...formData, porcentajeDescuento: Math.min(100, Math.max(0, Number(e.target.value))) })}
+                    />
+                  </div>
+                )}
+
+                {/* Switch Recomendado */}
+                <div className="flex items-center justify-between p-3 rounded-lg border transition-all bg-white border-gray-200 hover:border-emerald-300">
+                  <label className="text-xs font-bold text-gray-700">Mostrar en Recomendados</label>
+                  <button
+                    onClick={() => setFormData({ ...formData, esRecomendado: !formData.esRecomendado })}
+                    className={`relative inline-flex h-5 w-10 items-center rounded-full transition-all ${formData.esRecomendado ? 'bg-emerald-600 shadow-md shadow-emerald-200' : 'bg-gray-300 shadow-md shadow-gray-200'}`}
+                    role="switch"
+                    aria-checked={formData.esRecomendado}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.esRecomendado ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -70,7 +70,8 @@ export const CalendarPicker = ({
   };
 
   const handleDateClick = (day) => {
-    if (!isDateDisabled(day)) {
+    const disabledInfo = getDisabledInfo(day);
+    if (!disabledInfo.disabled) {
       const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
       onDateSelect(getDateString(date));
     }

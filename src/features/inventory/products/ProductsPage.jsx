@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -61,9 +62,11 @@ export const ProductsPage = () => {
     };
   }, []);
 
+  const navigate = useNavigate();
+
   const handleCreate = () => {
-    setEditingItem(null);
-    setIsModalOpen(true);
+    // Navegar internamente usando React Router (sin recarga completa)
+    navigate('/admin/productos/nuevo');
   };
   const handleEdit = (item) => {
     setEditingItem(item);
