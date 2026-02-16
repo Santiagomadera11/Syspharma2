@@ -32,6 +32,7 @@ import SalesPage from "../features/sales/SalesPage";
 
 // --- PÁGINAS DE INVENTARIO (ADMIN) ---
 import { ProductsPage } from "../features/inventory/products/ProductsPage";
+import NewProductPage from "../features/inventory/products/NewProductPage";
 import { PurchasesPage } from "../features/inventory/purchases/PurchasesPage";
 import { CategoriesPage } from "../features/inventory/categories/CategoriesPage";
 import { ProvidersPage } from "../features/inventory/providers/ProvidersPage";
@@ -120,6 +121,7 @@ export const AppRouter = () => {
           {/* --- MÓDULO DE COMPRAS & INVENTARIO --- */}
           <Route path="compras" element={<PurchasesPage />} />
           <Route path="productos" element={<ProductsPage />} />
+          <Route path="productos/nuevo" element={<NewProductPage />} />
           <Route path="categorias" element={<CategoriesPage />} />
           <Route path="proveedores" element={<ProvidersPage />} />
 

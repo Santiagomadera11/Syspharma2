@@ -6,6 +6,7 @@ import {
 
 // ✅ IMPORTAMOS EL MODAL DESDE LA CARPETA COMPONENTS
 import ProviderFormModal from "./components/ProviderFormModal";
+import { providerService } from "./services/providerService";
 
 export const ProvidersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,16 +21,9 @@ export const ProvidersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5; 
 
-  const [providers, setProviders] = useState([
-    { id: "PRV-001", empresa: "Farmacéutica Global S.A.", contacto: "Carlos Ruiz", telefono: "+506 2222-1111", email: "ventas@fglobal.com", estado: "Activo" },
-    { id: "PRV-002", empresa: "Distribuidora MedRx", contacto: "Ana Gómez", telefono: "+506 2222-3333", email: "ana.g@medrx.cr", estado: "Activo" },
-    { id: "PRV-003", empresa: "Laboratorios Pfizer", contacto: "Roberto Díaz", telefono: "+506 2222-5555", email: "rdiaz@pfizer.com", estado: "Activo" },
-    { id: "PRV-004", empresa: "Insumos Médicos CR", contacto: "María Solís", telefono: "+506 8888-9999", email: "pedidos@insumoscr.com", estado: "Inactivo" },
-    { id: "PRV-005", empresa: "Bayer Centroamérica", contacto: "Felipe Wong", telefono: "+506 2290-0000", email: "felipe.w@bayer.com", estado: "Activo" },
-    { id: "PRV-006", empresa: "Genéricos del Valle", contacto: "Lucía Méndez", telefono: "+506 2440-1234", email: "info@genericosvalle.com", estado: "Activo" },
-    { id: "PRV-007", empresa: "Droguería Central", contacto: "Pedro Torres", telefono: "+506 2256-7890", email: "p.torres@dcentral.com", estado: "Inactivo" },
-    { id: "PRV-008", empresa: "Meditech Devices", contacto: "Sofía Castro", telefono: "+506 2222-8888", email: "sofia@meditech.com", estado: "Activo" },
-  ]);
+  // Usar providerService como fuente de verdad (localStorage).
+  // Inicialmente la lista estará vacía — sólo aparecerán proveedores que el usuario añada.
+  const [providers, setProviders] = useState(() => providerService.getAll());
 
   // Filtros
   const filteredItems = providers.filter((prov) => {
@@ -69,19 +63,19 @@ export const ProvidersPage = () => {
 
   const handleDelete = (prov) => {
     if (!window.confirm(`Eliminar proveedor ${prov.empresa}?`)) return;
-    setProviders(prev => prev.filter(p => p.id !== prov.id));
+    const updated = providerService.delete(prov.id);
+    setProviders(updated);
   };
 
   const handleSave = (data) => {
     if (modalMode === 'edit') {
-      setProviders(prev => prev.map(p => p.id === data.id ? data : p));
+      const updated = providerService.update(data);
+      setProviders(updated);
     } else {
-      const max = providers.reduce((acc, cur) => {
-        const n = parseInt(cur.id.split('-')[1]) || 0; return Math.max(acc, n);
-      }, 0);
-      const newId = `PRV-${String(max + 1).padStart(3,'0')}`;
-      setProviders(prev => [{ ...data, id: newId }, ...prev]);
+      const updated = providerService.create(data);
+      setProviders(updated);
     }
+
     setIsModalOpen(false);
     setSelectedProvider(null);
     setModalMode('create');
@@ -89,7 +83,9 @@ export const ProvidersPage = () => {
 
   const confirmStatusChange = (prov) => {
     const newStatus = prov.estado === 'Activo' ? 'Inactivo' : 'Activo';
-    setProviders(prev => prev.map(p => p.id === prov.id ? { ...p, estado: newStatus } : p));
+    const updatedProv = { ...prov, estado: newStatus };
+    const updated = providerService.update(updatedProv);
+    setProviders(updated);
   };
 
   return (
