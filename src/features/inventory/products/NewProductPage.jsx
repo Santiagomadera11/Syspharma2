@@ -30,6 +30,8 @@ const NewProductPage = () => {
     registroSanitario: "",
     requiereFormula: false,
   });
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileRef = React.createRef();
 
   useEffect(() => {
     setCategories(categoryService.getAll());
@@ -47,6 +49,17 @@ const NewProductPage = () => {
       window.removeEventListener("providers:changed", onChange);
     };
   }, []);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setImagePreview(ev.target.result);
+      setFormData((f) => ({ ...f, imagen: ev.target.result }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = () => {
     // Normalizar tipos
@@ -95,6 +108,33 @@ const NewProductPage = () => {
           {/* Left - Datos básicos (2/3) */}
           <div className="md:col-span-2 bg-white border border-gray-100 rounded-lg p-6 shadow-sm">
             <div className="space-y-4">
+                {/* Imagen del producto (upload) */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Imagen del Producto</label>
+                  <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-emerald-500 transition bg-gray-50">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    <button type="button" onClick={() => fileRef.current?.click()} className="w-full flex flex-col items-center">
+                      {imagePreview ? (
+                        <div className="flex flex-col items-center">
+                          <img src={imagePreview} alt="Preview" className="max-h-36 max-w-full object-contain mb-2 rounded" />
+                          <p className="text-xs text-gray-500">Haz clic para cambiar imagen</p>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <Package size={28} className="text-gray-400 mx-auto mb-2" />
+                          <p className="text-xs font-semibold text-gray-600">Sube una imagen</p>
+                          <p className="text-xs text-gray-500 mt-1">PNG, JPG hasta 5MB</p>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Nombre</label>
                 <input

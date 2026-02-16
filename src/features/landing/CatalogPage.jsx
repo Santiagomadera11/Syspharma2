@@ -1,12 +1,12 @@
-import React from 'react';
-import { PublicNavbar } from './components/PublicNavbar';
-import { FeaturedProducts } from './components/FeaturedProducts';
+import React from "react";
+import { PublicNavbar } from "./components/PublicNavbar";
+import { FeaturedProducts } from "./components/FeaturedProducts";
 
 export const CatalogPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <PublicNavbar />
-      
+
       <div className="bg-primary-900 text-white py-6 text-center shadow-md">
         <h1 className="text-2xl font-bold mb-1">Catálogo</h1>
         <p className="text-primary-200 text-xs">Todos los productos</p>

@@ -13,6 +13,11 @@ import {
   Package,
   DollarSign,
   Pencil,
+  User,
+  Globe,
+  Filter,
+  TrendingUp,
+  Check,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
@@ -27,6 +32,7 @@ export const AdminPedidos = () => {
   const [orders, setOrders] = useState(ordersService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
+  const [originFilter, setOriginFilter] = useState("Todos");
   const [employeeFilter, setEmployeeFilter] = useState("Todos");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -39,6 +45,7 @@ export const AdminPedidos = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState(null);
   const [viewMode, setViewMode] = useState("activos"); // "activos" para Pendiente/En proceso, "historial" para Entregado/Cancelado
+  const [tooltipOrderId, setTooltipOrderId] = useState(null);
 
   const itemsPerPage = 10;
 
@@ -64,6 +71,52 @@ export const AdminPedidos = () => {
   const handleStatusChange = (order) => {
     setOrderToChangeStatus(order);
     setIsStatusModalOpen(true);
+  };
+
+  // Función para completar pedido (cambiar a "Entregado" y registrar venta)
+  const handleCompleteOrder = (order) => {
+    if (order.estado === "Pendiente" || order.estado === "En proceso") {
+      // Cambiar estado a Entregado
+      ordersService.updateStatus(order.id, "Entregado");
+      setOrders(ordersService.getAll());
+
+      // Registrar como venta
+      const today = new Date().toLocaleDateString("es-CO");
+      try {
+        const salesKey = "syspharma_sales";
+        const sales = JSON.parse(localStorage.getItem(salesKey) || "[]");
+        const newSale = {
+          id: order.id,
+          cliente: order.cliente,
+          productos: order.productos,
+          total: order.total,
+          metodoPago: order.metodoPago || "Efectivo",
+          notas: `Pedido completado: ${order.id}`,
+          pedidoId: order.id,
+          fecha: today,
+          hora: new Date().toLocaleTimeString("es-CO"),
+        };
+        sales.push(newSale);
+        localStorage.setItem(salesKey, JSON.stringify(sales));
+      } catch (error) {
+        console.warn("Error registrando venta:", error);
+      }
+
+      setNotification({
+        message: `Pedido ${order.id} completado y registrado como venta`,
+        type: "success",
+        zIndex: 1000,
+      });
+    }
+  };
+
+  // Función para verificar si un pedido es urgente
+  const isUrgent = (order) => {
+    if (order.estado !== "Pendiente") return false;
+    const orderDate = new Date(order.fecha || Date.now());
+    const now = new Date();
+    const diffMinutes = (now - orderDate) / (1000 * 60);
+    return diffMinutes > 20;
   };
 
   const confirmStatusChange = (newStatus) => {
@@ -263,8 +316,30 @@ export const AdminPedidos = () => {
     const pendientes = orders.filter((o) => o.estado === "Pendiente" || o.estado === "Pendientes de Validación").length;
     const entregados = orders.filter((o) => o.estado === "Entregado").length;
     const totalCartera = orders.reduce((sum, order) => sum + order.total, 0);
+    
+    // Estadísticas de origen (De Análisis de Pedidos)
+    const employeeOrders = orders.filter((o) => o.origin === "empleado");
+    const webOrders = orders.filter((o) => o.origin === "web");
+    const pendingValidation = orders.filter((o) => o.estado === "Pendientes de Validación");
+    const employeeRevenue = employeeOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const webRevenue = webOrders.reduce((sum, o) => sum + (o.total || 0), 0);
 
-    return { total, pendientes, entregados, totalCartera };
+    // Pedidos de hoy
+    const today = new Date().toISOString().split("T")[0];
+    const pedidosHoy = orders.filter((o) => o.fecha === today).length;
+
+    return {
+      total,
+      pendientes,
+      entregados,
+      totalCartera,
+      employeeCount: employeeOrders.length,
+      webCount: webOrders.length,
+      employeeRevenue,
+      webRevenue,
+      pendingValidationCount: pendingValidation.length,
+      pedidosHoy,
+    };
   }, [orders]);
 
   // Filtrado
@@ -275,12 +350,18 @@ export const AdminPedidos = () => {
       const matchesSearch =
         order.id.toLowerCase().includes(searchLower) ||
         order.cliente.toLowerCase().includes(searchLower) ||
-        order.documento.includes(searchLower);
+        order.documento.includes(searchLower) ||
+        order.userName?.toLowerCase().includes(searchLower);
 
       if (!matchesSearch) return false;
 
       // Filtro de estado
       if (statusFilter !== "Todos" && order.estado !== statusFilter) {
+        return false;
+      }
+
+      // Filtro de origen (empleado vs web)
+      if (originFilter !== "Todos" && order.origin !== originFilter) {
         return false;
       }
 
@@ -306,7 +387,7 @@ export const AdminPedidos = () => {
 
       return true;
     });
-  }, [orders, searchTerm, statusFilter, employeeFilter, startDate, endDate]);
+  }, [orders, searchTerm, statusFilter, originFilter, employeeFilter, startDate, endDate]);
 
   // Paginación
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
@@ -341,6 +422,22 @@ export const AdminPedidos = () => {
     }
   };
 
+  // Helper para badge de origen (mejorado)
+  const getOriginBadge = (origin) => {
+    if (origin === "empleado") {
+      return (
+        <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit shadow-sm border border-blue-600">
+          <User size={12} /> Empleado
+        </span>
+      );
+    }
+    return (
+      <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 w-fit shadow-sm border border-purple-600">
+        <Globe size={12} /> Web
+      </span>
+    );
+  };
+
   return (
     <div className="h-full flex flex-col gap-4 font-sans">
       {/* Header */}
@@ -364,52 +461,63 @@ export const AdminPedidos = () => {
       </div>
 
       {/* Cards de Resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 flex-shrink-0">
+        {/* Total Pedidos */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Package className="text-yellow-600" size={20} />
-            </div>
+          <p className="text-xs text-gray-500 font-medium mb-1">Total Pedidos</p>
+          <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            {formatCurrency(stats.totalCartera)}
+          </p>
+        </div>
+
+        {/* De Empleados */}
+        <div className="bg-white rounded-xl shadow-sm border border-blue-200 bg-gradient-to-br from-blue-50 p-4">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 font-medium">
-                Pedidos Pendientes
-              </p>
-              <p className="text-xl font-bold text-gray-800">
-                {stats.pendientes}
+              <p className="text-xs text-blue-600 font-semibold mb-1">De Empleados</p>
+              <p className="text-2xl font-bold text-blue-700">{stats.employeeCount}</p>
+              <p className="text-xs text-blue-600 mt-2">
+                {formatCurrency(stats.employeeRevenue)}
               </p>
             </div>
+            <User className="text-blue-400" size={32} />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Package className="text-green-600" size={20} />
-            </div>
+        {/* De Web */}
+        <div className="bg-white rounded-xl shadow-sm border border-purple-200 bg-gradient-to-br from-purple-50 p-4">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 font-medium">
-                Pedidos Entregados
-              </p>
-              <p className="text-xl font-bold text-gray-800">
-                {stats.entregados}
+              <p className="text-xs text-purple-600 font-semibold mb-1">De Web</p>
+              <p className="text-2xl font-bold text-purple-700">{stats.webCount}</p>
+              <p className="text-xs text-purple-600 mt-2">
+                {formatCurrency(stats.webRevenue)}
               </p>
             </div>
+            <Globe className="text-purple-400" size={32} />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 rounded-lg">
-              <DollarSign className="text-emerald-600" size={20} />
-            </div>
+        {/* Pendientes Validación */}
+        <div className="bg-white rounded-xl shadow-sm border border-orange-200 bg-gradient-to-br from-orange-50 p-4">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 font-medium">
-                Total en Cartera
-              </p>
-              <p className="text-xl font-bold text-gray-800">
-                {formatCurrency(stats.totalCartera)}
-              </p>
+              <p className="text-xs text-orange-600 font-semibold mb-1">Pendientes Validación</p>
+              <p className="text-2xl font-bold text-orange-700">{stats.pendingValidationCount}</p>
             </div>
+            <Filter className="text-orange-400" size={32} />
+          </div>
+        </div>
+
+        {/* Pedidos de Hoy */}
+        <div className="bg-white rounded-xl shadow-sm border border-indigo-200 bg-gradient-to-br from-indigo-50 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-indigo-600 font-semibold mb-1">Pedidos de Hoy</p>
+              <p className="text-2xl font-bold text-indigo-700">{stats.pedidosHoy}</p>
+            </div>
+            <Calendar className="text-indigo-400" size={32} />
           </div>
         </div>
       </div>
@@ -448,6 +556,21 @@ export const AdminPedidos = () => {
           <option value="En proceso">En proceso</option>
           <option value="Entregado">Entregado</option>
           <option value="Cancelado">Cancelado</option>
+          <option value="Pendientes de Validación">Pendientes de Validación</option>
+        </select>
+
+        {/* Filtro Origen (Empleado vs Web) */}
+        <select
+          value={originFilter}
+          onChange={(e) => {
+            setOriginFilter(e.target.value);
+            setCurrentPage(0);
+          }}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-emerald-300"
+        >
+          <option value="Todos">Todos los Orígenes</option>
+          <option value="empleado">Solo Empleados</option>
+          <option value="web">Solo Web</option>
         </select>
 
         {/* Filtro Empleado */}
@@ -509,6 +632,7 @@ export const AdminPedidos = () => {
         {/* Botón limpiar filtros */}
         {(searchTerm ||
           statusFilter !== "Todos" ||
+          originFilter !== "Todos" ||
           employeeFilter !== "Todos" ||
           startDate ||
           endDate) && (
@@ -516,6 +640,7 @@ export const AdminPedidos = () => {
             onClick={() => {
               setSearchTerm("");
               setStatusFilter("Todos");
+              setOriginFilter("Todos");
               setEmployeeFilter("Todos");
               setStartDate("");
               setEndDate("");
@@ -536,6 +661,7 @@ export const AdminPedidos = () => {
               <tr>
                 <th className="px-3 py-3 font-semibold">Código</th>
                 <th className="px-3 py-3 font-semibold">Cliente</th>
+                <th className="px-3 py-3 font-semibold">Origen</th>
                 <th className="px-3 py-3 font-semibold">Documento</th>
                 <th className="px-3 py-3 font-semibold">Fecha</th>
                 <th className="px-3 py-3 font-semibold text-center">
@@ -560,20 +686,48 @@ export const AdminPedidos = () => {
                 displayedOrders.map((order) => (
                   <tr
                     key={order.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className={`hover:bg-gray-50 transition-colors ${
+                      isUrgent(order)
+                        ? "border-l-4 border-l-orange-500 bg-orange-50/30"
+                        : ""
+                    }`}
                   >
                     <td className="px-3 py-2.5 text-xs font-mono font-semibold text-gray-700">
                       {order.id}
                     </td>
                     <td className="px-3 py-2.5 font-medium">{order.cliente}</td>
+                    <td className="px-3 py-2.5 text-xs">
+                      {getOriginBadge(order.origin || "web")}
+                    </td>
                     <td className="px-3 py-2.5 text-gray-600">
                       {order.documento}
                     </td>
                     <td className="px-3 py-2.5 text-gray-600">
                       {new Date(order.fecha).toLocaleDateString("es-CO")}
                     </td>
-                    <td className="px-3 py-2.5 text-center font-semibold">
-                      {order.cantidadProductos}
+                    <td className="px-3 py-2.5 text-center font-semibold relative">
+                      <div
+                        className="cursor-help inline-block"
+                        onMouseEnter={() => setTooltipOrderId(order.id)}
+                        onMouseLeave={() => setTooltipOrderId(null)}
+                      >
+                        {order.cantidadProductos}
+                      </div>
+                      {/* Tooltip */}
+                      {tooltipOrderId === order.id && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-gray-800 text-white text-xs py-2 px-3 rounded-lg whitespace-nowrap shadow-lg">
+                          {order.productos && order.productos.length > 0 ? (
+                            <div className="text-left">
+                              {order.productos.map((prod, idx) => (
+                                <div key={idx}>{prod.nombre}</div>
+                              ))}
+                            </div>
+                          ) : (
+                            "Sin productos"
+                          )}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 font-bold text-emerald-600 text-right">
                       {formatCurrency(order.total)}
@@ -596,6 +750,15 @@ export const AdminPedidos = () => {
                         >
                           <Eye size={14} />
                         </button>
+                        {(order.estado === "Pendiente" || order.estado === "En proceso") && (
+                          <button
+                            onClick={() => handleCompleteOrder(order)}
+                            className="bg-green-50 hover:bg-green-100 text-green-600 p-1.5 rounded-md border border-green-200"
+                            title="Completar pedido"
+                          >
+                            <Check size={14} />
+                          </button>
+                        )}
                         {order.estado === "Pendiente" && (
                           <button
                             onClick={() => handleEditOrder(order)}

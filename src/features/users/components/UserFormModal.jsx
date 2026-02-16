@@ -30,7 +30,8 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       const nombreFull = userToEdit.nombre || userToEdit.nombres || "";
       const nameParts = (nombreFull || "").trim().split(/\s+/);
       const firstName = nameParts.slice(0, 1).join(" ") || "";
-      const lastName = nameParts.slice(1).join(" ") || userToEdit.apellidos || "";
+      const lastName =
+        nameParts.slice(1).join(" ") || userToEdit.apellidos || "";
 
       setFormData({
         tipoDocumento: userToEdit.tipoDocumento || userToEdit.tipo_doc || "",
@@ -42,7 +43,8 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
         password: "",
         confirmPassword: "",
         telefono: userToEdit.telefono || userToEdit.numeroContacto || "",
-        estado: typeof userToEdit.estado === "boolean" ? userToEdit.estado : true,
+        estado:
+          typeof userToEdit.estado === "boolean" ? userToEdit.estado : true,
       });
     } else {
       setFormData({
@@ -61,7 +63,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
     setErrors({});
     // load roles from rolesService
     setRolesOptions(rolesService.getAll());
-    
+
     // Load document types
     const types = getDocumentTypes();
     setDocumentTypes(types);
@@ -72,11 +74,14 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       setDocumentTypes(updatedTypes);
     };
 
-    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    window.addEventListener(
+      "syspharma_parameters_updated",
+      handleParameterUpdate,
+    );
     return () => {
       window.removeEventListener(
         "syspharma_parameters_updated",
-        handleParameterUpdate
+        handleParameterUpdate,
       );
     };
   }, [userToEdit, isOpen]);

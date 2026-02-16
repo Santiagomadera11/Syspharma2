@@ -28,7 +28,9 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
 
     // Validar contra el usuario global en syspharma_users si existe, sino contra syspharma_user
     const allUsers = userService.getAll();
-    const found = allUsers.find((u) => u.id === user.id || u.email === user.email);
+    const found = allUsers.find(
+      (u) => u.id === user.id || u.email === user.email,
+    );
     const storedPassword = found?.password || user.password || "";
 
     if (currentPassword !== storedPassword) {
@@ -71,9 +73,15 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
 
       // Actualizar también en el array global de usuarios (syspharma_users)
       const allUsers = userService.getAll();
-      const found = allUsers.find((u) => u.id === user.id || u.email === user.email);
+      const found = allUsers.find(
+        (u) => u.id === user.id || u.email === user.email,
+      );
       if (found) {
-        userService.update({ ...found, password: newPassword, lastPasswordUpdate: new Date().toISOString() });
+        userService.update({
+          ...found,
+          password: newPassword,
+          lastPasswordUpdate: new Date().toISOString(),
+        });
       }
 
       // Reset form

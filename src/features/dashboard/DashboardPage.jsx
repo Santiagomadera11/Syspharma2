@@ -60,7 +60,7 @@ export const DashboardPage = () => {
         const expensesData = localStorage.getItem("sys_expenses_db");
         const productsData = localStorage.getItem("syspharma_products");
         const salesData = localStorage.getItem("sys_sales_db");
-        
+
         if (appointmentsData) {
           setAppointments(JSON.parse(appointmentsData));
         }
@@ -83,7 +83,7 @@ export const DashboardPage = () => {
     // Escuchar eventos personalizados de cambios en datos
     const handleDataChange = () => {
       loadData();
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev) => prev + 1);
     };
 
     window.addEventListener("appointments:changed", handleDataChange);
@@ -101,7 +101,10 @@ export const DashboardPage = () => {
       window.removeEventListener("expenses:changed", handleDataChange);
       window.removeEventListener("products:changed", handleDataChange);
       window.removeEventListener("sales:changed", handleDataChange);
-      window.removeEventListener("syspharma_products_updated", handleDataChange);
+      window.removeEventListener(
+        "syspharma_products_updated",
+        handleDataChange,
+      );
       window.removeEventListener("services:changed", handleDataChange);
       clearInterval(interval);
     };
@@ -110,17 +113,21 @@ export const DashboardPage = () => {
   // LÓGICA DE FILTRADO DE FECHAS
   const filterByDate = (items, dateField) => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    
-    return items.filter(item => {
+    const today = now.toISOString().split("T")[0];
+
+    return items.filter((item) => {
       if (!item || !item[dateField]) return false;
       const itemDate = new Date(item[dateField]);
-      const itemDateStr = itemDate.toISOString().split('T')[0];
+      const itemDateStr = itemDate.toISOString().split("T")[0];
 
       if (period === "Día") return itemDateStr === today;
-      if (period === "Mes") return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+      if (period === "Mes")
+        return (
+          itemDate.getMonth() === now.getMonth() &&
+          itemDate.getFullYear() === now.getFullYear()
+        );
       if (period === "Año") return itemDate.getFullYear() === now.getFullYear();
-      
+
       return true;
     });
   };
@@ -160,44 +167,63 @@ export const DashboardPage = () => {
   const dataVentas = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
-    const dateStr = date.toISOString().split('T')[0];
-    const dayName = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"][date.getDay()];
-    
+    const dateStr = date.toISOString().split("T")[0];
+    const dayName = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"][
+      date.getDay()
+    ];
+
     const dayIncome = filteredAppointments
-      .filter(appt => {
+      .filter((appt) => {
         const apptDate = new Date(appt.fecha);
-        return apptDate.toISOString().split('T')[0] === dateStr;
+        return apptDate.toISOString().split("T")[0] === dateStr;
       })
       .reduce((sum, appt) => sum + (Number(appt.precio) || 0), 0);
-    
+
     return { name: dayName, valor: dayIncome };
   });
 
   // Gráfica de Métodos de Pago
-  const dataPagos = sales.length > 0
-    ? Object.entries(
-        sales.reduce((acc, sale) => {
-          const method = sale.metodoPago || "Efectivo";
-          acc[method] = (acc[method] || 0) + (Number(sale.total) || 0);
-          return acc;
-        }, {})
-      ).map(([name, value]) => ({ name, value }))
-    : [
-        { name: "Efectivo", value: 0 },
-        { name: "Tarjeta", value: 0 },
-        { name: "Nequi", value: 0 },
-      ];
+  const dataPagos =
+    sales.length > 0
+      ? Object.entries(
+          sales.reduce((acc, sale) => {
+            const method = sale.metodoPago || "Efectivo";
+            acc[method] = (acc[method] || 0) + (Number(sale.total) || 0);
+            return acc;
+          }, {}),
+        ).map(([name, value]) => ({ name, value }))
+      : [
+          { name: "Efectivo", value: 0 },
+          { name: "Tarjeta", value: 0 },
+          { name: "Nequi", value: 0 },
+        ];
 
   // Gráfica de Estados (usando estado de productos o citas)
   const dataPedidos = [
-    { name: "Completado", cantidad: filteredAppointments.filter(a => a.estado === "Completado").length },
-    { name: "Pendiente", cantidad: filteredAppointments.filter(a => a.estado === "Pendiente").length },
-    { name: "Cancelado", cantidad: filteredAppointments.filter(a => a.estado === "Cancelado").length },
-    { name: "Reprogramado", cantidad: filteredAppointments.filter(a => a.estado === "Reprogramado").length },
+    {
+      name: "Completado",
+      cantidad: filteredAppointments.filter((a) => a.estado === "Completado")
+        .length,
+    },
+    {
+      name: "Pendiente",
+      cantidad: filteredAppointments.filter((a) => a.estado === "Pendiente")
+        .length,
+    },
+    {
+      name: "Cancelado",
+      cantidad: filteredAppointments.filter((a) => a.estado === "Cancelado")
+        .length,
+    },
+    {
+      name: "Reprogramado",
+      cantidad: filteredAppointments.filter((a) => a.estado === "Reprogramado")
+        .length,
+    },
   ];
 
   // Alertas de Stock Bajo (productos con stock <= 5)
-  const lowStockProducts = products.filter(p => Number(p.stock) <= 5);
+  const lowStockProducts = products.filter((p) => Number(p.stock) <= 5);
   const stockAlertCount = lowStockProducts.length;
 
   const COLORS = ["#10B981", "#3B82F6", "#F59E0B"];
@@ -277,11 +303,14 @@ export const DashboardPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Ventas Hoy"
-          value={`$${filteredAppointments.filter(a => {
-            const today = new Date().toISOString().split('T')[0];
-            const apptDate = new Date(a.fecha).toISOString().split('T')[0];
-            return apptDate === today;
-          }).reduce((sum, a) => sum + (Number(a.precio) || 0), 0).toLocaleString()}`}
+          value={`$${filteredAppointments
+            .filter((a) => {
+              const today = new Date().toISOString().split("T")[0];
+              const apptDate = new Date(a.fecha).toISOString().split("T")[0];
+              return apptDate === today;
+            })
+            .reduce((sum, a) => sum + (Number(a.precio) || 0), 0)
+            .toLocaleString()}`}
           icon={DollarSign}
           color="bg-green-100 text-green-600"
         />
@@ -301,7 +330,11 @@ export const DashboardPage = () => {
           title="Stock Bajo"
           value={stockAlertCount}
           icon={AlertCircle}
-          color={stockAlertCount > 0 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}
+          color={
+            stockAlertCount > 0
+              ? "bg-red-100 text-red-600"
+              : "bg-green-100 text-green-600"
+          }
         />
       </div>
 
@@ -428,13 +461,22 @@ export const DashboardPage = () => {
             {stockAlertCount > 0 ? (
               <div className="w-full space-y-2">
                 {lowStockProducts.slice(0, 5).map((product) => (
-                  <div key={product.id} className="text-left bg-red-50 p-2 rounded border border-red-200">
-                    <p className="text-xs font-bold text-red-700 truncate">{product.nombre}</p>
-                    <p className="text-xs text-red-600">Stock: {product.stock} unidades</p>
+                  <div
+                    key={product.id}
+                    className="text-left bg-red-50 p-2 rounded border border-red-200"
+                  >
+                    <p className="text-xs font-bold text-red-700 truncate">
+                      {product.nombre}
+                    </p>
+                    <p className="text-xs text-red-600">
+                      Stock: {product.stock} unidades
+                    </p>
                   </div>
                 ))}
                 {stockAlertCount > 5 && (
-                  <p className="text-xs text-red-600 mt-2">+{stockAlertCount - 5} productos más</p>
+                  <p className="text-xs text-red-600 mt-2">
+                    +{stockAlertCount - 5} productos más
+                  </p>
                 )}
               </div>
             ) : (
@@ -459,9 +501,9 @@ export const DashboardPage = () => {
         Accesos Rápidos
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
-        <ActionCard 
-          title="Registrar Venta" 
-          desc="Nueva factura" 
+        <ActionCard
+          title="Registrar Venta"
+          desc="Nueva factura"
           icon="🛒"
           onClick={handleGoToSales}
         />
@@ -471,9 +513,9 @@ export const DashboardPage = () => {
           icon="📦"
           onClick={handleAddProduct}
         />
-        <ActionCard 
-          title="Agendar Cita" 
-          desc="Servicio médico" 
+        <ActionCard
+          title="Agendar Cita"
+          desc="Servicio médico"
           icon="📅"
           onClick={handleScheduleAppointment}
         />
@@ -501,7 +543,9 @@ const StatCard = ({ title, value, icon: Icon, color, suffix }) => {
   };
 
   return (
-    <div className={`p-5 rounded-2xl border ${colorMap[color]} flex flex-col justify-between h-32`}>
+    <div
+      className={`p-5 rounded-2xl border ${colorMap[color]} flex flex-col justify-between h-32`}
+    >
       <div className="flex items-center gap-2 font-bold text-sm">
         <Icon size={18} />
         {title}
@@ -545,11 +589,13 @@ const ChartCard = ({ title, subtitle, icon: Icon, iconColor, children }) => (
 );
 
 const ActionCard = ({ title, desc, icon, onClick }) => (
-  <div 
+  <div
     onClick={onClick}
     className="border border-gray-200 rounded-xl p-4 hover:shadow-lg hover:border-primary-400 transition-all cursor-pointer bg-white flex items-center gap-3 hover:bg-primary-50"
   >
-    <div className="text-2xl bg-gray-50 p-2 rounded-lg hover:bg-primary-100 transition-colors">{icon}</div>
+    <div className="text-2xl bg-gray-50 p-2 rounded-lg hover:bg-primary-100 transition-colors">
+      {icon}
+    </div>
     <div>
       <h3 className="font-bold text-gray-700 text-sm">{title}</h3>
       <p className="text-xs text-gray-500">{desc}</p>

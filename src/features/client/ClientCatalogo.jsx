@@ -1,30 +1,40 @@
-import React, { useEffect, useState } from 'react';
-import { Heart, Plus, ChevronLeft, ChevronRight, Pill, Leaf, Droplet, Sparkles, Search } from 'lucide-react';
-import ProductCardGrid, { fmt as cardFmt } from './components/ProductCard';
-import useCart from '../../shared/context/CartContext';
+import React, { useEffect, useState } from "react";
+import {
+  Heart,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Pill,
+  Leaf,
+  Droplet,
+  Sparkles,
+  Search,
+} from "lucide-react";
+import ProductCardGrid, { fmt as cardFmt } from "./components/ProductCard";
+import useCart from "../../shared/context/CartContext";
 
 // Hero Carousel Data (con imágenes placeholder - reemplaza URLs con imágenes reales)
 const heroSlides = [
   {
     id: 1,
-    title: '¡De vuelta a un cuerpo sano!',
-    subtitle: 'Aprovecha hasta 40% dto en referencias seleccionadas',
-    image: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-    buttonText: '¡Comprar ahora!',
+    title: "¡De vuelta a un cuerpo sano!",
+    subtitle: "Aprovecha hasta 40% dto en referencias seleccionadas",
+    image: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+    buttonText: "¡Comprar ahora!",
   },
   {
     id: 2,
-    title: 'Suplementos que Transforman',
-    subtitle: 'Descubre nuestras marcas premium en vitaminas',
-    image: 'linear-gradient(135deg, #34d399 0%, #10b981 100%)',
-    buttonText: '¡Comprar ahora!',
+    title: "Suplementos que Transforman",
+    subtitle: "Descubre nuestras marcas premium en vitaminas",
+    image: "linear-gradient(135deg, #34d399 0%, #10b981 100%)",
+    buttonText: "¡Comprar ahora!",
   },
   {
     id: 3,
-    title: 'Salud sin Compromiso',
-    subtitle: 'Envío gratis en compras mayores a $80.000',
-    image: 'linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)',
-    buttonText: '¡Comprar ahora!',
+    title: "Salud sin Compromiso",
+    subtitle: "Envío gratis en compras mayores a $80.000",
+    image: "linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)",
+    buttonText: "¡Comprar ahora!",
   },
 ];
 
@@ -32,35 +42,39 @@ const heroSlides = [
 const miniPromos = [
   {
     id: 1,
-    title: 'Proteínas',
-    discount: '25%',
-    image: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+    title: "Proteínas",
+    discount: "25%",
+    image: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
   },
   {
     id: 2,
-    title: 'Cuidado Capilar',
-    discount: '30%',
-    image: 'linear-gradient(135deg, #f472b6 0%, #ec4899 100%)',
+    title: "Cuidado Capilar",
+    discount: "30%",
+    image: "linear-gradient(135deg, #f472b6 0%, #ec4899 100%)",
   },
   {
     id: 3,
-    title: 'Para Bebés',
-    discount: '20%',
-    image: 'linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%)',
+    title: "Para Bebés",
+    discount: "20%",
+    image: "linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%)",
   },
 ];
 
 const categoryButtons = [
-  { id: 'medicamentos', icon: Pill, label: 'Medicamentos' },
-  { id: 'insumos', icon: Droplet, label: 'Insumos' },
-  { id: 'suplementos', icon: Leaf, label: 'Suplementos' },
-  { id: 'cuidado', icon: Sparkles, label: 'Cuidado Personal' },
+  { id: "medicamentos", icon: Pill, label: "Medicamentos" },
+  { id: "insumos", icon: Droplet, label: "Insumos" },
+  { id: "suplementos", icon: Leaf, label: "Suplementos" },
+  { id: "cuidado", icon: Sparkles, label: "Cuidado Personal" },
 ];
 
 const fmt = (v) =>
-  v && typeof v === 'number'
-    ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v)
-    : '$0';
+  v && typeof v === "number"
+    ? new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        maximumFractionDigits: 0,
+      }).format(v)
+    : "$0";
 
 // ========== Component: HeroCarousel ==========
 const HeroCarousel = () => {
@@ -75,7 +89,8 @@ const HeroCarousel = () => {
 
   const goToSlide = (index) => setCurrent(index);
   const nextSlide = () => setCurrent((prev) => (prev + 1) % heroSlides.length);
-  const prevSlide = () => setCurrent((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+  const prevSlide = () =>
+    setCurrent((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
 
   const slide = heroSlides[current];
 
@@ -126,7 +141,7 @@ const HeroCarousel = () => {
             key={index}
             onClick={() => goToSlide(index)}
             className={`w-3 h-3 rounded-full transition ${
-              index === current ? 'bg-white w-8' : 'bg-white/50'
+              index === current ? "bg-white w-8" : "bg-white/50"
             }`}
           />
         ))}
@@ -139,7 +154,10 @@ const HeroCarousel = () => {
 const SearchBar = ({ onSearch, searchValue }) => (
   <div className="mb-8">
     <div className="relative max-w-2xl mx-auto">
-      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+      <Search
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+        size={20}
+      />
       <input
         type="text"
         placeholder="Busca por nombre, laboratorio, marca..."
@@ -176,15 +194,15 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
     id: product.id,
     name: product.nombre,
     price: product.precio,
-    image: product.imagen || '',
-    marca: product.laboratorio || '',
+    image: product.imagen || "",
+    marca: product.laboratorio || "",
     stock: product.stock ?? product.existencia ?? 0,
   };
   return (
-    <ProductCardGrid 
-      product={mappedProduct} 
-      isFav={isFav} 
-      onToggleFav={onToggleFav} 
+    <ProductCardGrid
+      product={mappedProduct}
+      isFav={isFav}
+      onToggleFav={onToggleFav}
       onAdd={() => onAdd(product.id)}
       disabled={(product.stock ?? 0) <= 0}
     />
@@ -194,26 +212,50 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
 const CouponBanner = ({ userName }) => {
   const [current, setCurrent] = useState(0);
   const coupons = [
-    { code: 'BIENVENIDA10', discount: '10%', category: 'vitaminas', message: `¡Hola ${userName}! Tienes 10% en vitaminas` },
-    { code: 'RAPIDO15', discount: '15%', category: 'medicamentos', message: 'Compra rápido: 15% en medicamentos' },
-    { code: 'ENVIO20', discount: 'ENVÍO GRATIS', category: 'general', message: 'En compras mayores a $50.000' },
+    {
+      code: "BIENVENIDA10",
+      discount: "10%",
+      category: "vitaminas",
+      message: `¡Hola ${userName}! Tienes 10% en vitaminas`,
+    },
+    {
+      code: "RAPIDO15",
+      discount: "15%",
+      category: "medicamentos",
+      message: "Compra rápido: 15% en medicamentos",
+    },
+    {
+      code: "ENVIO20",
+      discount: "ENVÍO GRATIS",
+      category: "general",
+      message: "En compras mayores a $50.000",
+    },
   ];
 
   return (
     <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-6 px-4 mb-6 rounded-lg">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         <div className="flex-1">
-          <p className="text-sm font-semibold mb-1">{coupons[current].message}</p>
-          <p className="text-xs text-emerald-100">Código: <span className="font-mono font-bold text-white">{coupons[current].code}</span></p>
+          <p className="text-sm font-semibold mb-1">
+            {coupons[current].message}
+          </p>
+          <p className="text-xs text-emerald-100">
+            Código:{" "}
+            <span className="font-mono font-bold text-white">
+              {coupons[current].code}
+            </span>
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setCurrent((prev) => (prev - 1 + coupons.length) % coupons.length)}
+          <button
+            onClick={() =>
+              setCurrent((prev) => (prev - 1 + coupons.length) % coupons.length)
+            }
             className="p-1 hover:bg-emerald-500 rounded"
           >
             <ChevronLeft size={18} />
           </button>
-          <button 
+          <button
             onClick={() => setCurrent((prev) => (prev + 1) % coupons.length)}
             className="p-1 hover:bg-emerald-500 rounded"
           >
@@ -228,23 +270,25 @@ const CouponBanner = ({ userName }) => {
 export const ClientCatalogo = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [favorites, setFavorites] = useState([]);
-  const [userName, setUserName] = useState('Usuario');
-  const [searchValue, setSearchValue] = useState('');
+  const [userName, setUserName] = useState("Usuario");
+  const [searchValue, setSearchValue] = useState("");
   const [allProducts, setAllProducts] = useState([]);
   const cart = useCart();
 
   useEffect(() => {
     // Cargar usuario
     try {
-      const user = JSON.parse(localStorage.getItem('syspharma_user') || '{}');
-      setUserName(user.nombre || 'Usuario');
+      const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      setUserName(user.nombre || "Usuario");
     } catch {
-      setUserName('Usuario');
+      setUserName("Usuario");
     }
 
     // Cargar favoritos
     try {
-      const fav = JSON.parse(localStorage.getItem('syspharma_favorites') || '[]');
+      const fav = JSON.parse(
+        localStorage.getItem("syspharma_favorites") || "[]",
+      );
       setFavorites(Array.isArray(fav) ? fav : []);
     } catch {
       setFavorites([]);
@@ -252,7 +296,9 @@ export const ClientCatalogo = () => {
 
     // Cargar productos desde localStorage
     try {
-      const products = JSON.parse(localStorage.getItem('syspharma_products') || '[]');
+      const products = JSON.parse(
+        localStorage.getItem("syspharma_products") || "[]",
+      );
       setAllProducts(Array.isArray(products) ? products : []);
     } catch {
       setAllProducts([]);
@@ -261,50 +307,61 @@ export const ClientCatalogo = () => {
     // Escuchar actualizaciones de productos
     const handleProductsUpdate = () => {
       try {
-        const products = JSON.parse(localStorage.getItem('syspharma_products') || '[]');
+        const products = JSON.parse(
+          localStorage.getItem("syspharma_products") || "[]",
+        );
         setAllProducts(Array.isArray(products) ? products : []);
       } catch {
         setAllProducts([]);
       }
     };
 
-    window.addEventListener('syspharma_products_updated', handleProductsUpdate);
+    window.addEventListener("syspharma_products_updated", handleProductsUpdate);
     return () => {
-      window.removeEventListener('syspharma_products_updated', handleProductsUpdate);
+      window.removeEventListener(
+        "syspharma_products_updated",
+        handleProductsUpdate,
+      );
     };
   }, []);
 
   const toggleFavorite = (id) => {
-    const next = favorites.includes(id) ? favorites.filter((f) => f !== id) : [...favorites, id];
+    const next = favorites.includes(id)
+      ? favorites.filter((f) => f !== id)
+      : [...favorites, id];
     setFavorites(next);
-    localStorage.setItem('syspharma_favorites', JSON.stringify(next));
-    window.dispatchEvent(new Event('syspharma_favorites_updated'));
+    localStorage.setItem("syspharma_favorites", JSON.stringify(next));
+    window.dispatchEvent(new Event("syspharma_favorites_updated"));
   };
 
   const saveCartAndNotify = (id) => {
     try {
       // find product object in allProducts
-      const prod = allProducts.find(p => String(p.id) === String(id)) || {};
+      const prod = allProducts.find((p) => String(p.id) === String(id)) || {};
       cart.addToCart(prod);
-      try { window.dispatchEvent(new Event('syspharma_cart_updated')); } catch(e){}
+      try {
+        window.dispatchEvent(new Event("syspharma_cart_updated"));
+      } catch (e) {}
     } catch (e) {
-      console.error('Error adding to cart', e);
+      console.error("Error adding to cart", e);
     }
   };
 
   const filterBySearchAndCategory = (productList) => {
     return productList.filter((p) => {
-      const matchesCategory = !selectedCategory || p.categoria === selectedCategory;
-      const matchesSearch = !searchValue || 
+      const matchesCategory =
+        !selectedCategory || p.categoria === selectedCategory;
+      const matchesSearch =
+        !searchValue ||
         p.nombre.toLowerCase().includes(searchValue.toLowerCase());
       return matchesCategory && matchesSearch;
     });
   };
 
   // Filtros dinámicos basados en los switches del admin
-  const productosDestacados = allProducts.filter(p => p.esDestacado);
-  const productosEnOferta = allProducts.filter(p => p.enOferta);
-  const productosRecomendados = allProducts.filter(p => p.esRecomendado);
+  const productosDestacados = allProducts.filter((p) => p.esDestacado);
+  const productosEnOferta = allProducts.filter((p) => p.enOferta);
+  const productosRecomendados = allProducts.filter((p) => p.esRecomendado);
 
   const filteredDestacados = filterBySearchAndCategory(productosDestacados);
   const filteredOfertas = filterBySearchAndCategory(productosEnOferta);
@@ -328,13 +385,17 @@ export const ClientCatalogo = () => {
             <button
               onClick={() => setSelectedCategory(null)}
               className={`flex flex-col items-center gap-2 px-4 py-2 rounded-lg transition flex-shrink-0 ${
-                selectedCategory === null ? 'bg-emerald-100 text-emerald-700' : 'text-gray-600 hover:text-gray-900'
+                selectedCategory === null
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                 <Pill size={20} />
               </div>
-              <span className="text-xs font-semibold whitespace-nowrap">Todos</span>
+              <span className="text-xs font-semibold whitespace-nowrap">
+                Todos
+              </span>
             </button>
 
             {categoryButtons.map(({ id, icon: Icon, label }) => (
@@ -342,13 +403,17 @@ export const ClientCatalogo = () => {
                 key={id}
                 onClick={() => setSelectedCategory(id)}
                 className={`flex flex-col items-center gap-2 px-4 py-2 rounded-lg transition flex-shrink-0 ${
-                  selectedCategory === id ? 'bg-emerald-100 text-emerald-700' : 'text-gray-600 hover:text-gray-900'
+                  selectedCategory === id
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
               >
                 <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                   <Icon size={20} />
                 </div>
-                <span className="text-xs font-semibold whitespace-nowrap">{label}</span>
+                <span className="text-xs font-semibold whitespace-nowrap">
+                  {label}
+                </span>
               </button>
             ))}
           </div>
@@ -357,7 +422,9 @@ export const ClientCatalogo = () => {
         {/* Nuestros Recomendados */}
         {filteredRecomendados.length > 0 ? (
           <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Nuestros Recomendados</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Nuestros Recomendados
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredRecomendados.map((product) => (
                 <ProductCard
@@ -381,7 +448,9 @@ export const ClientCatalogo = () => {
         {/* Destacados */}
         {filteredDestacados.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">⭐ Destacados</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              ⭐ Destacados
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredDestacados.map((product) => (
                 <ProductCard
@@ -399,7 +468,9 @@ export const ClientCatalogo = () => {
         {/* Ofertas para ti */}
         {filteredOfertas.length > 0 ? (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">⚡ Ofertas para ti</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              ⚡ Ofertas para ti
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredOfertas.map((product) => (
                 <ProductCard

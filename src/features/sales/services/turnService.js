@@ -98,7 +98,9 @@ export const turnService = {
     localStorage.removeItem(TURN_KEY);
 
     // Dispara evento global para actualizar en toda la app
-    window.dispatchEvent(new CustomEvent("turn:closed", { detail: closedTurn }));
+    window.dispatchEvent(
+      new CustomEvent("turn:closed", { detail: closedTurn }),
+    );
 
     return closedTurn;
   },
@@ -173,10 +175,10 @@ export const turnService = {
     // Desglose por categoría
     let ventasProductos = 0;
     let ventasServicios = 0;
-    
-    sales.forEach(sale => {
+
+    sales.forEach((sale) => {
       const monto = sale.monto || sale.total || 0;
-      if (sale.categoria === 'servicio') {
+      if (sale.categoria === "servicio") {
         ventasServicios += monto;
       } else {
         ventasProductos += monto;
@@ -232,7 +234,7 @@ export const turnService = {
       ...saleData,
       saleId: Date.now(),
       fecha: new Date().toISOString(),
-      categoria: saleData.categoria || 'producto', // Default a 'producto' si no se especifica
+      categoria: saleData.categoria || "producto", // Default a 'producto' si no se especifica
     };
     sales.push(newSale);
     localStorage.setItem("syspharma_sales", JSON.stringify(sales));

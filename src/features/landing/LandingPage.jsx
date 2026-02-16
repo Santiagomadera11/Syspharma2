@@ -5,22 +5,43 @@ import { Zap, Shield, DollarSign, Pill, Mail, Phone } from "lucide-react";
 import { useCrud } from "../../shared/hooks/useCrud";
 import { useState } from "react";
 import ProductDetailModal from "../../shared/ui/ProductDetailModal";
-import ProductCardGrid from '../client/components/ProductCard';
-import useCart from '../../shared/context/CartContext';
+import ProductCardGrid from "../client/components/ProductCard";
+import useCart from "../../shared/context/CartContext";
 
 export const LandingPage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const cart = useCart();
   // Productos dinámicos: se sincronizan con el storage principal `syspharma_products`
   const { items: products } = useCrud("syspharma_products", []);
-  const featuredProducts = (products && products.length > 0)
-    ? products.slice(0, 4)
-    : [
-        { id: 1, nombre: "Paracetamol 500mg", precio: 12000, proveedor: "Tafirol" },
-        { id: 2, nombre: "Ibupirac 400mg", precio: 15000, proveedor: "Actron" },
-        { id: 3, nombre: "Vitamina C 100 cáps", precio: 45000, proveedor: "Natura" },
-        { id: 4, nombre: "Suero Fisiológico 500ml", precio: 8000, proveedor: "Baxter" },
-      ];
+  const featuredProducts =
+    products && products.length > 0
+      ? products.slice(0, 4)
+      : [
+          {
+            id: 1,
+            nombre: "Paracetamol 500mg",
+            precio: 12000,
+            proveedor: "Tafirol",
+          },
+          {
+            id: 2,
+            nombre: "Ibupirac 400mg",
+            precio: 15000,
+            proveedor: "Actron",
+          },
+          {
+            id: 3,
+            nombre: "Vitamina C 100 cáps",
+            precio: 45000,
+            proveedor: "Natura",
+          },
+          {
+            id: 4,
+            nombre: "Suero Fisiológico 500ml",
+            precio: 8000,
+            proveedor: "Baxter",
+          },
+        ];
 
   const testimonials = [
     { name: "Pfizer", logo: "💊" },
@@ -39,10 +60,12 @@ export const LandingPage = () => {
           {/* Left: Content */}
           <div className="flex flex-col justify-center space-y-6">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-              Tu salud no espera, <span className="text-emerald-600">SysPharma</span> te la lleva
+              Tu salud no espera,{" "}
+              <span className="text-emerald-600">SysPharma</span> te la lleva
             </h1>
             <p className="text-lg text-gray-600 leading-relaxed">
-              Medicamentos certificados entregados en tu puerta en menos de 30 minutos. Confianza, rapidez y los mejores precios del mercado.
+              Medicamentos certificados entregados en tu puerta en menos de 30
+              minutos. Confianza, rapidez y los mejores precios del mercado.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link
@@ -63,7 +86,11 @@ export const LandingPage = () => {
           {/* Right: Illustration/Image */}
           <div className="relative hidden md:flex items-center justify-center">
             <div className="w-full h-96 bg-gradient-to-br from-emerald-100 to-transparent rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden">
-              <img src="/src/assets/farmacia.avif" alt="Farmacia" className="w-full h-full object-cover" />
+              <img
+                src="/src/assets/farmacia.avif"
+                alt="Farmacia"
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
         </div>
@@ -73,36 +100,60 @@ export const LandingPage = () => {
       <section className="py-20 px-4 md:px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">¿Por qué elegirnos?</h2>
-            <p className="text-lg text-gray-600">Tres razones que nos hacen líderes en el mercado</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              ¿Por qué elegirnos?
+            </h2>
+            <p className="text-lg text-gray-600">
+              Tres razones que nos hacen líderes en el mercado
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Card 1 */}
             <div className="group p-8 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300">
               <div className="w-14 h-14 bg-emerald-100 rounded-lg flex items-center justify-center mb-6 group-hover:bg-emerald-600 transition-colors">
-                <Zap size={28} className="text-emerald-600 group-hover:text-white transition-colors" />
+                <Zap
+                  size={28}
+                  className="text-emerald-600 group-hover:text-white transition-colors"
+                />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Rapidez</h3>
-              <p className="text-gray-600">Entregas en menos de 30 minutos. Tu salud es nuestra prioridad, por eso no esperas.</p>
+              <p className="text-gray-600">
+                Entregas en menos de 30 minutos. Tu salud es nuestra prioridad,
+                por eso no esperas.
+              </p>
             </div>
 
             {/* Card 2 */}
             <div className="group p-8 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300">
               <div className="w-14 h-14 bg-emerald-100 rounded-lg flex items-center justify-center mb-6 group-hover:bg-emerald-600 transition-colors">
-                <Shield size={28} className="text-emerald-600 group-hover:text-white transition-colors" />
+                <Shield
+                  size={28}
+                  className="text-emerald-600 group-hover:text-white transition-colors"
+                />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Confianza</h3>
-              <p className="text-gray-600">Medicamentos 100% certificados. Todos nuestros productos cuentan con registro sanitario.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                Confianza
+              </h3>
+              <p className="text-gray-600">
+                Medicamentos 100% certificados. Todos nuestros productos cuentan
+                con registro sanitario.
+              </p>
             </div>
 
             {/* Card 3 */}
             <div className="group p-8 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300">
               <div className="w-14 h-14 bg-emerald-100 rounded-lg flex items-center justify-center mb-6 group-hover:bg-emerald-600 transition-colors">
-                <DollarSign size={28} className="text-emerald-600 group-hover:text-white transition-colors" />
+                <DollarSign
+                  size={28}
+                  className="text-emerald-600 group-hover:text-white transition-colors"
+                />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Ahorro</h3>
-              <p className="text-gray-600">Los mejores precios del mercado. Promociones semanales y descuentos exclusivos para clientes.</p>
+              <p className="text-gray-600">
+                Los mejores precios del mercado. Promociones semanales y
+                descuentos exclusivos para clientes.
+              </p>
             </div>
           </div>
         </div>
@@ -112,8 +163,12 @@ export const LandingPage = () => {
       <section id="catalogo" className="py-20 px-4 md:px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Productos Destacados</h2>
-            <p className="text-lg text-gray-600">Conoce algunos de nuestros artículos más vendidos</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Productos Destacados
+            </h2>
+            <p className="text-lg text-gray-600">
+              Conoce algunos de nuestros artículos más vendidos
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -133,7 +188,13 @@ export const LandingPage = () => {
                   key={product.id}
                   product={mapped}
                   onOpenDetail={() => setSelectedProduct(product)}
-                  onAdd={() => { try { cart.addToCart(product); } catch(e) { console.error(e); } }}
+                  onAdd={() => {
+                    try {
+                      cart.addToCart(product);
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }}
                   onQuickBuy={() => setSelectedProduct(product)}
                 />
               );
@@ -143,22 +204,34 @@ export const LandingPage = () => {
       </section>
 
       {selectedProduct && (
-        <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+        <ProductDetailModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
       )}
 
       {/* TRUST SECTION */}
       <section className="py-16 px-4 md:px-6 bg-white border-y border-gray-100">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Contamos con el respaldo de</h3>
-            <p className="text-gray-600">Laboratorios y marcas líderes a nivel mundial</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              Contamos con el respaldo de
+            </h3>
+            <p className="text-gray-600">
+              Laboratorios y marcas líderes a nivel mundial
+            </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {testimonials.map((brand, idx) => (
-              <div key={idx} className="flex flex-col items-center justify-center p-6 rounded-lg hover:bg-gray-50 transition-colors">
+              <div
+                key={idx}
+                className="flex flex-col items-center justify-center p-6 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <div className="text-5xl mb-3">{brand.logo}</div>
-                <p className="font-semibold text-gray-800 text-center">{brand.name}</p>
+                <p className="font-semibold text-gray-800 text-center">
+                  {brand.name}
+                </p>
               </div>
             ))}
           </div>
@@ -173,7 +246,8 @@ export const LandingPage = () => {
             <div>
               <h4 className="text-white font-bold text-lg mb-4">SysPharma</h4>
               <p className="text-gray-400 text-sm leading-relaxed">
-                Tu farmacia de confianza. Medicamentos de calidad entregados rápidamente a tu hogar.
+                Tu farmacia de confianza. Medicamentos de calidad entregados
+                rápidamente a tu hogar.
               </p>
             </div>
 
@@ -182,17 +256,26 @@ export const LandingPage = () => {
               <h4 className="text-white font-semibold mb-4">Servicios</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <a
+                    href="#"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
                     Catálogo
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <a
+                    href="#"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
                     Agendar Cita
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <a
+                    href="#"
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
                     Domicilios
                   </a>
                 </li>
@@ -209,7 +292,9 @@ export const LandingPage = () => {
                 </li>
                 <li className="flex items-center gap-2">
                   <Mail size={16} className="text-emerald-500" />
-                  <span className="text-gray-400">farmacenterla10@gmail.com</span>
+                  <span className="text-gray-400">
+                    farmacenterla10@gmail.com
+                  </span>
                 </li>
               </ul>
             </div>
@@ -217,7 +302,10 @@ export const LandingPage = () => {
 
           <div className="border-t border-gray-800 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-              <p>&copy; 2025 SysPharma - Farmacenter La 10. Todos los derechos reservados.</p>
+              <p>
+                &copy; 2025 SysPharma - Farmacenter La 10. Todos los derechos
+                reservados.
+              </p>
               <div className="flex gap-6">
                 <a href="#" className="hover:text-white transition-colors">
                   Privacidad

@@ -34,35 +34,49 @@ export const CalendarPicker = ({
   const handlePrevMonth = () => {
     const today = new Date();
     if (currentMonth > today) {
-      setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+      setCurrentMonth(
+        new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1),
+      );
     }
   };
 
   const handleNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1),
+    );
   };
 
   // Retorna información sobre si la fecha está deshabilitada y la razón (si aplica)
   const getDisabledInfo = (day) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const date = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      day,
+    );
     const dateStr = getDateString(date);
 
     // Validar rango de fechas
-    if (minDate && date < new Date(minDate)) return { disabled: true, reason: 'min' };
-    if (maxDate && date > new Date(maxDate)) return { disabled: true, reason: 'max' };
+    if (minDate && date < new Date(minDate))
+      return { disabled: true, reason: "min" };
+    if (maxDate && date > new Date(maxDate))
+      return { disabled: true, reason: "max" };
 
-    if (!disabledDates || disabledDates.length === 0) return { disabled: false };
+    if (!disabledDates || disabledDates.length === 0)
+      return { disabled: false };
 
     // disabledDates puede ser array de strings o array de objetos { date, reason }
     const foundObj = disabledDates.find((d) => {
       if (!d) return false;
-      if (typeof d === 'string') return d === dateStr;
-      if (typeof d === 'object' && d.date) return d.date === dateStr;
+      if (typeof d === "string") return d === dateStr;
+      if (typeof d === "object" && d.date) return d.date === dateStr;
       return false;
     });
 
     if (foundObj) {
-      const reason = typeof foundObj === 'string' ? 'farmacia' : (foundObj.reason || 'farmacia');
+      const reason =
+        typeof foundObj === "string"
+          ? "farmacia"
+          : foundObj.reason || "farmacia";
       return { disabled: true, reason };
     }
 
@@ -72,7 +86,11 @@ export const CalendarPicker = ({
   const handleDateClick = (day) => {
     const disabledInfo = getDisabledInfo(day);
     if (!disabledInfo.disabled) {
-      const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+      const date = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        day,
+      );
       onDateSelect(getDateString(date));
     }
   };
@@ -91,7 +109,10 @@ export const CalendarPicker = ({
     days.push(i);
   }
 
-  const monthName = currentMonth.toLocaleString("es-ES", { month: "long", year: "numeric" });
+  const monthName = currentMonth.toLocaleString("es-ES", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
@@ -137,26 +158,40 @@ export const CalendarPicker = ({
 
           const disabledInfo = getDisabledInfo(day);
           const isDisabled = !!disabledInfo.disabled;
-          const isSelected = selectedDate === getDateString(
-            new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
-          );
+          const isSelected =
+            selectedDate ===
+            getDateString(
+              new Date(
+                currentMonth.getFullYear(),
+                currentMonth.getMonth(),
+                day,
+              ),
+            );
 
           // Determinar clases según motivo
-          let badgeClass = "bg-white text-gray-700 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-300";
+          let badgeClass =
+            "bg-white text-gray-700 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-300";
           let title = "";
 
           if (isSelected) {
             badgeClass = "bg-emerald-600 text-white border border-emerald-700";
           } else if (isDisabled) {
-            const reason = String(disabledInfo.reason || '').toLowerCase();
-            if (reason.includes('doctor') || reason.includes('medic')) {
-              badgeClass = "bg-red-200 text-red-800 border border-red-300 cursor-not-allowed";
+            const reason = String(disabledInfo.reason || "").toLowerCase();
+            if (reason.includes("doctor") || reason.includes("medic")) {
+              badgeClass =
+                "bg-red-200 text-red-800 border border-red-300 cursor-not-allowed";
               title = "Médico no disponible";
-            } else if (reason.includes('farmacia') || reason.includes('pharmacy') || reason.includes('global')) {
-              badgeClass = "bg-amber-200 text-amber-800 border border-amber-300 cursor-not-allowed";
+            } else if (
+              reason.includes("farmacia") ||
+              reason.includes("pharmacy") ||
+              reason.includes("global")
+            ) {
+              badgeClass =
+                "bg-amber-200 text-amber-800 border border-amber-300 cursor-not-allowed";
               title = "Farmacia / sistema no disponible";
             } else {
-              badgeClass = "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200";
+              badgeClass =
+                "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200";
               title = "No disponible";
             }
           }
@@ -189,11 +224,15 @@ export const CalendarPicker = ({
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-amber-200 border border-amber-300" />
-          <span className="text-[10px] text-gray-600">No disponible (Farmacia / sistema)</span>
+          <span className="text-[10px] text-gray-600">
+            No disponible (Farmacia / sistema)
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-red-200 border border-red-300" />
-          <span className="text-[10px] text-gray-600">No disponible (Médico)</span>
+          <span className="text-[10px] text-gray-600">
+            No disponible (Médico)
+          </span>
         </div>
       </div>
     </div>

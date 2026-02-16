@@ -34,13 +34,13 @@ const getLocalToday = () => {
   return `${year}-${month}-${day}`;
 };
 
-  const formatDateDisplay = (isoDate) => {
-    if (!isoDate) return "";
-    // espera YYYY-MM-DD
-    const parts = isoDate.split("-");
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
-    return isoDate;
-  };
+const formatDateDisplay = (isoDate) => {
+  if (!isoDate) return "";
+  // espera YYYY-MM-DD
+  const parts = isoDate.split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return isoDate;
+};
 
 const AppointmentFormModal = ({
   isOpen,
@@ -87,13 +87,23 @@ const AppointmentFormModal = ({
         userId: appointment.userId || "", // Capturar userId si viene prefillado
       });
     } else {
-      const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      const currentUser = JSON.parse(
+        localStorage.getItem("syspharma_user") || "{}",
+      );
       // Prefill paciente, documento, telefono y userId from current user when available
       setFormData({
         ...initialFormState,
         paciente: currentUser.nombre || initialFormState.paciente,
-        documento: currentUser.documento || currentUser.cedula || (currentUser.id ? String(currentUser.id) : initialFormState.documento),
-        telefono: currentUser.telefono || currentUser.phone || initialFormState.telefono,
+        documento:
+          currentUser.documento ||
+          currentUser.cedula ||
+          (currentUser.id
+            ? String(currentUser.id)
+            : initialFormState.documento),
+        telefono:
+          currentUser.telefono ||
+          currentUser.phone ||
+          initialFormState.telefono,
         email: currentUser.email || initialFormState.email,
         userId: currentUser.id || "", // Capturar userId del usuario actual
       });
@@ -117,8 +127,9 @@ const AppointmentFormModal = ({
     };
     loadServices();
     const onServicesChange = () => loadServices();
-    window.addEventListener('services:changed', onServicesChange);
-    return () => window.removeEventListener('services:changed', onServicesChange);
+    window.addEventListener("services:changed", onServicesChange);
+    return () =>
+      window.removeEventListener("services:changed", onServicesChange);
   }, [appointment, isOpen]);
 
   // Generador de horas de respaldo
@@ -138,14 +149,19 @@ const AppointmentFormModal = ({
     if (!availabilityService || !doctorId) return [];
 
     try {
-      const doctorAvailability = availabilityService.getAvailabilityByDoctor(parseInt(doctorId));
+      const doctorAvailability = availabilityService.getAvailabilityByDoctor(
+        parseInt(doctorId),
+      );
       const unavailableDays = availabilityService.getUnavailableDays() || [];
 
       const disabled = [];
 
       // Agregar días globalmente no disponibles (asumimos cierre de farmacia / sistema)
       unavailableDays.forEach((day) => {
-        disabled.push({ date: day.date, reason: day.reason ? String(day.reason).toLowerCase() : "farmacia" });
+        disabled.push({
+          date: day.date,
+          reason: day.reason ? String(day.reason).toLowerCase() : "farmacia",
+        });
       });
 
       // Agregar días que no están programados para el médico (ej. fines de semana) como 'doctor'
@@ -153,9 +169,21 @@ const AppointmentFormModal = ({
         const today = new Date();
         const maxDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 días adelante
 
-        for (let d = new Date(today); d <= maxDate; d.setDate(d.getDate() + 1)) {
+        for (
+          let d = new Date(today);
+          d <= maxDate;
+          d.setDate(d.getDate() + 1)
+        ) {
           const dayOfWeek = d.getDay();
-          const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+          const dayNames = [
+            "sunday",
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+          ];
           const dayName = dayNames[dayOfWeek];
 
           if (!doctorAvailability.schedule[dayName]) {
@@ -235,7 +263,7 @@ const AppointmentFormModal = ({
       newErrors.documento = "Documento obligatorio";
     if (!formData.doctorId) newErrors.doctorId = "Seleccione médico";
     if (!formData.fecha) newErrors.fecha = "Seleccione fecha";
-    
+
     // Validar que la fecha no esté en la lista de días no disponibles
     if (formData.fecha && formData.doctorId) {
       const disabledDates = getDisabledDatesForDoctor(formData.doctorId);
@@ -243,7 +271,7 @@ const AppointmentFormModal = ({
         newErrors.fecha = "El médico no está disponible este día";
       }
     }
-    
+
     if (!formData.hora) newErrors.hora = "Seleccione hora";
     if (!formData.servicio) newErrors.servicio = "Seleccione servicio";
     if (!formData.precio) newErrors.precio = "Precio requerido";
@@ -255,27 +283,30 @@ const AppointmentFormModal = ({
     e.preventDefault();
     const isValid = validateForm();
     if (!isValid) return;
-    
+
     // Validar turno activo
     const turnValidation = turnService.validateOperationAllowed();
     if (!turnValidation.valid) {
       alert(turnValidation.message);
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       const appointmentData = {
         ...formData,
         doctorId: parseInt(formData.doctorId),
       };
-      
+
       // Priorizar userId de formData (si fue pre-cargado), sino obtener del usuario actual
       if (!appointmentData.userId) {
-        const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-        if (currentUser && currentUser.id) appointmentData.userId = currentUser.id;
+        const currentUser = JSON.parse(
+          localStorage.getItem("syspharma_user") || "{}",
+        );
+        if (currentUser && currentUser.id)
+          appointmentData.userId = currentUser.id;
       }
-      
+
       if (appointment && appointment.id) {
         // Es una edición
         await appointmentService.updateAppointment(
@@ -286,21 +317,24 @@ const AppointmentFormModal = ({
       } else {
         // Es una creación
         try {
-          const created = await appointmentService.createAppointment(appointmentData);
-          
+          const created =
+            await appointmentService.createAppointment(appointmentData);
+
           // Registrar venta de servicio en el turno actual
-          const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+          const currentUser = JSON.parse(
+            localStorage.getItem("syspharma_user") || "{}",
+          );
           turnService.recordSale({
             userId: appointmentData.userId || currentUser.id,
             userName: currentUser.nombre || "Usuario",
-            tipo: 'servicio',
+            tipo: "servicio",
             monto: parseFloat(formData.precio) || 0,
             descripcion: formData.servicio,
-            categoria: 'servicio',
-            referencia: created?.id || 'CITA',
+            categoria: "servicio",
+            referencia: created?.id || "CITA",
             paciente: formData.paciente,
           });
-          
+
           onSave && onSave(created);
         } catch (err) {
           console.error(err);
@@ -432,8 +466,10 @@ const AppointmentFormModal = ({
                     doctors
                       .filter((d) => {
                         // Mostrar médicos activos; si no existe campo 'estado', incluir por defecto
-                        if (d.estado === undefined || d.estado === null) return true;
-                        if (d.estado === true || d.estado === "Activo") return true;
+                        if (d.estado === undefined || d.estado === null)
+                          return true;
+                        if (d.estado === true || d.estado === "Activo")
+                          return true;
                         return false;
                       })
                       .map((d) => (
@@ -457,7 +493,10 @@ const AppointmentFormModal = ({
                     <Calendar
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
                       size={16}
-                      onClick={() => formData.doctorId && setShowCalendarPicker(!showCalendarPicker)}
+                      onClick={() =>
+                        formData.doctorId &&
+                        setShowCalendarPicker(!showCalendarPicker)
+                      }
                     />
                     <input
                       name="fecha"
@@ -465,7 +504,10 @@ const AppointmentFormModal = ({
                       readOnly
                       className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 cursor-pointer ${errors.fecha ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
                       value={formatDateDisplay(formData.fecha)}
-                      onClick={() => formData.doctorId && setShowCalendarPicker(!showCalendarPicker)}
+                      onClick={() =>
+                        formData.doctorId &&
+                        setShowCalendarPicker(!showCalendarPicker)
+                      }
                       placeholder="Seleccione fecha"
                     />
                   </div>
@@ -474,28 +516,43 @@ const AppointmentFormModal = ({
                       {errors.fecha}
                     </p>
                   )}
-                  {formData.fecha && formData.doctorId && (() => {
-                    const dd = getDisabledDatesForDoctor(formData.doctorId);
-                    const found = Array.isArray(dd) && dd.find(d => (typeof d === 'string' ? d === formData.fecha : (d?.date === formData.fecha)));
-                    return found ? (
-                      <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                        <AlertCircle size={12} />
-                        El médico no está disponible
-                      </p>
-                    ) : null;
-                  })()}
-                  
+                  {formData.fecha &&
+                    formData.doctorId &&
+                    (() => {
+                      const dd = getDisabledDatesForDoctor(formData.doctorId);
+                      const found =
+                        Array.isArray(dd) &&
+                        dd.find((d) =>
+                          typeof d === "string"
+                            ? d === formData.fecha
+                            : d?.date === formData.fecha,
+                        );
+                      return found ? (
+                        <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                          <AlertCircle size={12} />
+                          El médico no está disponible
+                        </p>
+                      ) : null;
+                    })()}
+
                   {/* Calendar Picker Expandible */}
                   {showCalendarPicker && formData.doctorId && (
                     <div className="mt-3 absolute z-10 bg-white p-3 rounded-lg border border-gray-200 shadow-xl">
                       <CalendarPicker
                         selectedDate={formData.fecha}
                         onDateSelect={(date) => {
-                          setFormData((prev) => ({ ...prev, fecha: date, hora: "" }));
+                          setFormData((prev) => ({
+                            ...prev,
+                            fecha: date,
+                            hora: "",
+                          }));
                           setShowCalendarPicker(false);
-                          if (errors.fecha) setErrors((prev) => ({ ...prev, fecha: null }));
+                          if (errors.fecha)
+                            setErrors((prev) => ({ ...prev, fecha: null }));
                         }}
-                        disabledDates={getDisabledDatesForDoctor(formData.doctorId)}
+                        disabledDates={getDisabledDatesForDoctor(
+                          formData.doctorId,
+                        )}
                         minDate={getLocalToday()}
                       />
                     </div>

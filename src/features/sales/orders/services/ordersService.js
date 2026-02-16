@@ -22,14 +22,16 @@ const validateOrderCreation = (orderData) => {
   if (origin === "empleado" && !turn) {
     return {
       valid: false,
-      message: "REGLA DE ORO: Los empleados no pueden crear pedidos sin turno abierto. Debes abrir caja primero.",
+      message:
+        "REGLA DE ORO: Los empleados no pueden crear pedidos sin turno abierto. Debes abrir caja primero.",
     };
   }
 
   if (origin === "web" && !turn) {
     return {
       valid: true,
-      warning: "Pedido web sin validación de turno. Será marcado como Pendiente.",
+      warning:
+        "Pedido web sin validación de turno. Será marcado como Pendiente.",
       state: "Pendientes de Validación",
     };
   }
@@ -95,9 +97,17 @@ export const ordersService = {
     localStorage.setItem(DB_KEY, JSON.stringify(next));
 
     // Emitir eventos para notificar otras pestañas/componentes
-    try { window.dispatchEvent(new CustomEvent(`${DB_KEY}_updated`, { detail: {} })); } catch (e) {}
-    try { window.dispatchEvent(new Event(`${DB_KEY}_updated`)); } catch (e) {}
-    try { window.dispatchEvent(new Event('storage')); } catch (e) {}
+    try {
+      window.dispatchEvent(
+        new CustomEvent(`${DB_KEY}_updated`, { detail: {} }),
+      );
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event(`${DB_KEY}_updated`));
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new Event("storage"));
+    } catch (e) {}
 
     // Si es pedido de empleado CON turno, registrar como venta inmediata
     if (orderData.origin === "empleado" && turn) {

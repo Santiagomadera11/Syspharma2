@@ -1,5 +1,14 @@
 import React, { useState, useMemo } from "react";
-import { User, TrendingUp, Award, Target, Calendar, Download, Eye, Star } from "lucide-react";
+import {
+  User,
+  TrendingUp,
+  Award,
+  Target,
+  Calendar,
+  Download,
+  Eye,
+  Star,
+} from "lucide-react";
 import { ordersService } from "../../sales/orders/services/ordersService";
 
 export const SalesPerformanceReportsPage = () => {
@@ -64,7 +73,8 @@ export const SalesPerformanceReportsPage = () => {
     // Calcular promedio
     Object.keys(stats).forEach((key) => {
       if (stats[key].totalOrders > 0) {
-        stats[key].averageOrderValue = stats[key].totalRevenue / stats[key].totalOrders;
+        stats[key].averageOrderValue =
+          stats[key].totalRevenue / stats[key].totalOrders;
       }
     });
 
@@ -84,9 +94,15 @@ export const SalesPerformanceReportsPage = () => {
 
   // Estadísticas generales
   const generalStats = useMemo(() => {
-    const totalRevenue = filteredOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const totalRevenue = filteredOrders.reduce(
+      (sum, o) => sum + (o.total || 0),
+      0,
+    );
     const totalOrders = filteredOrders.length;
-    const totalItems = filteredOrders.reduce((sum, o) => sum + (o.productos?.length || 0) + (o.servicios?.length || 0), 0);
+    const totalItems = filteredOrders.reduce(
+      (sum, o) => sum + (o.productos?.length || 0) + (o.servicios?.length || 0),
+      0,
+    );
 
     return {
       totalRevenue,
@@ -113,7 +129,9 @@ export const SalesPerformanceReportsPage = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Desempeño de Ventas</h1>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Desempeño de Ventas
+          </h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Análisis individual de vendedores y empleados
           </p>
@@ -128,15 +146,23 @@ export const SalesPerformanceReportsPage = () => {
       <div className="grid grid-cols-5 gap-3">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-xs text-gray-500 mb-1">Total Ventas</p>
-          <p className="text-2xl font-bold text-gray-800">{formatCurrency(generalStats.totalRevenue)}</p>
-          <p className="text-xs text-gray-500 mt-2">{generalStats.totalOrders} pedidos</p>
+          <p className="text-2xl font-bold text-gray-800">
+            {formatCurrency(generalStats.totalRevenue)}
+          </p>
+          <p className="text-xs text-gray-500 mt-2">
+            {generalStats.totalOrders} pedidos
+          </p>
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 bg-gradient-to-br from-blue-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-blue-600 font-semibold mb-1">Promedio por Pedido</p>
-              <p className="text-2xl font-bold text-blue-700">{formatCurrency(generalStats.averageOrder)}</p>
+              <p className="text-xs text-blue-600 font-semibold mb-1">
+                Promedio por Pedido
+              </p>
+              <p className="text-2xl font-bold text-blue-700">
+                {formatCurrency(generalStats.averageOrder)}
+              </p>
             </div>
             <TrendingUp className="text-blue-400" size={32} />
           </div>
@@ -145,8 +171,12 @@ export const SalesPerformanceReportsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-purple-200 bg-gradient-to-br from-purple-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-purple-600 font-semibold mb-1">Total Empleados</p>
-              <p className="text-2xl font-bold text-purple-700">{generalStats.totalEmployees}</p>
+              <p className="text-xs text-purple-600 font-semibold mb-1">
+                Total Empleados
+              </p>
+              <p className="text-2xl font-bold text-purple-700">
+                {generalStats.totalEmployees}
+              </p>
             </div>
             <User className="text-purple-400" size={32} />
           </div>
@@ -155,8 +185,12 @@ export const SalesPerformanceReportsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-green-200 bg-gradient-to-br from-green-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-green-600 font-semibold mb-1">Total Artículos</p>
-              <p className="text-2xl font-bold text-green-700">{generalStats.totalItems}</p>
+              <p className="text-xs text-green-600 font-semibold mb-1">
+                Total Artículos
+              </p>
+              <p className="text-2xl font-bold text-green-700">
+                {generalStats.totalItems}
+              </p>
             </div>
             <Target className="text-green-400" size={32} />
           </div>
@@ -165,8 +199,15 @@ export const SalesPerformanceReportsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-orange-200 bg-gradient-to-br from-orange-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-orange-600 font-semibold mb-1">Ticket Promedio</p>
-              <p className="text-2xl font-bold text-orange-700">{generalStats.totalOrders > 0 ? generalStats.totalItems / generalStats.totalOrders : 0} items</p>
+              <p className="text-xs text-orange-600 font-semibold mb-1">
+                Ticket Promedio
+              </p>
+              <p className="text-2xl font-bold text-orange-700">
+                {generalStats.totalOrders > 0
+                  ? generalStats.totalItems / generalStats.totalOrders
+                  : 0}{" "}
+                items
+              </p>
             </div>
             <Award className="text-orange-400" size={32} />
           </div>
@@ -201,34 +242,58 @@ export const SalesPerformanceReportsPage = () => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
               <tr>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Empleado</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">Ingresos</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">Pedidos</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">Ticket Promedio</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">Productos</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">Servicios</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Acciones</th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Empleado
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
+                  Ingresos
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
+                  Pedidos
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
+                  Ticket Promedio
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
+                  Productos
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
+                  Servicios
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
               {employeeStats.length > 0 ? (
                 employeeStats.map((emp, idx) => {
-                  const revenuePercent = (emp.totalRevenue / generalStats.totalRevenue) * 100;
+                  const revenuePercent =
+                    (emp.totalRevenue / generalStats.totalRevenue) * 100;
                   return (
-                    <tr key={emp.userId} className="border-b border-gray-200 hover:bg-gray-50">
+                    <tr
+                      key={emp.userId}
+                      className="border-b border-gray-200 hover:bg-gray-50"
+                    >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">
                             {idx + 1}
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-800">{emp.name}</p>
-                            <p className="text-xs text-gray-500">{emp.userId}</p>
+                            <p className="text-sm font-semibold text-gray-800">
+                              {emp.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {emp.userId}
+                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="text-sm font-bold text-gray-800">{formatCurrency(emp.totalRevenue)}</div>
+                        <div className="text-sm font-bold text-gray-800">
+                          {formatCurrency(emp.totalRevenue)}
+                        </div>
                         <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                           <div
                             className="bg-blue-600 h-2 rounded-full"
@@ -236,12 +301,18 @@ export const SalesPerformanceReportsPage = () => {
                           />
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold text-gray-800">{emp.totalOrders}</td>
+                      <td className="py-3 px-4 text-right text-sm font-bold text-gray-800">
+                        {emp.totalOrders}
+                      </td>
                       <td className="py-3 px-4 text-right text-sm font-semibold text-purple-700">
                         {formatCurrency(emp.averageOrderValue)}
                       </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold text-green-700">{emp.totalProductos}</td>
-                      <td className="py-3 px-4 text-right text-sm font-bold text-orange-700">{emp.totalServicios}</td>
+                      <td className="py-3 px-4 text-right text-sm font-bold text-green-700">
+                        {emp.totalProductos}
+                      </td>
+                      <td className="py-3 px-4 text-right text-sm font-bold text-orange-700">
+                        {emp.totalServicios}
+                      </td>
                       <td className="py-3 px-4">
                         <button
                           onClick={() => setSelectedEmployee(emp)}
@@ -256,7 +327,10 @@ export const SalesPerformanceReportsPage = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-6 text-center text-gray-500 text-sm">
+                  <td
+                    colSpan="7"
+                    className="py-6 text-center text-gray-500 text-sm"
+                  >
                     No hay datos de ventas para el período seleccionado
                   </td>
                 </tr>
@@ -276,11 +350,18 @@ export const SalesPerformanceReportsPage = () => {
                   {selectedEmployee.name[0]}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">{selectedEmployee.name}</h2>
-                  <p className="text-xs text-gray-500">{selectedEmployee.userId}</p>
+                  <h2 className="text-xl font-bold text-gray-800">
+                    {selectedEmployee.name}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {selectedEmployee.userId}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setSelectedEmployee(null)} className="text-gray-500 hover:text-gray-700 text-2xl">
+              <button
+                onClick={() => setSelectedEmployee(null)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
                 ×
               </button>
             </div>
@@ -288,21 +369,37 @@ export const SalesPerformanceReportsPage = () => {
             {/* Resumen del Empleado */}
             <div className="grid grid-cols-4 gap-3 mb-4">
               <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-600 font-semibold">Total Ingresos</p>
-                <p className="text-lg font-bold text-blue-700 mt-1">{formatCurrency(selectedEmployee.totalRevenue)}</p>
+                <p className="text-xs text-blue-600 font-semibold">
+                  Total Ingresos
+                </p>
+                <p className="text-lg font-bold text-blue-700 mt-1">
+                  {formatCurrency(selectedEmployee.totalRevenue)}
+                </p>
               </div>
               <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                <p className="text-xs text-purple-600 font-semibold">Pedidos Realizados</p>
-                <p className="text-lg font-bold text-purple-700 mt-1">{selectedEmployee.totalOrders}</p>
+                <p className="text-xs text-purple-600 font-semibold">
+                  Pedidos Realizados
+                </p>
+                <p className="text-lg font-bold text-purple-700 mt-1">
+                  {selectedEmployee.totalOrders}
+                </p>
               </div>
               <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                <p className="text-xs text-orange-600 font-semibold">Ticket Promedio</p>
-                <p className="text-lg font-bold text-orange-700 mt-1">{formatCurrency(selectedEmployee.averageOrderValue)}</p>
+                <p className="text-xs text-orange-600 font-semibold">
+                  Ticket Promedio
+                </p>
+                <p className="text-lg font-bold text-orange-700 mt-1">
+                  {formatCurrency(selectedEmployee.averageOrderValue)}
+                </p>
               </div>
               <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                <p className="text-xs text-green-600 font-semibold">Promedio Artículos</p>
+                <p className="text-xs text-green-600 font-semibold">
+                  Promedio Artículos
+                </p>
                 <p className="text-lg font-bold text-green-700 mt-1">
-                  {(selectedEmployee.totalProductos + selectedEmployee.totalServicios) / selectedEmployee.totalOrders || 0}
+                  {(selectedEmployee.totalProductos +
+                    selectedEmployee.totalServicios) /
+                    selectedEmployee.totalOrders || 0}
                 </p>
               </div>
             </div>
@@ -310,28 +407,49 @@ export const SalesPerformanceReportsPage = () => {
             {/* Desglose de Productos vs Servicios */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
-                <h3 className="font-bold text-emerald-800 mb-2">Productos Vendidos</h3>
-                <p className="text-3xl font-bold text-emerald-700">{selectedEmployee.totalProductos}</p>
+                <h3 className="font-bold text-emerald-800 mb-2">
+                  Productos Vendidos
+                </h3>
+                <p className="text-3xl font-bold text-emerald-700">
+                  {selectedEmployee.totalProductos}
+                </p>
               </div>
               <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                <h3 className="font-bold text-orange-800 mb-2">Servicios Realizados</h3>
-                <p className="text-3xl font-bold text-orange-700">{selectedEmployee.totalServicios}</p>
+                <h3 className="font-bold text-orange-800 mb-2">
+                  Servicios Realizados
+                </h3>
+                <p className="text-3xl font-bold text-orange-700">
+                  {selectedEmployee.totalServicios}
+                </p>
               </div>
             </div>
 
             {/* Últimos Pedidos */}
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h3 className="font-bold text-gray-800 mb-3">Últimos Pedidos ({Math.min(5, selectedEmployee.orders.length)})</h3>
+              <h3 className="font-bold text-gray-800 mb-3">
+                Últimos Pedidos ({Math.min(5, selectedEmployee.orders.length)})
+              </h3>
               <div className="space-y-2">
                 {selectedEmployee.orders.slice(0, 5).map((order) => (
-                  <div key={order.id} className="bg-white p-3 rounded border border-gray-200 flex justify-between items-center">
+                  <div
+                    key={order.id}
+                    className="bg-white p-3 rounded border border-gray-200 flex justify-between items-center"
+                  >
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">{order.cliente}</p>
-                      <p className="text-xs text-gray-500">{formatDate(order.fecha)}</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {order.cliente}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatDate(order.fecha)}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-gray-800">{formatCurrency(order.total)}</p>
-                      <p className="text-xs text-gray-500">{order.productos?.length || 0} productos</p>
+                      <p className="text-sm font-bold text-gray-800">
+                        {formatCurrency(order.total)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {order.productos?.length || 0} productos
+                      </p>
                     </div>
                   </div>
                 ))}

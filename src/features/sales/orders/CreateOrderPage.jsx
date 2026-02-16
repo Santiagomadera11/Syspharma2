@@ -2,11 +2,12 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Search, Plus, Trash2, ArrowLeft, Package } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { productService } from "../../inventory/products/services/productService";
-import { read, write, LS } from '../../../shared/services/lsService';
+import { read, write, LS } from "../../../shared/services/lsService";
 import { ordersService } from "./services/ordersService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 import { getPaymentMethods } from "../../settings/services/parameterService";
 import { authService } from "../../auth/authService";
+import { salesService } from "../services/salesService";
 
 export const CreateOrderPage = () => {
   const navigate = useNavigate();
@@ -121,11 +122,14 @@ export const CreateOrderPage = () => {
       setPaymentMethods(updatedMethods);
     };
 
-    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    window.addEventListener(
+      "syspharma_parameters_updated",
+      handleParameterUpdate,
+    );
     return () => {
       window.removeEventListener(
         "syspharma_parameters_updated",
-        handleParameterUpdate
+        handleParameterUpdate,
       );
     };
   }, []);
@@ -264,7 +268,7 @@ export const CreateOrderPage = () => {
     if (isEditing && editingOrderId) {
       // Actualizar pedido existente
       const currentUser = authService.getCurrentUser();
-      
+
       ordersService.update({
         id: editingOrderId,
         cliente: clientInfo.nombre,
@@ -288,7 +292,7 @@ export const CreateOrderPage = () => {
     } else {
       // Crear nuevo pedido
       const currentUser = authService.getCurrentUser();
-      
+
       ordersService.create({
         cliente: clientInfo.nombre,
         documento: clientInfo.documento,
@@ -309,6 +313,26 @@ export const CreateOrderPage = () => {
         userId: isEmployee ? currentUser?.id : null,
         userName: isEmployee ? currentUser?.nombre : null,
       });
+      // Si es una venta (isSale === true) registrarla también en el servicio de ventas
+      // Para ventas creadas por Administrador/Web, registrar también en el servicio de ventas.
+      // Si es empleado, `ordersService.create` ya registra la venta ligada al turno.
+      if (isSale && !isEmployee) {
+        try {
+          salesService.create({
+            cliente: clientInfo.nombre,
+            documento: clientInfo.documento,
+            productos: cart.map((p) => ({ nombre: p.nombre, cantidad: p.cantidad, precio: p.precio, id: p.id })),
+            cantidadProductos: cart.reduce((sum, p) => sum + p.cantidad, 0),
+            total: cartTotal,
+            metodoPago: clientInfo.metodoPago,
+            notas: `Venta registrada desde ${isEmployee ? 'Empleado' : 'Admin'} | ${clientInfo.telefono || ''}`,
+            estado: 'completada',
+          });
+          try { window.dispatchEvent(new Event('sales:changed')); } catch(e){}
+        } catch (e) {
+          console.warn('No se pudo registrar la venta en salesService:', e);
+        }
+      }
     }
 
     // Actualizar stock de productos

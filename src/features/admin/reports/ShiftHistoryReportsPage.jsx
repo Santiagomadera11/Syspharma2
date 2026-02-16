@@ -1,5 +1,14 @@
 import React, { useState, useMemo } from "react";
-import { Calendar, TrendingUp, TrendingDown, DollarSign, Package, Stethoscope, Eye, Download } from "lucide-react";
+import {
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Package,
+  Stethoscope,
+  Eye,
+  Download,
+} from "lucide-react";
 import { turnService } from "../../sales/services/turnService";
 
 export const ShiftHistoryReportsPage = () => {
@@ -30,7 +39,13 @@ export const ShiftHistoryReportsPage = () => {
         productSales: acc.productSales + 0, // Se obtendría de datos individuales
         serviceSales: acc.serviceSales + 0,
       }),
-      { totalClosed: 0, totalRevenue: 0, totalExpenses: 0, productSales: 0, serviceSales: 0 }
+      {
+        totalClosed: 0,
+        totalRevenue: 0,
+        totalExpenses: 0,
+        productSales: 0,
+        serviceSales: 0,
+      },
     );
   }, [filteredShifts]);
 
@@ -67,7 +82,9 @@ export const ShiftHistoryReportsPage = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Histórico de Turnos</h1>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Histórico de Turnos
+          </h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Reportes de cajas cerradas con desglose de ingresos
           </p>
@@ -81,7 +98,9 @@ export const ShiftHistoryReportsPage = () => {
       {/* FILTROS */}
       <div className="flex gap-3 flex-shrink-0 bg-white p-4 rounded-lg border border-gray-200">
         <div className="flex-1">
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Desde</label>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">
+            Desde
+          </label>
           <input
             type="date"
             value={startDate}
@@ -90,7 +109,9 @@ export const ShiftHistoryReportsPage = () => {
           />
         </div>
         <div className="flex-1">
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Hasta</label>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">
+            Hasta
+          </label>
           <input
             type="date"
             value={endDate}
@@ -117,7 +138,9 @@ export const ShiftHistoryReportsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Turnos Cerrados</p>
-              <p className="text-2xl font-bold text-gray-800">{totalSummary.totalClosed}</p>
+              <p className="text-2xl font-bold text-gray-800">
+                {totalSummary.totalClosed}
+              </p>
             </div>
             <Calendar className="text-blue-600" size={32} />
           </div>
@@ -127,7 +150,9 @@ export const ShiftHistoryReportsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Ingresos Totales</p>
-              <p className="text-lg font-bold text-green-600">{formatCurrency(totalSummary.totalRevenue)}</p>
+              <p className="text-lg font-bold text-green-600">
+                {formatCurrency(totalSummary.totalRevenue)}
+              </p>
             </div>
             <TrendingUp className="text-green-600" size={32} />
           </div>
@@ -137,7 +162,9 @@ export const ShiftHistoryReportsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">Gastos Totales</p>
-              <p className="text-lg font-bold text-red-600">{formatCurrency(totalSummary.totalExpenses)}</p>
+              <p className="text-lg font-bold text-red-600">
+                {formatCurrency(totalSummary.totalExpenses)}
+              </p>
             </div>
             <TrendingDown className="text-red-600" size={32} />
           </div>
@@ -148,7 +175,9 @@ export const ShiftHistoryReportsPage = () => {
             <div>
               <p className="text-xs text-gray-500">Balance Neto</p>
               <p className="text-lg font-bold text-indigo-600">
-                {formatCurrency(totalSummary.totalRevenue - totalSummary.totalExpenses)}
+                {formatCurrency(
+                  totalSummary.totalRevenue - totalSummary.totalExpenses,
+                )}
               </p>
             </div>
             <DollarSign className="text-indigo-600" size={32} />
@@ -162,29 +191,68 @@ export const ShiftHistoryReportsPage = () => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr className="border-b border-gray-200">
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">ID</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Empleado</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Fecha Apertura</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Fecha Cierre</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Monto Base</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Ingresos</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Gastos</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Saldo</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Acciones</th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  ID
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Empleado
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Fecha Apertura
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Fecha Cierre
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Monto Base
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Ingresos
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Gastos
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Saldo
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredShifts.length > 0 ? (
                 filteredShifts.map((shift) => (
-                  <tr key={shift.turnId} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="py-3 px-4 text-xs text-gray-600 font-mono">{shift.turnId}</td>
-                    <td className="py-3 px-4 text-xs text-gray-700 font-semibold">{shift.userName}</td>
-                    <td className="py-3 px-4 text-xs text-gray-600">{formatDate(shift.horaApertura)}</td>
-                    <td className="py-3 px-4 text-xs text-gray-600">{formatDate(shift.horaCierre)}</td>
-                    <td className="py-3 px-4 text-xs font-semibold text-gray-700">{formatCurrency(shift.montoBase)}</td>
-                    <td className="py-3 px-4 text-xs font-semibold text-green-600">{formatCurrency(shift.totalVentas)}</td>
-                    <td className="py-3 px-4 text-xs font-semibold text-red-600">{formatCurrency(shift.totalGastos)}</td>
-                    <td className="py-3 px-4 text-xs font-bold text-indigo-600">{formatCurrency(shift.montoBase + shift.totalVentas - shift.totalGastos)}</td>
+                  <tr
+                    key={shift.turnId}
+                    className="border-b border-gray-200 hover:bg-gray-50"
+                  >
+                    <td className="py-3 px-4 text-xs text-gray-600 font-mono">
+                      {shift.turnId}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-700 font-semibold">
+                      {shift.userName}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-600">
+                      {formatDate(shift.horaApertura)}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-600">
+                      {formatDate(shift.horaCierre)}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-semibold text-gray-700">
+                      {formatCurrency(shift.montoBase)}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-semibold text-green-600">
+                      {formatCurrency(shift.totalVentas)}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-semibold text-red-600">
+                      {formatCurrency(shift.totalGastos)}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-bold text-indigo-600">
+                      {formatCurrency(
+                        shift.montoBase + shift.totalVentas - shift.totalGastos,
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-xs">
                       <button
                         onClick={() => setSelectedShift(shift)}
@@ -198,7 +266,10 @@ export const ShiftHistoryReportsPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="py-6 text-center text-gray-500 text-sm">
+                  <td
+                    colSpan="9"
+                    className="py-6 text-center text-gray-500 text-sm"
+                  >
                     No hay turnos en el período seleccionado
                   </td>
                 </tr>
@@ -214,7 +285,8 @@ export const ShiftHistoryReportsPage = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-800">
-                Desglose: {selectedShift.userName} - {formatDate(selectedShift.horaCierre)}
+                Desglose: {selectedShift.userName} -{" "}
+                {formatDate(selectedShift.horaCierre)}
               </h2>
               <button
                 onClick={() => setSelectedShift(null)}
@@ -234,20 +306,30 @@ export const ShiftHistoryReportsPage = () => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-gray-600">Monto Base</p>
-                    <p className="text-lg font-bold text-gray-800">{formatCurrency(selectedShift.montoBase)}</p>
+                    <p className="text-lg font-bold text-gray-800">
+                      {formatCurrency(selectedShift.montoBase)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-600">Total Ventas</p>
-                    <p className="text-lg font-bold text-green-600">{formatCurrency(selectedShift.totalVentas)}</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {formatCurrency(selectedShift.totalVentas)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-600">Total Gastos</p>
-                    <p className="text-lg font-bold text-red-600">{formatCurrency(selectedShift.totalGastos)}</p>
+                    <p className="text-lg font-bold text-red-600">
+                      {formatCurrency(selectedShift.totalGastos)}
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-600">Saldo Esperado</p>
                     <p className="text-lg font-bold text-indigo-600">
-                      {formatCurrency(selectedShift.montoBase + selectedShift.totalVentas - selectedShift.totalGastos)}
+                      {formatCurrency(
+                        selectedShift.montoBase +
+                          selectedShift.totalVentas -
+                          selectedShift.totalGastos,
+                      )}
                     </p>
                   </div>
                 </div>
@@ -261,13 +343,17 @@ export const ShiftHistoryReportsPage = () => {
                 </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center bg-white p-2 rounded">
-                    <span className="font-semibold text-gray-700">Ventas de Productos</span>
+                    <span className="font-semibold text-gray-700">
+                      Ventas de Productos
+                    </span>
                     <span className="text-green-600 font-bold">
                       {formatCurrency(selectedShift.ventasProductos || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center bg-white p-2 rounded">
-                    <span className="font-semibold text-gray-700">Ventas de Servicios</span>
+                    <span className="font-semibold text-gray-700">
+                      Ventas de Servicios
+                    </span>
                     <span className="text-blue-600 font-bold">
                       {formatCurrency(selectedShift.ventasServicios || 0)}
                     </span>
@@ -277,11 +363,17 @@ export const ShiftHistoryReportsPage = () => {
 
               {/* Información de Cierre */}
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-bold text-gray-800 mb-3">Información de Cierre</h3>
+                <h3 className="font-bold text-gray-800 mb-3">
+                  Información de Cierre
+                </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Monto Físico Reportado</span>
-                    <span className="font-semibold text-gray-800">{formatCurrency(selectedShift.montoFinal)}</span>
+                    <span className="text-gray-600">
+                      Monto Físico Reportado
+                    </span>
+                    <span className="font-semibold text-gray-800">
+                      {formatCurrency(selectedShift.montoFinal)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Diferencia</span>
@@ -290,8 +382,8 @@ export const ShiftHistoryReportsPage = () => {
                         selectedShift.diferencia === 0
                           ? "text-green-600"
                           : selectedShift.diferencia > 0
-                          ? "text-red-600"
-                          : "text-orange-600"
+                            ? "text-red-600"
+                            : "text-orange-600"
                       }`}
                     >
                       {formatCurrency(selectedShift.diferencia || 0)}
@@ -300,7 +392,9 @@ export const ShiftHistoryReportsPage = () => {
                   {selectedShift.notas && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Notas</span>
-                      <span className="text-gray-700">{selectedShift.notas}</span>
+                      <span className="text-gray-700">
+                        {selectedShift.notas}
+                      </span>
                     </div>
                   )}
                 </div>

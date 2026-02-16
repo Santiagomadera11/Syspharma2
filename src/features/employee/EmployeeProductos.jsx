@@ -230,9 +230,9 @@ export const EmployeeProductos = () => {
               {detailProduct.imagen && (
                 <div className="flex justify-center">
                   <div className="w-full max-w-xs h-64 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={detailProduct.imagen} 
-                      alt={detailProduct.nombre} 
+                    <img
+                      src={detailProduct.imagen}
+                      alt={detailProduct.nombre}
                       className="max-w-full max-h-full object-contain p-4"
                     />
                   </div>

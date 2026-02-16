@@ -15,7 +15,8 @@ const ParameterManagement = ({ user }) => {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <p className="text-yellow-800 text-sm">
-          ⚠️ Acceso restringido: Solo administradores pueden gestionar parámetros
+          ⚠️ Acceso restringido: Solo administradores pueden gestionar
+          parámetros
         </p>
       </div>
     );
@@ -41,11 +42,14 @@ const ParameterManagement = ({ user }) => {
       loadParameters();
     };
 
-    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    window.addEventListener(
+      "syspharma_parameters_updated",
+      handleParameterUpdate,
+    );
     return () => {
       window.removeEventListener(
         "syspharma_parameters_updated",
-        handleParameterUpdate
+        handleParameterUpdate,
       );
     };
   }, []);
@@ -98,7 +102,7 @@ const ParameterManagement = ({ user }) => {
       currentData?.some(
         (item) =>
           item.value.toLowerCase() === inputValue.toLowerCase() &&
-          item.id !== editingId
+          item.id !== editingId,
       ) || false;
 
     if (isDuplicate) {
@@ -119,7 +123,9 @@ const ParameterManagement = ({ user }) => {
   };
 
   const handleDelete = (type, id) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este parámetro?")) {
+    if (
+      window.confirm("¿Estás seguro de que deseas eliminar este parámetro?")
+    ) {
       deleteParameter(type, id);
       loadParameters();
     }
@@ -160,7 +166,9 @@ const ParameterManagement = ({ user }) => {
                   key={item.id}
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-4 py-3 text-sm text-gray-600">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    {index + 1}
+                  </td>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">
                     {item.value}
                   </td>
@@ -313,9 +321,9 @@ const ParameterManagement = ({ user }) => {
       {/* Nota informativa */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-blue-800 text-sm">
-          ℹ️ Los cambios realizados aquí se aplicarán inmediatamente en todos los
-          formularios y vistas de la aplicación. Todos los usuarios verán los cambios en
-          tiempo real.
+          ℹ️ Los cambios realizados aquí se aplicarán inmediatamente en todos
+          los formularios y vistas de la aplicación. Todos los usuarios verán
+          los cambios en tiempo real.
         </p>
       </div>
     </div>

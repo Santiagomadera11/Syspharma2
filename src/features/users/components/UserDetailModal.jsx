@@ -45,7 +45,7 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
   const avatar =
     display.avatar ||
     `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-      display.nombre || display.email || Date.now()
+      display.nombre || display.email || Date.now(),
     )}`;
 
   return (

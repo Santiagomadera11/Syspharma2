@@ -41,19 +41,21 @@ const EmployeeLayout = () => {
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50 font-sans text-sm flex-col lg:flex-row-reverse">
       {/* Overlay para móvil */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
-      
+
       {/* Sidebar responsivo */}
-      <div className={`
+      <div
+        className={`
         fixed lg:static inset-y-0 right-0 z-50 w-60 h-screen
         transform transition-transform duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        ${isMobileMenuOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
         lg:z-10 lg:translate-x-0
-      `}>
+      `}
+      >
         <EmployeeSidebar
           isOpen={isMobileMenuOpen}
           onClose={() => setIsMobileMenuOpen(false)}

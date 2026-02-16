@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Eye, ChevronLeft, ChevronRight, ShoppingCart, AlertCircle, DollarSign, Clock, User } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  ShoppingCart,
+  AlertCircle,
+  DollarSign,
+  Clock,
+  User,
+} from "lucide-react";
 import { turnService } from "../sales/services/turnService";
 import { ordersService } from "../sales/orders/services/ordersService";
 import { expensesService } from "../sales/services/expensesService";

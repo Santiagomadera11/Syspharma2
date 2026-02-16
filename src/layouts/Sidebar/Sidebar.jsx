@@ -47,7 +47,9 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
             <Stethoscope size={18} className="text-white" />
           </div>
           <div className="hidden sm:block min-w-0">
-            <h1 className="text-base font-bold tracking-wide truncate">SysPharma</h1>
+            <h1 className="text-base font-bold tracking-wide truncate">
+              SysPharma
+            </h1>
             <p className="text-[9px] text-gray-400 uppercase tracking-wider">
               Menú
             </p>
@@ -162,12 +164,6 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
             active={isActive("/admin/reportes/turnos")}
           />
           <SubMenuItem
-            to="/admin/reportes/pedidos"
-            label="Análisis de Pedidos"
-            icon={ClipboardList}
-            active={isActive("/admin/reportes/pedidos")}
-          />
-          <SubMenuItem
             to="/admin/reportes/desempeño"
             label="Desempeño de Vendedores"
             icon={TrendingUp}
@@ -280,9 +276,7 @@ const MenuGroup = ({
             {content}
           </Link>
         ) : (
-          <div className="flex-1 flex items-center px-3 py-2">
-            {content}
-          </div>
+          <div className="flex-1 flex items-center px-3 py-2">{content}</div>
         )}
 
         {/* 2. ZONA DE EXPANDIR/CONTRAER (Derecha - Botón Flecha) */}

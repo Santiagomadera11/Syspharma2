@@ -75,7 +75,9 @@ export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
       setError("");
 
       // Dispara evento global para actualizar botones en toda la app
-      window.dispatchEvent(new CustomEvent("turn:closed", { detail: closedTurn }));
+      window.dispatchEvent(
+        new CustomEvent("turn:closed", { detail: closedTurn }),
+      );
 
       // Callback al componente padre
       if (onShiftClosed) {
@@ -170,13 +172,17 @@ export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
                 {balance.ventasProductos > 0 && (
                   <div className="flex justify-between">
                     <span>└─ Productos</span>
-                    <span className="font-semibold text-gray-700">${balance.ventasProductos.toLocaleString()}</span>
+                    <span className="font-semibold text-gray-700">
+                      ${balance.ventasProductos.toLocaleString()}
+                    </span>
                   </div>
                 )}
                 {balance.ventasServicios > 0 && (
                   <div className="flex justify-between">
                     <span>└─ Servicios</span>
-                    <span className="font-semibold text-gray-700">${balance.ventasServicios.toLocaleString()}</span>
+                    <span className="font-semibold text-gray-700">
+                      ${balance.ventasServicios.toLocaleString()}
+                    </span>
                   </div>
                 )}
               </div>

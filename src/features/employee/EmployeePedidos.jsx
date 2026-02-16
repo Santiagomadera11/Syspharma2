@@ -8,6 +8,7 @@ import {
   Plus,
   Edit,
   Pencil,
+  Check,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "../sales/orders/services/ordersService";
@@ -33,7 +34,10 @@ export const EmployeePedidos = () => {
   const [orderToChangeStatus, setOrderToChangeStatus] = useState(null);
   const [viewMode, setViewMode] = useState("activos"); // "activos" para Pendiente/En proceso, "historial" para Entregado/Cancelado
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
-  const [user] = useState(JSON.parse(localStorage.getItem("syspharma_user") || "{}"));
+  const [user] = useState(
+    JSON.parse(localStorage.getItem("syspharma_user") || "{}"),
+  );
+  const [tooltipOrderId, setTooltipOrderId] = useState(null);
 
   const itemsPerPage = 10;
 
@@ -43,11 +47,14 @@ export const EmployeePedidos = () => {
       setOrders(ordersService.getAll());
     };
 
-    window.addEventListener('syspharma_orders_updated', handleOrdersUpdated);
-    window.addEventListener('storage', handleOrdersUpdated);
+    window.addEventListener("syspharma_orders_updated", handleOrdersUpdated);
+    window.addEventListener("storage", handleOrdersUpdated);
     return () => {
-      window.removeEventListener('syspharma_orders_updated', handleOrdersUpdated);
-      window.removeEventListener('storage', handleOrdersUpdated);
+      window.removeEventListener(
+        "syspharma_orders_updated",
+        handleOrdersUpdated,
+      );
+      window.removeEventListener("storage", handleOrdersUpdated);
     };
   }, []);
 
@@ -75,6 +82,52 @@ export const EmployeePedidos = () => {
   const handleStatusChange = (order) => {
     setOrderToChangeStatus(order);
     setIsStatusModalOpen(true);
+  };
+
+  // Función para completar pedido (cambiar a "Entregado" y registrar venta)
+  const handleCompleteOrder = (order) => {
+    if (order.estado === "Pendiente" || order.estado === "En proceso") {
+      // Cambiar estado a Entregado
+      ordersService.updateStatus(order.id, "Entregado");
+      setOrders(ordersService.getAll());
+
+      // Registrar como venta
+      const today = new Date().toLocaleDateString("es-CO");
+      try {
+        const salesKey = "syspharma_sales";
+        const sales = JSON.parse(localStorage.getItem(salesKey) || "[]");
+        const newSale = {
+          id: order.id,
+          cliente: order.cliente,
+          productos: order.productos,
+          total: order.total,
+          metodoPago: order.metodoPago || "Efectivo",
+          notas: `Pedido completado: ${order.id}`,
+          pedidoId: order.id,
+          fecha: today,
+          hora: new Date().toLocaleTimeString("es-CO"),
+        };
+        sales.push(newSale);
+        localStorage.setItem(salesKey, JSON.stringify(sales));
+      } catch (error) {
+        console.warn("Error registrando venta:", error);
+      }
+
+      setNotification({
+        message: `Pedido ${order.id} completado y registrado como venta`,
+        type: "success",
+        zIndex: 1000,
+      });
+    }
+  };
+
+  // Función para verificar si un pedido es urgente
+  const isUrgent = (order) => {
+    if (order.estado !== "Pendiente") return false;
+    const orderDate = new Date(order.fecha || Date.now());
+    const now = new Date();
+    const diffMinutes = (now - orderDate) / (1000 * 60);
+    return diffMinutes > 20;
   };
 
   const handleEditOrder = (order) => {
@@ -217,7 +270,11 @@ export const EmployeePedidos = () => {
       // Filtro por viewMode
       if (viewMode === "activos") {
         // Mostrar Pendiente, En proceso, y Pendientes de Validación (de landing)
-        if (!["Pendiente", "En proceso", "Pendientes de Validación"].includes(order.estado)) {
+        if (
+          !["Pendiente", "En proceso", "Pendientes de Validación"].includes(
+            order.estado,
+          )
+        ) {
           return false;
         }
       } else if (viewMode === "historial") {
@@ -439,7 +496,11 @@ export const EmployeePedidos = () => {
                 displayedOrders.map((order) => (
                   <tr
                     key={order.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className={`hover:bg-gray-50 transition-colors ${
+                      isUrgent(order)
+                        ? "border-l-4 border-l-orange-500 bg-orange-50/30"
+                        : ""
+                    }`}
                   >
                     <td className="px-3 py-2.5 text-xs font-mono font-semibold text-gray-700">
                       {order.id}
@@ -451,8 +512,29 @@ export const EmployeePedidos = () => {
                     <td className="px-3 py-2.5 text-gray-600">
                       {new Date(order.fecha).toLocaleDateString("es-CO")}
                     </td>
-                    <td className="px-3 py-2.5 text-center font-semibold">
-                      {order.cantidadProductos}
+                    <td className="px-3 py-2.5 text-center font-semibold relative">
+                      <div
+                        className="cursor-help inline-block"
+                        onMouseEnter={() => setTooltipOrderId(order.id)}
+                        onMouseLeave={() => setTooltipOrderId(null)}
+                      >
+                        {order.cantidadProductos}
+                      </div>
+                      {/* Tooltip */}
+                      {tooltipOrderId === order.id && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 bg-gray-800 text-white text-xs py-2 px-3 rounded-lg whitespace-nowrap shadow-lg">
+                          {order.productos && order.productos.length > 0 ? (
+                            <div className="text-left">
+                              {order.productos.map((prod, idx) => (
+                                <div key={idx}>{prod.nombre}</div>
+                              ))}
+                            </div>
+                          ) : (
+                            "Sin productos"
+                          )}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-2.5 font-bold text-emerald-600 text-right">
                       {formatCurrency(order.total)}
@@ -475,6 +557,15 @@ export const EmployeePedidos = () => {
                         >
                           <Eye size={14} />
                         </button>
+                        {(order.estado === "Pendiente" || order.estado === "En proceso") && (
+                          <button
+                            onClick={() => handleCompleteOrder(order)}
+                            className="bg-green-50 hover:bg-green-100 text-green-600 p-1.5 rounded-md border border-green-200"
+                            title="Completar pedido"
+                          >
+                            <Check size={14} />
+                          </button>
+                        )}
                         {order.estado === "Pendiente" && (
                           <button
                             onClick={() => handleEditOrder(order)}

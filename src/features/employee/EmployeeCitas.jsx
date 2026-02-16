@@ -17,7 +17,8 @@ export const EmployeeCitas = () => {
   );
 
   useEffect(() => {
-    const reload = () => setAllAppointments(appointmentService.getAppointments());
+    const reload = () =>
+      setAllAppointments(appointmentService.getAppointments());
     window.addEventListener("appointments:changed", reload);
     return () => window.removeEventListener("appointments:changed", reload);
   }, []);
@@ -73,13 +74,13 @@ export const EmployeeCitas = () => {
   const totalAppointments = filteredAppointments.length;
   const completedAppointments = useMemo(
     () => filteredAppointments.filter((a) => a.estado === "Completada").length,
-    [filteredAppointments]
+    [filteredAppointments],
   );
   const pendingAppointments = useMemo(
     () =>
       filteredAppointments.filter((a) => a.estado === "Confirmar Asistencia")
         .length,
-    [filteredAppointments]
+    [filteredAppointments],
   );
 
   const periodLabels = {
@@ -163,9 +164,8 @@ export const EmployeeCitas = () => {
             {pendingAppointments}
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            {pendingAppointments} {pendingAppointments === 1
-              ? "cita pendiente"
-              : "citas pendientes"}
+            {pendingAppointments}{" "}
+            {pendingAppointments === 1 ? "cita pendiente" : "citas pendientes"}
           </div>
         </div>
       </div>
@@ -214,7 +214,9 @@ export const EmployeeCitas = () => {
                   >
                     <td className="px-4 py-2">{apt.paciente}</td>
                     <td className="px-4 py-2">
-                      {apt.doctorId === 1 ? "Dr. Andrés López" : "Enf. María Ruiz"}
+                      {apt.doctorId === 1
+                        ? "Dr. Andrés López"
+                        : "Enf. María Ruiz"}
                     </td>
                     <td className="px-4 py-2">{apt.fecha}</td>
                     <td className="px-4 py-2 font-medium">{apt.hora}</td>
@@ -244,9 +246,7 @@ export const EmployeeCitas = () => {
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">
-            <p>
-              No hay citas {periodLabels[periodFilter]}
-            </p>
+            <p>No hay citas {periodLabels[periodFilter]}</p>
           </div>
         )}
       </div>
