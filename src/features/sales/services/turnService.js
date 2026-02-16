@@ -97,6 +97,9 @@ export const turnService = {
     // Eliminar turno activo
     localStorage.removeItem(TURN_KEY);
 
+    // Dispara evento global para actualizar en toda la app
+    window.dispatchEvent(new CustomEvent("turn:closed", { detail: closedTurn }));
+
     return closedTurn;
   },
 
@@ -149,7 +152,7 @@ export const turnService = {
   /**
    * Calcula el saldo esperado al cierre de turno
    * Monto Base + Ventas - Gastos
-   * @returns {Object} { saldoEsperado, montoBase, totalVentas, totalGastos }
+   * @returns {Object} { saldoEsperado, montoBase, totalVentas, totalGastos, ventasProductos, ventasServicios }
    */
   calculateExpectedBalance: () => {
     const turn = turnService.getActiveTurn();
@@ -159,13 +162,28 @@ export const turnService = {
         montoBase: 0,
         totalVentas: 0,
         totalGastos: 0,
+        ventasProductos: 0,
+        ventasServicios: 0,
       };
     }
 
     const sales = turnService.getUserSales(turn.userId);
     const expenses = turnService.getUserExpenses(turn.userId);
 
-    const totalVentas = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    // Desglose por categoría
+    let ventasProductos = 0;
+    let ventasServicios = 0;
+    
+    sales.forEach(sale => {
+      const monto = sale.monto || sale.total || 0;
+      if (sale.categoria === 'servicio') {
+        ventasServicios += monto;
+      } else {
+        ventasProductos += monto;
+      }
+    });
+
+    const totalVentas = ventasProductos + ventasServicios;
     const totalGastos = expenses.reduce(
       (sum, exp) => sum + (exp.monto || 0),
       0,
@@ -174,6 +192,8 @@ export const turnService = {
     return {
       montoBase: turn.montoBase,
       totalVentas: totalVentas,
+      ventasProductos: ventasProductos,
+      ventasServicios: ventasServicios,
       totalGastos: totalGastos,
       saldoEsperado: turn.montoBase + totalVentas - totalGastos,
     };
@@ -202,8 +222,9 @@ export const turnService = {
   },
 
   /**
-   * Registra una venta (debe ser llamado desde SalesPage)
-   * @param {Object} saleData - { userId, userName, cliente, total, metodoPago, etc }
+   * Registra una venta (debe ser llamado desde SalesPage o EmployeeServicesPage)
+   * @param {Object} saleData - { userId, userName, cliente, total, monto, metodoPago, tipo, categoria, descripcion, etc }
+   * categoria puede ser 'producto' o 'servicio'
    */
   recordSale: (saleData) => {
     const sales = JSON.parse(localStorage.getItem("syspharma_sales") || "[]");
@@ -211,6 +232,7 @@ export const turnService = {
       ...saleData,
       saleId: Date.now(),
       fecha: new Date().toISOString(),
+      categoria: saleData.categoria || 'producto', // Default a 'producto' si no se especifica
     };
     sales.push(newSale);
     localStorage.setItem("syspharma_sales", JSON.stringify(sales));
@@ -233,5 +255,25 @@ export const turnService = {
     expenses.push(newExpense);
     localStorage.setItem("syspharma_expenses", JSON.stringify(expenses));
     return newExpense;
+  },
+
+  /**
+   * Cierra el turno y limpia la sesión (proceso atómico de seguridad)
+   * Debe ser llamado desde el logout para asegurar que cierre de turno y cierre de sesión sean un solo proceso
+   * @param {Object} closureData - { montoFinal, totalVentas, totalGastos, diferencia, notas }
+   */
+  closeTurnAndLogout: (closureData = {}) => {
+    try {
+      const turn = turnService.getActiveTurn();
+      if (turn) {
+        turnService.closeTurn(closureData);
+      }
+      localStorage.removeItem("syspharma_user");
+      return { success: true, message: "Turno cerrado y sesión terminada" };
+    } catch (error) {
+      console.error("Error en closeTurnAndLogout:", error);
+      localStorage.removeItem("syspharma_user");
+      return { success: false, message: error.message };
+    }
   },
 };

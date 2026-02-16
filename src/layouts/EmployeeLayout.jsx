@@ -1,16 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import EmployeeSidebar from "./Sidebar/EmployeeSidebar";
 import { EmployeeHeader } from "./Header/EmployeeHeader";
 import { authService } from "../features/auth/authService";
+import { turnService } from "../features/sales/services/turnService";
 
 const EmployeeLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
   const navigate = useNavigate();
 
+  // Listener para cambios de turno (propagar evento a componentes hijos)
+  useEffect(() => {
+    const handleTurnOpened = () => {
+      // Cuando se abre un turno, propagar a all listeners
+      window.dispatchEvent(new CustomEvent("turn:changed"));
+    };
+
+    const handleTurnClosed = () => {
+      // Cuando se cierra un turno, propagar a all listeners
+      window.dispatchEvent(new CustomEvent("turn:changed"));
+    };
+
+    window.addEventListener("turn:opened", handleTurnOpened);
+    window.addEventListener("turn:closed", handleTurnClosed);
+    return () => {
+      window.removeEventListener("turn:opened", handleTurnOpened);
+      window.removeEventListener("turn:closed", handleTurnClosed);
+    };
+  }, []);
+
   const handleConfirmLogout = () => {
-    authService.logout();
+    // Cerrar turno y sesión en un proceso atómico de seguridad
+    turnService.closeTurnAndLogout();
     setShowConfirmLogout(false);
     navigate("/");
   };

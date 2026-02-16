@@ -17,6 +17,8 @@ import {
   ChevronRight,
   LogOut,
   X,
+  BarChart3,
+  TrendingUp,
 } from "lucide-react";
 
 const Sidebar = ({ onClose, onShowLogoutModal }) => {
@@ -26,6 +28,7 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
     compras: true,
     ventas: false,
     servicios: false,
+    reportes: false,
   });
 
   const toggleMenu = (menu) =>
@@ -144,6 +147,34 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           />
         </MenuGroup>
 
+        {/* --- GRUPO REPORTES --- */}
+        <MenuGroup
+          title="Reportes"
+          icon={BarChart3}
+          isOpen={openMenus.reportes}
+          onToggle={() => toggleMenu("reportes")}
+          active={isGroupActive("/admin/reportes")}
+        >
+          <SubMenuItem
+            to="/admin/reportes/turnos"
+            label="Historial de Turnos"
+            icon={Calendar}
+            active={isActive("/admin/reportes/turnos")}
+          />
+          <SubMenuItem
+            to="/admin/reportes/pedidos"
+            label="Análisis de Pedidos"
+            icon={ClipboardList}
+            active={isActive("/admin/reportes/pedidos")}
+          />
+          <SubMenuItem
+            to="/admin/reportes/desempeño"
+            label="Desempeño de Vendedores"
+            icon={TrendingUp}
+            active={isActive("/admin/reportes/desempeño")}
+          />
+        </MenuGroup>
+
         <div className="pt-3 pb-1 border-t border-gray-700 mt-2">
           <p className="px-3 text-[9px] font-bold text-gray-500 uppercase tracking-wider">
             Sistema
@@ -218,54 +249,65 @@ const MenuGroup = ({
   onToggle,
   children,
   active,
-}) => (
-  <div className="mb-0.5">
-    {/* Contenedor Flex que separa el Link del Botón Toggle */}
-    <div
-      className={`flex items-center rounded-md transition-colors ${
-        active
-          ? "bg-primary-500 text-white"
-          : "text-gray-300 hover:bg-white/5 hover:text-white"
-      }`}
-    >
-      {/* 1. ZONA DE NAVEGACIÓN (Izquierda) */}
-      <Link
-        to={to}
-        className="flex-1 flex items-center px-3 py-2 cursor-pointer outline-none"
-        onClick={() => {
-          // Opcional: Si quieres que al dar click en el nombre TAMBIÉN se abra el menú, descomenta esto:
-          // if (!isOpen) onToggle();
-        }}
-      >
-        <Icon
-          size={18}
-          className={`mr-3 ${active ? "text-white" : "text-gray-400"}`}
-        />
-        <span className="text-xs font-medium">{title}</span>
-      </Link>
+}) => {
+  // Si no hay "to", renderizar como div interactivo; si hay, renderizar como Link
+  const content = (
+    <>
+      <Icon
+        size={18}
+        className={`mr-3 ${active ? "text-white" : "text-gray-400"}`}
+      />
+      <span className="text-xs font-medium">{title}</span>
+    </>
+  );
 
-      {/* 2. ZONA DE EXPANDIR/CONTRAER (Derecha - Botón Flecha) */}
-      <button
-        onClick={(e) => {
-          e.preventDefault(); // Evita navegar
-          e.stopPropagation();
-          onToggle();
-        }}
-        className="p-2 hover:bg-white/10 rounded-r-md transition-colors cursor-pointer"
+  return (
+    <div className="mb-0.5">
+      {/* Contenedor Flex que separa el Link del Botón Toggle */}
+      <div
+        className={`flex items-center rounded-md transition-colors ${
+          active
+            ? "bg-primary-500 text-white"
+            : "text-gray-300 hover:bg-white/5 hover:text-white"
+        }`}
       >
-        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-      </button>
-    </div>
+        {/* 1. ZONA DE NAVEGACIÓN (Izquierda) */}
+        {to ? (
+          <Link
+            to={to}
+            className="flex-1 flex items-center px-3 py-2 cursor-pointer outline-none"
+          >
+            {content}
+          </Link>
+        ) : (
+          <div className="flex-1 flex items-center px-3 py-2">
+            {content}
+          </div>
+        )}
 
-    {/* Contenido Desplegable */}
-    <div
-      className={`overflow-hidden transition-all duration-300 ${
-        isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-      }`}
-    >
-      <div className="mt-0.5 space-y-0.5">{children}</div>
+        {/* 2. ZONA DE EXPANDIR/CONTRAER (Derecha - Botón Flecha) */}
+        <button
+          onClick={(e) => {
+            e.preventDefault(); // Evita navegar
+            e.stopPropagation();
+            onToggle();
+          }}
+          className="p-2 hover:bg-white/10 rounded-r-md transition-colors cursor-pointer"
+        >
+          {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+      </div>
+
+      {/* Contenido Desplegable */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="mt-0.5 space-y-0.5">{children}</div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default Sidebar;

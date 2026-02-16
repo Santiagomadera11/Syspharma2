@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { RegisterExpenseModal } from "./components/RegisterExpenseModal";
 import { ExpensesModal } from "./components/ExpensesModal";
-import { ShiftsHistory } from "./components/ShiftsHistory";
 import { turnService } from "./services/turnService";
 import { ordersService } from "./orders/services/ordersService";
 import { expensesService } from "./services/expensesService";
@@ -39,7 +38,6 @@ export const SalesPage = () => {
   const [selectedSale, setSelectedSale] = useState(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
-  const [showShiftsHistory, setShowShiftsHistory] = useState(false);
   const [currentTurn, setCurrentTurn] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -50,12 +48,21 @@ export const SalesPage = () => {
     const activeTurn = turnService.getActiveTurn();
     if (activeTurn) {
       setCurrentTurn(activeTurn);
-    } else {
-      setShowOpenShiftModal(true);
     }
     // Recargar ventas desde BD
     setSales(salesService.getAll());
     setExpenses(expensesService.getTodayExpenses());
+
+    // Escuchar cuando se abre un turno
+    const handleTurnOpened = (event) => {
+      const newTurn = event.detail;
+      setCurrentTurn(newTurn);
+    };
+
+    // Escuchar cuando se cierra un turno
+    const handleTurnClosed = () => {
+      setCurrentTurn(null);
+    };
 
     // Escuchar eventos de sincronización
     const handleSync = () => {
@@ -69,6 +76,8 @@ export const SalesPage = () => {
       setExpenses(expensesService.getTodayExpenses());
     };
 
+    window.addEventListener("turn:opened", handleTurnOpened);
+    window.addEventListener("turn:closed", handleTurnClosed);
     window.addEventListener("focus", handleFocus);
     window.addEventListener("sales:changed", handleSync);
     window.addEventListener("expenses:changed", handleSync);
@@ -80,6 +89,8 @@ export const SalesPage = () => {
     }, 2000);
 
     return () => {
+      window.removeEventListener("turn:opened", handleTurnOpened);
+      window.removeEventListener("turn:closed", handleTurnClosed);
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("sales:changed", handleSync);
       window.removeEventListener("expenses:changed", handleSync);
@@ -107,15 +118,17 @@ export const SalesPage = () => {
   };
 
   const handleNewSale = () => {
-    // Validar turno antes de crear venta
-    const validation = turnService.validateOperationAllowed();
-    if (!validation.valid) {
-      setToast({
-        message: validation.message,
-        type: "error",
-        zIndex: 70,
-      });
-      return;
+    // Solo empleados deben validar turno
+    if (user.rol !== "Administrador") {
+      const validation = turnService.validateOperationAllowed();
+      if (!validation.valid) {
+        setToast({
+          message: validation.message,
+          type: "error",
+          zIndex: 70,
+        });
+        return;
+      }
     }
     navigate("/admin/ventas/nueva");
   };
@@ -180,15 +193,17 @@ export const SalesPage = () => {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              // Validar turno antes de registrar gasto
-              const validation = turnService.validateOperationAllowed();
-              if (!validation.valid) {
-                setToast({
-                  message: validation.message,
-                  type: "error",
-                  zIndex: 70,
-                });
-                return;
+              // Solo empleados deben validar turno
+              if (user.rol !== "Administrador") {
+                const validation = turnService.validateOperationAllowed();
+                if (!validation.valid) {
+                  setToast({
+                    message: validation.message,
+                    type: "error",
+                    zIndex: 70,
+                  });
+                  return;
+                }
               }
               setIsRegisterExpenseModalOpen(true);
             }}
@@ -196,13 +211,6 @@ export const SalesPage = () => {
           >
             <Plus size={16} />
             Registrar gasto
-          </button>
-          <button
-            onClick={() => setShowShiftsHistory(true)}
-            className="bg-blue-400 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
-          >
-            <History size={16} />
-            Ver turnos
           </button>
           <button
             onClick={() => setShowCloseShiftModal(true)}
@@ -437,12 +445,6 @@ export const SalesPage = () => {
         onShiftClosed={handleShiftClosed}
         onClose={() => setShowCloseShiftModal(false)}
         user={user}
-      />
-
-      {/* Modal de Auditoría de Turnos */}
-      <ShiftsHistory
-        isOpen={showShiftsHistory}
-        onClose={() => setShowShiftsHistory(false)}
       />
 
       {/* Toast Notification */}

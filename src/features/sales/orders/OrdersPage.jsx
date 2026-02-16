@@ -7,14 +7,20 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
 import { OrderDetailModal } from "./components/OrderDetailModal";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
+import { turnService } from "../sales/services/turnService";
+import { authService } from "../../auth/authService";
 
 export const OrdersPage = () => {
   const navigate = useNavigate();
+  const currentUser = authService.getCurrentUser();
+  const isEmployee = currentUser?.rol === "Empleado";
+  
   const [orders, setOrders] = useState(ordersService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -24,8 +30,20 @@ export const OrdersPage = () => {
   const [notification, setNotification] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [hasActiveTurn, setHasActiveTurn] = useState(turnService.hasActiveTurn());
+  const [showTurnTooltip, setShowTurnTooltip] = useState(false);
 
   const itemsPerPage = 10;
+
+  // Escuchar cambios en el turno activo
+  React.useEffect(() => {
+    const handleTurnChange = () => {
+      setHasActiveTurn(turnService.hasActiveTurn());
+    };
+
+    window.addEventListener("turn:changed", handleTurnChange);
+    return () => window.removeEventListener("turn:changed", handleTurnChange);
+  }, []);
 
   const handleDeleteOrder = (id) => {
     if (window.confirm("¿Eliminar pedido?")) {
@@ -119,13 +137,28 @@ export const OrdersPage = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => navigate("/admin/pedidos/crear")}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all"
-        >
-          <Plus size={16} />
-          Crear pedido
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => navigate("/admin/pedidos/crear")}
+            disabled={isEmployee && !hasActiveTurn}
+            onMouseEnter={() => isEmployee && !hasActiveTurn && setShowTurnTooltip(true)}
+            onMouseLeave={() => setShowTurnTooltip(false)}
+            className={`px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all ${
+              isEmployee && !hasActiveTurn
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+            }`}
+          >
+            <Plus size={16} />
+            Crear pedido
+          </button>
+          {showTurnTooltip && isEmployee && !hasActiveTurn && (
+            <div className="absolute top-full mt-2 left-0 bg-gray-800 text-white text-xs rounded-md px-3 py-2 whitespace-nowrap shadow-lg z-50 flex items-center gap-1.5">
+              <AlertCircle size={14} />
+              REGLA DE ORO: Los empleados deben abrir caja primero
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filtros */}
