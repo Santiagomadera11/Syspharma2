@@ -49,9 +49,7 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
         <div className="p-5 space-y-4">
           {/* Información del Cliente */}
           <div>
-            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2.5 text-emerald-700">
-              Información del Cliente
-            </h3>
+            <h3 className="text-emerald-700">Información del Cliente</h3>
             <div className="bg-gray-50 rounded-lg p-3 space-y-2">
               <div className="flex justify-between items-start">
                 <span className="text-xs text-gray-600">Nombre:</span>
@@ -130,9 +128,7 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
 
           {/* Productos */}
           <div>
-            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2.5 text-emerald-700">
-              Productos ({order.cantidadProductos})
-            </h3>
+            <h3 className="text-emerald-700">Productos ({order.cantidadProductos})</h3>
             <div className="bg-gray-50 rounded-lg p-3 space-y-2 max-h-[150px] overflow-y-auto">
               {order.productos && order.productos.length > 0 ? (
                 order.productos.map((product, idx) => (
