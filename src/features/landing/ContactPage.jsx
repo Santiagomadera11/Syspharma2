@@ -9,15 +9,12 @@ export const ContactPage = () => {
       <PublicNavbar />
       
       {/* flex-1 centra el contenido verticalmente si sobra espacio */}
-      <div className="flex-1 max-w-5xl mx-auto px-4 py-4 flex items-center w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-          
+      <div className="flex-1 max-w-5xl mx-auto px-4 py-4 w-full">
+        <div className="max-w-2xl mx-auto">
           <div className="flex flex-col justify-center">
             <h1 className="text-2xl font-bold text-primary-900 mb-4">Contáctanos</h1>
-            <p className="text-sm text-gray-600 mb-6">
-              Barrio Galán. Estamos atentos a tus pedidos.
-            </p>
-            
+            <p className="text-sm text-gray-600 mb-6">Barrio Galán. Estamos atentos a tus pedidos.</p>
+
             <div className="space-y-3">
               <ContactItem icon={MapPin} title="Ubicación" text="Calle 10 #27, Barrio Galán" />
               <ContactItem icon={Phone} title="Teléfono" text="313 616 0504" />
@@ -25,20 +22,6 @@ export const ContactPage = () => {
               <ContactItem icon={Clock} title="Horario" text="06:00 AM - 10:00 PM" />
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Envíanos un mensaje</h3>
-            <form className="space-y-3">
-              <input type="text" className="w-full px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" placeholder="Nombre" />
-              <input type="tel" className="w-full px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400" placeholder="Celular" />
-              <textarea rows="3" className="w-full px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-primary-400 resize-none" placeholder="Tu mensaje..."></textarea>
-
-              <button className="w-full bg-primary-600 text-white font-bold py-2 rounded-lg hover:bg-primary-700 transition text-sm">
-                Enviar
-              </button>
-            </form>
-          </div>
-
         </div>
       </div>
 

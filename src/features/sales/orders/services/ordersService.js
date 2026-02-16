@@ -94,6 +94,11 @@ export const ordersService = {
     const next = [newOrder, ...orders];
     localStorage.setItem(DB_KEY, JSON.stringify(next));
 
+    // Emitir eventos para notificar otras pestañas/componentes
+    try { window.dispatchEvent(new CustomEvent(`${DB_KEY}_updated`, { detail: {} })); } catch (e) {}
+    try { window.dispatchEvent(new Event(`${DB_KEY}_updated`)); } catch (e) {}
+    try { window.dispatchEvent(new Event('storage')); } catch (e) {}
+
     // Si es pedido de empleado CON turno, registrar como venta inmediata
     if (orderData.origin === "empleado" && turn) {
       try {

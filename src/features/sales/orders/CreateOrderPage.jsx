@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Search, Plus, Trash2, ArrowLeft, Package } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { productService } from "../../inventory/products/services/productService";
+import { read, write, LS } from '../../../shared/services/lsService';
 import { ordersService } from "./services/ordersService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 import { getPaymentMethods } from "../../settings/services/parameterService";
@@ -29,37 +30,31 @@ export const CreateOrderPage = () => {
 
   // Función para cargar carrito desde localStorage
   const loadCartFromStorage = () => {
-    const savedCart = localStorage.getItem("syspharma_cart");
-    if (savedCart) {
-      try {
-        const parsedCart = JSON.parse(savedCart);
-        if (Array.isArray(parsedCart) && parsedCart.length > 0) {
-          // Sincronizar stock con inventario actual y ajustar cantidades si es necesario
-          return parsedCart.map((cartItem) => {
-            const currentProduct = productService.getById(cartItem.id);
-            if (currentProduct) {
-              // Si el stock actual es menor que la cantidad en el carrito, ajustar cantidad
-              const adjustedQuantity = Math.min(
-                cartItem.cantidad,
-                currentProduct.stock,
-              );
-              return {
-                ...cartItem,
-                stock: currentProduct.stock,
-                cantidad: adjustedQuantity,
-              };
-            }
-            return cartItem;
-          });
-        }
-        return [];
-      } catch (error) {
-        console.error("Error parsing saved cart:", error);
-        localStorage.removeItem("syspharma_cart");
-        return [];
+    const savedCart = read(LS.CART) || [];
+    try {
+      if (Array.isArray(savedCart) && savedCart.length > 0) {
+        return savedCart.map((cartItem) => {
+          const currentProduct = productService.getById(cartItem.id);
+          if (currentProduct) {
+            const adjustedQuantity = Math.min(
+              cartItem.cantidad,
+              currentProduct.stock,
+            );
+            return {
+              ...cartItem,
+              stock: currentProduct.stock,
+              cantidad: adjustedQuantity,
+            };
+          }
+          return cartItem;
+        });
       }
+      return [];
+    } catch (error) {
+      console.error("Error parsing saved cart:", error);
+      write(LS.CART, []);
+      return [];
     }
-    return [];
   };
 
   const [cart, setCart] = useState(loadCartFromStorage);
@@ -67,7 +62,7 @@ export const CreateOrderPage = () => {
 
   // Guardar carrito en localStorage
   useEffect(() => {
-    localStorage.setItem("syspharma_cart", JSON.stringify(cart));
+    write(LS.CART, cart);
   }, [cart]);
 
   const [isEditing, setIsEditing] = useState(false);

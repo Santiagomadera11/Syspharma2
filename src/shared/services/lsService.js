@@ -21,7 +21,23 @@ export const write = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
     // emit an event so other components can react
-    window.dispatchEvent(new CustomEvent(`${key}_updated`, { detail: { key } }));
+    // Dispatch both a CustomEvent (with detail) and a plain Event for broader compatibility
+    try {
+      window.dispatchEvent(new CustomEvent(`${key}_updated`, { detail: { key } }));
+    } catch (e) {
+      // ignore if CustomEvent not supported
+    }
+    try {
+      window.dispatchEvent(new Event(`${key}_updated`));
+    } catch (e) {
+      // ignore
+    }
+    try {
+      // also dispatch a generic 'storage' event to notify listeners that rely on that
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {
+      // ignore
+    }
     return true;
   } catch (e) {
     return false;
