@@ -167,9 +167,9 @@ export const SalesPage = () => {
   const filteredSales = sales.filter((s) => {
     const term = searchTerm.toLowerCase();
     return (
-      s.cliente.toLowerCase().includes(term) ||
-      String(s.id).includes(term) ||
-      s.metodoPago.toLowerCase().includes(term)
+      (s?.cliente || "").toLowerCase().includes(term) ||
+      String(s?.id || "").includes(term) ||
+      (s?.metodoPago || "").toLowerCase().includes(term)
     );
   });
 
@@ -338,9 +338,9 @@ export const SalesPage = () => {
                   </td>
                 </tr>
               ) : (
-                displayedSales.map((sale) => (
+                displayedSales.map((sale, idx) => (
                   <tr
-                    key={sale.id}
+                    key={sale?.id ?? `sale-${idx}`}
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-3 py-2.5 text-xs font-mono font-semibold text-gray-700">
@@ -355,7 +355,7 @@ export const SalesPage = () => {
                       {sale.metodoPago}
                     </td>
                     <td className="px-3 py-2.5 font-bold text-emerald-600 text-right">
-                      ${sale.total.toLocaleString()}
+                      ${((sale && sale.total) || 0).toLocaleString()}
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <span

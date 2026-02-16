@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Trash2, Plus, Minus, ShoppingBag, CheckCircle, Loader2, Package } from 'lucide-react';
 import useCart from '../../../shared/context/CartContext';
 import { ordersService } from '../../sales/orders/services/ordersService';
-import { toast } from 'sonner';
+import toast from '../../../shared/utils/toast';
 
 export const CartDrawer = () => {
   const { cartItems, removeFromCart, updateQuantity, cartTotal, clearCart, setIsCartOpen, isCartOpen } = useCart();
@@ -100,7 +100,7 @@ export const CartDrawer = () => {
                         <span className="text-xs font-bold w-4 text-center">{item.cantidad}</span>
                         <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:text-green-500"><Plus size={14}/></button>
                       </div>
-                      <button onClick={() => removeFromCart(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
+                      <button onClick={() => removeFromCart(item.id, item.cantidad)} className="text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
                     </div>
                   </div>
                 </div>

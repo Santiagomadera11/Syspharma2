@@ -34,6 +34,14 @@ const getLocalToday = () => {
   return `${year}-${month}-${day}`;
 };
 
+  const formatDateDisplay = (isoDate) => {
+    if (!isoDate) return "";
+    // espera YYYY-MM-DD
+    const parts = isoDate.split("-");
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return isoDate;
+  };
+
 const AppointmentFormModal = ({
   isOpen,
   onClose,
@@ -95,7 +103,7 @@ const AppointmentFormModal = ({
     // Cargar servicios
     const loadServices = () => {
       try {
-        const storedServices = localStorage.getItem("sys_services_db");
+        const storedServices = localStorage.getItem("sys_services");
         if (storedServices) {
           const parsedServices = JSON.parse(storedServices);
           const activeServices = parsedServices.filter(
@@ -108,6 +116,9 @@ const AppointmentFormModal = ({
       }
     };
     loadServices();
+    const onServicesChange = () => loadServices();
+    window.addEventListener('services:changed', onServicesChange);
+    return () => window.removeEventListener('services:changed', onServicesChange);
   }, [appointment, isOpen]);
 
   // Generador de horas de respaldo
@@ -121,38 +132,39 @@ const AppointmentFormModal = ({
   };
 
   // Obtener fechas no disponibles del médico seleccionado
+  // Obtener fechas no disponibles del médico seleccionado
+  // Retornamos un array de objetos { date, reason } donde reason puede ser 'farmacia'|'doctor'|'global' (fallback)
   const getDisabledDatesForDoctor = (doctorId) => {
     if (!availabilityService || !doctorId) return [];
-    
+
     try {
-      // Obtener disponibilidad del médico
       const doctorAvailability = availabilityService.getAvailabilityByDoctor(parseInt(doctorId));
       const unavailableDays = availabilityService.getUnavailableDays() || [];
-      
-      const disabledDates = [];
-      
-      // Agregar días globalmente no disponibles
-      unavailableDays.forEach(day => {
-        disabledDates.push(day.date);
+
+      const disabled = [];
+
+      // Agregar días globalmente no disponibles (asumimos cierre de farmacia / sistema)
+      unavailableDays.forEach((day) => {
+        disabled.push({ date: day.date, reason: day.reason ? String(day.reason).toLowerCase() : "farmacia" });
       });
-      
-      // Agregar días que no están programados para el médico (sábados y domingos)
+
+      // Agregar días que no están programados para el médico (ej. fines de semana) como 'doctor'
       if (doctorAvailability) {
         const today = new Date();
         const maxDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 días adelante
-        
+
         for (let d = new Date(today); d <= maxDate; d.setDate(d.getDate() + 1)) {
           const dayOfWeek = d.getDay();
           const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
           const dayName = dayNames[dayOfWeek];
-          
+
           if (!doctorAvailability.schedule[dayName]) {
-            disabledDates.push(getDateString(d));
+            disabled.push({ date: getDateString(d), reason: "doctor" });
           }
         }
       }
-      
-      return disabledDates;
+
+      return disabled;
     } catch (error) {
       console.warn("Error getting disabled dates:", error);
       return [];
@@ -172,12 +184,18 @@ const AppointmentFormModal = ({
             parseInt(formData.doctorId),
             formData.fecha,
           );
+          // Si el servicio devuelve null/undefined convertimos a array vacío.
+          if (!Array.isArray(slots)) slots = [];
+        } else {
+          // Si no hay servicio de disponibilidad, mostramos una lista de respaldo
+          slots = generateTimeSlots();
         }
       } catch (error) {
-        console.warn("Error slots servicio");
+        console.warn("Error slots servicio", error);
+        slots = [];
       }
 
-      if (!slots || slots.length === 0) slots = generateTimeSlots();
+      // NOTA: NO hacer fallback a generateTimeSlots si el servicio indicó que no hay slots (evita mostrar horarios cuando el médico no está disponible)
       setAvailableSlots(slots);
     } else {
       setAvailableSlots([]);
@@ -412,7 +430,9 @@ const AppointmentFormModal = ({
                   {/* ✅ LÓGICA DE FILTRADO: Solo mostrar médicos con estado "Activo" */}
                   {doctors &&
                     doctors
-                      .filter(d => {
+                      .filter((d) => {
+                        // Mostrar médicos activos; si no existe campo 'estado', incluir por defecto
+                        if (d.estado === undefined || d.estado === null) return true;
                         if (d.estado === true || d.estado === "Activo") return true;
                         return false;
                       })
@@ -435,17 +455,18 @@ const AppointmentFormModal = ({
                   </label>
                   <div className="relative">
                     <Calendar
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
                       size={16}
+                      onClick={() => formData.doctorId && setShowCalendarPicker(!showCalendarPicker)}
                     />
                     <input
                       name="fecha"
-                      type="date"
+                      type="text"
+                      readOnly
                       className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 cursor-pointer ${errors.fecha ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
-                      value={formData.fecha}
-                      onChange={handleGenericInput}
+                      value={formatDateDisplay(formData.fecha)}
                       onClick={() => formData.doctorId && setShowCalendarPicker(!showCalendarPicker)}
-                      min={getLocalToday()}
+                      placeholder="Seleccione fecha"
                     />
                   </div>
                   {errors.fecha && (
@@ -453,12 +474,16 @@ const AppointmentFormModal = ({
                       {errors.fecha}
                     </p>
                   )}
-                  {formData.fecha && formData.doctorId && getDisabledDatesForDoctor(formData.doctorId).includes(formData.fecha) && (
-                    <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                      <AlertCircle size={12} />
-                      El médico no está disponible
-                    </p>
-                  )}
+                  {formData.fecha && formData.doctorId && (() => {
+                    const dd = getDisabledDatesForDoctor(formData.doctorId);
+                    const found = Array.isArray(dd) && dd.find(d => (typeof d === 'string' ? d === formData.fecha : (d?.date === formData.fecha)));
+                    return found ? (
+                      <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                        <AlertCircle size={12} />
+                        El médico no está disponible
+                      </p>
+                    ) : null;
+                  })()}
                   
                   {/* Calendar Picker Expandible */}
                   {showCalendarPicker && formData.doctorId && (
@@ -547,10 +572,12 @@ const AppointmentFormModal = ({
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                       size={16}
                     />
+                    {/* Si la lista de servicios existe mostramos el precio asignado en un input NO editable. Si no, permitimos edición libre. */}
                     <input
                       name="precio"
                       type="number"
-                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg font-bold text-gray-700 focus:outline-none focus:ring-2 ${errors.precio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                      readOnly={servicesList.length > 0}
+                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg font-bold text-gray-700 focus:outline-none focus:ring-2 ${errors.precio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"} ${servicesList.length > 0 ? "bg-gray-50 cursor-not-allowed" : "bg-white"}`}
                       placeholder="0.00"
                       value={formData.precio}
                       onChange={handleGenericInput}

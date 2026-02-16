@@ -90,7 +90,18 @@ export const CartProvider = ({ children }) => {
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (id) => saveCart(cartItems.filter((it) => String(it.id) !== String(id)));
+  const removeFromCart = (id, qty = 1) => {
+    setCartItems((prev) => {
+      const existing = prev.find((it) => String(it.id) === String(id));
+      if (!existing) return prev;
+      const currentQty = Number(existing.cantidad) || 1;
+      if (qty >= currentQty) {
+        return prev.filter((it) => String(it.id) !== String(id));
+      }
+      // decrement
+      return prev.map((it) => (String(it.id) === String(id) ? { ...it, cantidad: currentQty - qty } : it));
+    });
+  };
 
   const updateQuantity = (id, delta) => {
     const updated = cartItems
