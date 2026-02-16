@@ -1,11 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { PublicNavbar } from "./components/PublicNavbar";
-import useCart from '../../shared/context/CartContext';
 import { Zap, Shield, DollarSign, Pill, Mail, Phone } from "lucide-react";
 import { useCrud } from "../../shared/hooks/useCrud";
 import { useState } from "react";
 import ProductDetailModal from "../../shared/ui/ProductDetailModal";
+import ProductCardGrid from '../client/components/ProductCard';
+import useCart from '../../shared/context/CartContext';
 
 export const LandingPage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -116,41 +117,27 @@ export const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <div
-                key={product.id}
-                onClick={() => setSelectedProduct(product)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') setSelectedProduct(product); }}
-                className="group relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-              >
-                {/* Product Image */}
-                <div className="relative h-48 bg-gradient-to-br from-emerald-50 to-gray-50 flex items-center justify-center overflow-hidden">
-                  {product.imagen || product.image ? (
-                    <img
-                      src={product.imagen || product.image}
-                      alt={product.nombre || product.name}
-                      className="object-contain h-full w-full p-6"
-                    />
-                  ) : (
-                    <Pill size={80} className="text-gray-300" />
-                  )}
-                </div>
+            {featuredProducts.map((product) => {
+              const mapped = {
+                id: product.id,
+                name: product.nombre || product.name,
+                marca: product.proveedor || product.marca,
+                image: product.imagen || product.image || null,
+                price: Number(product.precio ?? product.price ?? 0),
+                stock: product.stock ?? product.existencia ?? 0,
+              };
 
-                {/* Product Info */}
-                <div className="p-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">{product.proveedor || product.marca}</p>
-                  <h3 className="font-semibold text-gray-900 mt-2 line-clamp-2">{product.nombre || product.name}</h3>
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-emerald-600 font-bold text-lg">
-                      ${Number(product.precio ?? product.price ?? 0).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-            ))}
+              const cart = useCart();
+              return (
+                <ProductCardGrid
+                  key={product.id}
+                  product={mapped}
+                  onOpenDetail={() => setSelectedProduct(product)}
+                  onAdd={() => { try { cart.addToCart(product); } catch(e) { console.error(e); } }}
+                  onQuickBuy={() => setSelectedProduct(product)}
+                />
+              );
+            })}
           </div>
         </div>
       </section>

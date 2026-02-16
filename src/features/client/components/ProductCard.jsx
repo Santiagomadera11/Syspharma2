@@ -6,8 +6,14 @@ export const fmt = (v) => {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 };
 
-export const ProductCardGrid = ({ product, isFav, onToggleFav, onAdd, disabled, children }) => (
-  <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition h-full flex flex-col">
+export const ProductCardGrid = ({ product, isFav, onToggleFav, onAdd, onQuickBuy, onOpenDetail, disabled, children }) => (
+  <div
+    className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition h-full flex flex-col relative cursor-pointer"
+    onClick={() => onOpenDetail && onOpenDetail(product)}
+    role={onOpenDetail ? 'button' : undefined}
+    tabIndex={onOpenDetail ? 0 : undefined}
+    onKeyDown={(e) => { if (onOpenDetail && (e.key === 'Enter' || e.key === ' ')) onOpenDetail(product); }}
+  >
     <div className="relative h-40 bg-gray-50 flex items-center justify-center overflow-hidden group">
       {product.image ? (
         <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
@@ -16,7 +22,7 @@ export const ProductCardGrid = ({ product, isFav, onToggleFav, onAdd, disabled, 
       )}
       {!children && (
         <button
-          onClick={() => onToggleFav && onToggleFav(product.id)}
+          onClick={(e) => { e.stopPropagation(); onToggleFav && onToggleFav(product.id); }}
           className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition"
         >
           <Heart size={18} className={isFav ? 'text-red-500 fill-red-500' : 'text-gray-400'} />
@@ -41,17 +47,30 @@ export const ProductCardGrid = ({ product, isFav, onToggleFav, onAdd, disabled, 
         <div className="text-emerald-600 font-semibold text-lg">{fmt(product.price ?? product.precio ?? product.precioActual)}</div>
       </div>
 
-      {/* If caller provided children, render them as actions; otherwise render default add button */}
+      {/* Actions: children override default small overlay actions */}
       {children ? (
         <div className="mt-3">{children}</div>
       ) : (
-        <button
-          onClick={() => onAdd && onAdd(product.id)}
-          disabled={disabled}
-          className={`mt-3 ${disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'} px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition`}
-        >
-          <Plus size={14} /> {disabled ? 'Stock máximo alcanzado' : 'Añadir'}
-        </button>
+        <div className="mt-3 flex items-center justify-between">
+          <div />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); onAdd && onAdd(product.id); }}
+              disabled={disabled}
+              className={`${disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white'} p-2 rounded-full transition shadow-sm`}
+              title={disabled ? 'Stock máximo alcanzado' : 'Añadir'}
+            >
+              <Plus size={14} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onQuickBuy ? onQuickBuy(product) : onAdd && onAdd(product.id); }}
+              className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition shadow-sm"
+              title="Comprar ahora"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6h15l-1.5 9h-13L4 2H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
       )}
     </div>
   </div>

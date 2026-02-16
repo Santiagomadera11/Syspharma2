@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, ShoppingBag, MapPin, User, Phone, CheckCircle, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import toast from "../../../shared/utils/toast";
 import { ordersService } from "../../sales/orders/services/ordersService";
 
 const GuestOrderModal = ({ isOpen, onClose, product }) => {

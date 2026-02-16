@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Heart, Plus, Star, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import { useCrud } from '../../../shared/hooks/useCrud';
 import ProductDetailModal from '../../../shared/ui/ProductDetailModal';
+import ProductCardGrid from '../../client/components/ProductCard';
+import useCart from '../../../shared/context/CartContext';
 import GuestOrderModal from './GuestOrderModal';
 
 export const FeaturedProducts = () => {
@@ -43,50 +45,24 @@ export const FeaturedProducts = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 min-h-[280px]"> 
           {productosVisibles.map((producto) => {
-            const title = producto.nombre || producto.name || 'Producto';
-            const brand = producto.laboratorio || producto.proveedor || producto.marca || '';
-            const price = Number(producto.precio ?? producto.price ?? 0);
-            const img = producto.imagen || producto.image || null;
+            const mapped = {
+              id: producto.id,
+              name: producto.nombre || producto.name || 'Producto',
+              marca: producto.laboratorio || producto.proveedor || producto.marca || '',
+              price: Number(producto.precio ?? producto.price ?? 0),
+              image: producto.imagen || producto.image || null,
+              stock: producto.stock ?? producto.existencia ?? 0,
+            };
 
+            const cart = useCart();
             return (
-              <div key={producto.id || title}
-                   onClick={() => setSelectedProduct(producto)}
-                   role="button"
-                   tabIndex={0}
-                   onKeyDown={(e) => { if (e.key === 'Enter') setSelectedProduct(producto); }}
-                   className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden flex flex-col h-full cursor-pointer">
-                <button className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-full text-gray-400 hover:text-red-500 shadow-sm z-10">
-                  <Heart size={14} />
-                </button>
-
-                <div className="h-32 bg-gray-50 flex items-center justify-center p-2 group-hover:bg-primary-50 transition-colors">
-                  {img ? (
-                    <img src={img} alt={title} className="max-h-24 object-contain" />
-                  ) : (
-                    <div className="text-4xl">{producto.icono || '💊'}</div>
-                  )}
-                </div>
-
-                <div className="p-3 flex-1 flex flex-col">
-                  <p className="text-[10px] text-primary-400 font-semibold">{brand}</p>
-                  <h3 className="text-gray-800 font-bold text-sm mb-1 truncate">{title}</h3>
-
-                  <div className="flex gap-0.5 mb-2">
-                    {[1,2,3,4,5].map(i => <Star key={i} size={8} className="text-yellow-400 fill-yellow-400" />)}
-                  </div>
-
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-base font-bold text-primary-900">${price.toLocaleString()}</span>
-                    <div className="flex items-center gap-2">
-                      <button className="bg-primary-100 text-primary-600 hover:bg-primary-400 hover:text-white p-1.5 rounded-lg transition-all shadow-sm">
-                        <Plus size={16} />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); setGuestProduct(producto); setIsGuestModalOpen(true); }} title="Comprar ahora" className="bg-blue-600 text-white p-1.5 rounded-lg hover:bg-blue-700 transition-colors">
-                        <ShoppingCart size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <div key={producto.id || producto.nombre}>
+                <ProductCardGrid
+                  product={mapped}
+                  onOpenDetail={() => setSelectedProduct(producto)}
+                  onAdd={() => { try { cart.addToCart(producto); } catch(e) { console.error(e); } }}
+                  onQuickBuy={() => { setGuestProduct(producto); setIsGuestModalOpen(true); }}
+                />
               </div>
             );
           })}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Heart, Plus, ChevronLeft, ChevronRight, Pill, Leaf, Droplet, Sparkles, Search } from 'lucide-react';
 import ProductCardGrid, { fmt as cardFmt } from './components/ProductCard';
+import useCart from '../../shared/context/CartContext';
 
 // Hero Carousel Data (con imágenes placeholder - reemplaza URLs con imágenes reales)
 const heroSlides = [
@@ -230,6 +231,7 @@ export const ClientCatalogo = () => {
   const [userName, setUserName] = useState('Usuario');
   const [searchValue, setSearchValue] = useState('');
   const [allProducts, setAllProducts] = useState([]);
+  const cart = useCart();
 
   useEffect(() => {
     // Cargar usuario
@@ -281,14 +283,12 @@ export const ClientCatalogo = () => {
 
   const saveCartAndNotify = (id) => {
     try {
-      const saved = JSON.parse(localStorage.getItem('syspharma_cart') || '[]');
-      const arr = Array.isArray(saved) ? saved : [];
-      arr.push(id);
-      localStorage.setItem('syspharma_cart', JSON.stringify(arr));
-      window.dispatchEvent(new Event('syspharma_cart_updated'));
-    } catch {
-      localStorage.setItem('syspharma_cart', JSON.stringify([id]));
-      window.dispatchEvent(new Event('syspharma_cart_updated'));
+      // find product object in allProducts
+      const prod = allProducts.find(p => String(p.id) === String(id)) || {};
+      cart.addToCart(prod);
+      try { window.dispatchEvent(new Event('syspharma_cart_updated')); } catch(e){}
+    } catch (e) {
+      console.error('Error adding to cart', e);
     }
   };
 

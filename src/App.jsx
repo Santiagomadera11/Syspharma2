@@ -2,6 +2,7 @@ import React from "react";
 import { AppRouter } from "./routes/AppRouter";
 import { CartProvider } from './shared/context/CartContext';
 import CartDrawer from './features/landing/components/CartDrawer';
+import { ToastHost } from './shared/ui/ToastHost';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -43,6 +44,7 @@ function App() {
         <div className="app-container">
           {/* Aquí cargamos todo el sistema de rutas */}
           <AppRouter />
+          <ToastHost />
           <CartDrawer />
         </div>
       </CartProvider>

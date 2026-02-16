@@ -111,11 +111,13 @@ export const EmployeeSalesPage = () => {
 
   // Filtrado y paginación
   const filteredSales = sales.filter((s) => {
-    const term = searchTerm.toLowerCase();
+    const term = (searchTerm || "").toLowerCase();
+    const cliente = (s?.cliente || "").toLowerCase();
+    const metodo = (s?.metodoPago || "").toLowerCase();
     return (
-      s.cliente.toLowerCase().includes(term) ||
-      String(s.id).includes(term) ||
-      s.metodoPago.toLowerCase().includes(term)
+      cliente.includes(term) ||
+      String(s?.id || "").includes(term) ||
+      metodo.includes(term)
     );
   });
 
@@ -273,9 +275,9 @@ export const EmployeeSalesPage = () => {
                   </td>
                 </tr>
               ) : (
-                displayedSales.map((sale) => (
+                displayedSales.map((sale, _idx) => (
                   <tr
-                    key={sale.id}
+                    key={sale?.id ?? `sale-${_idx}`}
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-3 py-2.5 font-mono text-gray-700">
@@ -292,7 +294,7 @@ export const EmployeeSalesPage = () => {
                       {sale.metodoPago}
                     </td>
                     <td className="px-3 py-2.5 font-bold text-emerald-600 text-right">
-                      ${sale.total.toLocaleString()}
+                      ${Number(sale.total || 0).toLocaleString()}
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <span
