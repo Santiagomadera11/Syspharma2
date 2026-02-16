@@ -42,11 +42,14 @@ export const RegisterPage = () => {
       setDocumentTypes(updatedTypes);
     };
 
-    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
+    window.addEventListener(
+      "syspharma_parameters_updated",
+      handleParameterUpdate,
+    );
     return () => {
       window.removeEventListener(
         "syspharma_parameters_updated",
-        handleParameterUpdate
+        handleParameterUpdate,
       );
     };
   }, []);
@@ -92,7 +95,8 @@ export const RegisterPage = () => {
     }
 
     const payload = {
-      nombre: `${(formData.nombres || "").trim()} ${(formData.apellidos || "").trim()}`.trim(),
+      nombre:
+        `${(formData.nombres || "").trim()} ${(formData.apellidos || "").trim()}`.trim(),
       email: email,
       telefono: formData.telefono || "",
       password: formData.password,

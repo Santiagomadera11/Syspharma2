@@ -3,6 +3,7 @@
 ## Implementación Completada
 
 Esta es la regla fundamental de seguridad financiera del sistema. **La implementación protege contra:**
+
 - Salidas de inventario no rastreadas
 - Ingresos de dinero fantasma sin registrar
 - Empleados que cierren sesión sin registrar ventas
@@ -13,13 +14,14 @@ Esta es la regla fundamental de seguridad financiera del sistema. **La implement
 
 ### 1. **Para Empleados** 🏢
 
-| Situación | Comportamiento | Razón |
-|-----------|---|---|
-| SIN turno abierto | ❌ Botón "Crear Pedido" **DESHABILITADO (gris)** | REGLA DE ORO: Los empleados DEBEN abrir caja |
-| CON turno abierto | ✅ Botón **HABILITADO (verde)** | Pedido es venta válida |
-| Crea pedido | ✅ Se registra automáticamente en `syspharma_sales` | Dinero contabilizado en el turno |
+| Situación         | Comportamiento                                      | Razón                                        |
+| ----------------- | --------------------------------------------------- | -------------------------------------------- |
+| SIN turno abierto | ❌ Botón "Crear Pedido" **DESHABILITADO (gris)**    | REGLA DE ORO: Los empleados DEBEN abrir caja |
+| CON turno abierto | ✅ Botón **HABILITADO (verde)**                     | Pedido es venta válida                       |
+| Crea pedido       | ✅ Se registra automáticamente en `syspharma_sales` | Dinero contabilizado en el turno             |
 
 **Ejemplo de flujo**:
+
 ```
 1. Empleado intenta crear pedido (SIN turno)
    ↓
@@ -40,10 +42,10 @@ Esta es la regla fundamental de seguridad financiera del sistema. **La implement
 
 ### 2. **Para Admin/Web** 🌐
 
-| Situación | Comportamiento | Marcado como |
-|-----------|---|---|
+| Situación             | Comportamiento          | Marcado como               |
+| --------------------- | ----------------------- | -------------------------- |
 | Crea pedido SIN turno | ✅ Permitido (es admin) | "Pendientes de Validación" |
-| Crea pedido CON turno | ✅ Permitido (es admin) | "Pendiente" (normal) |
+| Crea pedido CON turno | ✅ Permitido (es admin) | "Pendiente" (normal)       |
 
 **Razón**: Los admins pueden crear órdenes desde web/terceros que no requieren turno inmediato. Se marcan como "Pendientes de Validación" para revisión posterior.
 
@@ -63,7 +65,7 @@ validateOrderCreation: (orderData) => {
   if (origin === "empleado" && !turn) {
     return {
       valid: false,
-      message: "Los empleados no pueden crear pedidos sin turno abierto"
+      message: "Los empleados no pueden crear pedidos sin turno abierto",
     };
   }
 
@@ -71,7 +73,7 @@ validateOrderCreation: (orderData) => {
   if (origin === "web" && !turn) {
     return {
       valid: true,
-      state: "Pendientes de Validación"
+      state: "Pendientes de Validación",
     };
   }
 
@@ -84,7 +86,7 @@ if (orderData.origin === "empleado" && turn) {
   turnService.recordSale({
     monto: total,
     tipo: "pedido",
-    categoria: "producto"
+    categoria: "producto",
   });
 }
 ```
@@ -101,12 +103,12 @@ const isEmployee = currentUser?.rol === "Empleado";
   disabled={isEmployee && !hasActiveTurn}
   className={`${
     isEmployee && !hasActiveTurn
-      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-      : 'bg-emerald-600 hover:bg-emerald-700'
+      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+      : "bg-emerald-600 hover:bg-emerald-700"
   }`}
 >
   Crear pedido
-</button>
+</button>;
 ```
 
 ---
@@ -137,16 +139,16 @@ ordersService.create({
   id: "PED-001",
   cliente: "Juan Pérez",
   total: 50000,
-  
+
   // NUEVO: Rastreo de origen
   origin: "empleado",        // "empleado" | "web"
   userId: 2,                 // ID del empleado (si aplica)
   userName: "Carlos López",  // Nombre del empleado (si aplica)
   turnId: 1234567890,        // ID del turno activo (si aplica)
-  
+
   // Estado dinámico
   estado: "Pendientes de Validación", // Si es web sin turno
-  
+
   fecha: "2026-02-14",
   productos: [...],
   ...
@@ -252,15 +254,19 @@ Columnas útiles:
 ## Preguntas Frecuentes
 
 **P: ¿Qué pasa si un empleado cierra sesión sin cerrar turno?**
+
 - R: Los pedidos que creó están asociados al `turnId`. Al cerrar sesión, se ejecuta `turnService.closeTurnAndLogout()` que cierra el turno. Todos sus pedidos quedan registrados.
 
 **P: ¿Puedo permitir que un empleado cree pedidos sin turno?**
+
 - R: No recomendado. Eso viola la REGLA DE ORO. Si necesitas otro comportamiento, crea un parámetro de configuración.
 
 **P: ¿Cómo diferencio pedidos nuevos de redirigidos (web)?**
+
 - R: Campo `origin: "web"` vs `origin: "empleado"`. Úsalo en reportes y filtros.
 
 **P: ¿Si un admin crea un pedido y luego un empleado lo valida?**
+
 - R: Buena pregunta. Necesitarías agregar un endpoint que cambie el estado de "Pendientes de Validación" → "Validado" cuando el empleado lo confirma. Eso podría ser el próximo paso.
 
 ---
@@ -271,4 +277,3 @@ Columnas útiles:
 - [ ] Reporte de "Tasa de conversión" (Pendientes → Validados)
 - [ ] Webhook para sincronizar con sistema externo de web
 - [ ] Notificación a empleado cuando hay pedidos pendientes al abrir caja
-

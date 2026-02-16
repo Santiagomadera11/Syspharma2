@@ -213,15 +213,15 @@
 
 ## Resumen de Componentes y Sus Roles
 
-| Componente | Rol | Evento |
-|-----------|-----|--------|
-| **OpenShiftModal** | Dispara `turn:opened` | Al confirmar apertura |
-| **CloseShiftModal** | Dispara `turn:closed` | Al confirmar cierre |
-| **EmployeeLayout** | Propaga → `turn:changed` | Escucha `turn:opened/closed` |
-| **EmployeeServicesPage** | Actualiza botón | Escucha `turn:changed` |
-| **OrdersPage** | Actualiza botón | Escucha `turn:changed` |
-| **ordersService** | Valida turno | Backend validation en `create()` |
-| **turnService** | Maneja lógica de turno | `closeTurnAndLogout()` nueva |
+| Componente               | Rol                      | Evento                           |
+| ------------------------ | ------------------------ | -------------------------------- |
+| **OpenShiftModal**       | Dispara `turn:opened`    | Al confirmar apertura            |
+| **CloseShiftModal**      | Dispara `turn:closed`    | Al confirmar cierre              |
+| **EmployeeLayout**       | Propaga → `turn:changed` | Escucha `turn:opened/closed`     |
+| **EmployeeServicesPage** | Actualiza botón          | Escucha `turn:changed`           |
+| **OrdersPage**           | Actualiza botón          | Escucha `turn:changed`           |
+| **ordersService**        | Valida turno             | Backend validation en `create()` |
+| **turnService**          | Maneja lógica de turno   | `closeTurnAndLogout()` nueva     |
 
 ---
 
@@ -242,4 +242,3 @@
 4. **No hay listener en EmployeeServicesPage/OrdersPage**
    - Los botones nunca se habilitan
    - Revisa useEffect en ambas páginas
-

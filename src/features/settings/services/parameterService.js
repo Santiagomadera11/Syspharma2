@@ -35,7 +35,7 @@ const emitParameterUpdate = (parameterType) => {
   window.dispatchEvent(
     new CustomEvent("syspharma_parameters_updated", {
       detail: { parameterType },
-    })
+    }),
   );
 };
 
@@ -150,7 +150,7 @@ export const resetParameters = () => {
   window.dispatchEvent(
     new CustomEvent("syspharma_parameters_updated", {
       detail: { parameterType: "all" },
-    })
+    }),
   );
 };
 

@@ -64,7 +64,6 @@ import { EmployeeAppointmentsPage } from "../features/employee/EmployeeAppointme
 /*                      SISTEMA DE REPORTES (ADMIN)                           */
 /* -------------------------------------------------------------------------- */
 import { ShiftHistoryReportsPage } from "../features/admin/reports/ShiftHistoryReportsPage";
-import { OrderReportsPage } from "../features/admin/reports/OrderReportsPage";
 import { SalesPerformanceReportsPage } from "../features/admin/reports/SalesPerformanceReportsPage";
 
 /* -------------------------------------------------------------------------- */
@@ -143,8 +142,10 @@ export const AppRouter = () => {
 
           {/* --- MÓDULO DE REPORTES --- */}
           <Route path="reportes/turnos" element={<ShiftHistoryReportsPage />} />
-          <Route path="reportes/pedidos" element={<OrderReportsPage />} />
-          <Route path="reportes/desempeño" element={<SalesPerformanceReportsPage />} />
+          <Route
+            path="reportes/desempeño"
+            element={<SalesPerformanceReportsPage />}
+          />
 
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />

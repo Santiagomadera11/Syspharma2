@@ -20,7 +20,7 @@ export const OrdersPage = () => {
   const navigate = useNavigate();
   const currentUser = authService.getCurrentUser();
   const isEmployee = currentUser?.rol === "Empleado";
-  
+
   const [orders, setOrders] = useState(ordersService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -30,7 +30,9 @@ export const OrdersPage = () => {
   const [notification, setNotification] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [hasActiveTurn, setHasActiveTurn] = useState(turnService.hasActiveTurn());
+  const [hasActiveTurn, setHasActiveTurn] = useState(
+    turnService.hasActiveTurn(),
+  );
   const [showTurnTooltip, setShowTurnTooltip] = useState(false);
 
   const itemsPerPage = 10;
@@ -97,7 +99,7 @@ export const OrdersPage = () => {
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const displayedOrders = filteredOrders.slice(
     currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
+    (currentPage + 1) * itemsPerPage,
   );
 
   // Helper para formato moneda
@@ -141,12 +143,14 @@ export const OrdersPage = () => {
           <button
             onClick={() => navigate("/admin/pedidos/crear")}
             disabled={isEmployee && !hasActiveTurn}
-            onMouseEnter={() => isEmployee && !hasActiveTurn && setShowTurnTooltip(true)}
+            onMouseEnter={() =>
+              isEmployee && !hasActiveTurn && setShowTurnTooltip(true)
+            }
             onMouseLeave={() => setShowTurnTooltip(false)}
             className={`px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2 transition-all ${
               isEmployee && !hasActiveTurn
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer'
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
             }`}
           >
             <Plus size={16} />
@@ -293,7 +297,7 @@ export const OrdersPage = () => {
                     <td className="px-3 py-2.5 text-center">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold ${getStatusColor(
-                          order.estado
+                          order.estado,
                         )}`}
                       >
                         {order.estado}

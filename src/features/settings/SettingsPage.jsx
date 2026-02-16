@@ -90,20 +90,20 @@ export const SettingsPage = () => {
     const existsName = roles.some(
       (r) =>
         r.id !== (editRole && editRole.id) &&
-        r.name.toLowerCase() === name.toLowerCase()
+        r.name.toLowerCase() === name.toLowerCase(),
     );
     if (existsName) errors.push("Ya existe un rol con ese nombre.");
 
     // color uniqueness
     const existsColor = roles.some(
-      (r) => r.id !== (editRole && editRole.id) && r.colorId === roleColor
+      (r) => r.id !== (editRole && editRole.id) && r.colorId === roleColor,
     );
     if (existsColor)
       errors.push("El color seleccionado ya está en uso por otro rol.");
 
     if (requireAtLeastOnePerm) {
       const totalPerms = Object.keys(selectedPerms).filter(
-        (k) => selectedPerms[k]
+        (k) => selectedPerms[k],
       ).length;
       if (totalPerms === 0)
         errors.push("Selecciona al menos un permiso para el rol.");
@@ -141,7 +141,7 @@ export const SettingsPage = () => {
         const updatedUsers = users.map((u) =>
           (u.rol || "").toLowerCase() === (prevName || "").toLowerCase()
             ? { ...u, rol: payload.name }
-            : u
+            : u,
         );
         userService.saveAll(updatedUsers);
       }
@@ -185,7 +185,7 @@ export const SettingsPage = () => {
     // update via rolesService to persist
     const list = rolesService.getAll();
     const next = list.map((r) =>
-      r.id === id ? { ...r, active: !r.active } : r
+      r.id === id ? { ...r, active: !r.active } : r,
     );
     rolesService.saveAll(next);
     setRoles(next);
@@ -229,8 +229,8 @@ export const SettingsPage = () => {
         new Set(
           (r.permissions || [])
             .map((pid) => permById[pid] && permById[pid].category)
-            .filter(Boolean)
-        )
+            .filter(Boolean),
+        ),
       );
       if (cats.some((c) => c.toLowerCase().includes(q))) return true;
       return false;
@@ -470,7 +470,7 @@ export const SettingsPage = () => {
                         className="w-3 h-3 rounded-full"
                         style={{
                           background: COLOR_OPTIONS.find(
-                            (c) => c.id === roleColor
+                            (c) => c.id === roleColor,
                           ).hex,
                         }}
                       />
@@ -589,7 +589,7 @@ export default SettingsPage;
 const RoleRow = ({ role, onEdit, onDelete, onToggle }) => {
   const users = userService.getAll() || [];
   const usersCount = users.filter(
-    (u) => (u.rol || "").toLowerCase() === (role.name || "").toLowerCase()
+    (u) => (u.rol || "").toLowerCase() === (role.name || "").toLowerCase(),
   ).length;
 
   return (

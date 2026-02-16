@@ -24,11 +24,16 @@ export const ClientMiPerfil = () => {
   const [toast, setToast] = useState(null);
   const [formData, setFormData] = useState(() => {
     try {
-      const sessionUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      const sessionUser = JSON.parse(
+        localStorage.getItem("syspharma_user") || "{}",
+      );
       // Get complete user data from syspharma_users by email
-      const allUsers = JSON.parse(localStorage.getItem("syspharma_users") || "[]");
-      const completeUser = allUsers.find((u) => u.email === sessionUser.email) || sessionUser;
-      
+      const allUsers = JSON.parse(
+        localStorage.getItem("syspharma_users") || "[]",
+      );
+      const completeUser =
+        allUsers.find((u) => u.email === sessionUser.email) || sessionUser;
+
       // If registration used a single `nombre` field, split it into nombres/apellidos
       const full = (completeUser.nombre || completeUser.nombres || "").trim();
       let first = "";
@@ -42,10 +47,15 @@ export const ClientMiPerfil = () => {
         nombres: first || completeUser.nombres || "",
         apellidos: last || completeUser.apellidos || "",
         telefono: completeUser.telefono || completeUser.numeroContacto || "",
-        documento: completeUser.documento || completeUser.identificacion || completeUser.numeroDocumento || "",
+        documento:
+          completeUser.documento ||
+          completeUser.identificacion ||
+          completeUser.numeroDocumento ||
+          "",
         correo: completeUser.correo || completeUser.email || "",
         direccion: completeUser.direccion || "",
-        tipoDocumento: completeUser.tipoDocumento || completeUser.tipo_doc || "",
+        tipoDocumento:
+          completeUser.tipoDocumento || completeUser.tipo_doc || "",
       };
     } catch {
       return {
@@ -65,24 +75,38 @@ export const ClientMiPerfil = () => {
 
   // Cargar datos del usuario al montar
   useEffect(() => {
-    const sessionUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+    const sessionUser = JSON.parse(
+      localStorage.getItem("syspharma_user") || "{}",
+    );
     setUser(sessionUser);
     // Get complete user data from syspharma_users by email
     try {
-      const allUsers = JSON.parse(localStorage.getItem("syspharma_users") || "[]");
-      const completeUser = allUsers.find((u) => u.email === sessionUser.email) || sessionUser;
+      const allUsers = JSON.parse(
+        localStorage.getItem("syspharma_users") || "[]",
+      );
+      const completeUser =
+        allUsers.find((u) => u.email === sessionUser.email) || sessionUser;
       // derive names from single `nombre` if present
       const full = (completeUser.nombre || completeUser.nombres || "").trim();
-      const derivedFirst = full ? full.split(/\s+/).slice(0, 1).join(" ") : completeUser.nombres || "";
-      const derivedLast = full ? full.split(/\s+/).slice(1).join(" ") || completeUser.apellidos || "" : completeUser.apellidos || "";
+      const derivedFirst = full
+        ? full.split(/\s+/).slice(0, 1).join(" ")
+        : completeUser.nombres || "";
+      const derivedLast = full
+        ? full.split(/\s+/).slice(1).join(" ") || completeUser.apellidos || ""
+        : completeUser.apellidos || "";
       setFormData({
         nombres: derivedFirst,
         apellidos: derivedLast,
         telefono: completeUser.telefono || completeUser.numeroContacto || "",
-        documento: completeUser.documento || completeUser.identificacion || completeUser.numeroDocumento || "",
+        documento:
+          completeUser.documento ||
+          completeUser.identificacion ||
+          completeUser.numeroDocumento ||
+          "",
         correo: completeUser.correo || completeUser.email || "",
         direccion: completeUser.direccion || "",
-        tipoDocumento: completeUser.tipoDocumento || completeUser.tipo_doc || "",
+        tipoDocumento:
+          completeUser.tipoDocumento || completeUser.tipo_doc || "",
       });
     } catch (err) {
       // fallback to session user only
@@ -148,11 +172,16 @@ export const ClientMiPerfil = () => {
         // ignore
       }
       // normalize common aliases so global users array keys are updated too
-      if (updatedUser.correo && !updatedUser.email) updatedUser.email = updatedUser.correo;
-      if (updatedUser.telefono && !updatedUser.numeroContacto) updatedUser.numeroContacto = updatedUser.telefono;
-      if (updatedUser.numeroContacto && !updatedUser.telefono) updatedUser.telefono = updatedUser.numeroContacto;
-      if (updatedUser.tipoDocumento && !updatedUser.tipo_doc) updatedUser.tipo_doc = updatedUser.tipoDocumento;
-      if (updatedUser.tipo_doc && !updatedUser.tipoDocumento) updatedUser.tipoDocumento = updatedUser.tipo_doc;
+      if (updatedUser.correo && !updatedUser.email)
+        updatedUser.email = updatedUser.correo;
+      if (updatedUser.telefono && !updatedUser.numeroContacto)
+        updatedUser.numeroContacto = updatedUser.telefono;
+      if (updatedUser.numeroContacto && !updatedUser.telefono)
+        updatedUser.telefono = updatedUser.numeroContacto;
+      if (updatedUser.tipoDocumento && !updatedUser.tipo_doc)
+        updatedUser.tipo_doc = updatedUser.tipoDocumento;
+      if (updatedUser.tipo_doc && !updatedUser.tipoDocumento)
+        updatedUser.tipoDocumento = updatedUser.tipo_doc;
       // Preserve sensitive fields explicitly
       if (stored.password) updatedUser.password = stored.password;
       if (stored.rol) updatedUser.rol = stored.rol;
@@ -167,17 +196,20 @@ export const ClientMiPerfil = () => {
           if (u.id && updatedUser.id && u.id === updatedUser.id) return true;
           // match by email/correo
           const uEmail = u.email || u.correo || "";
-          const updatedEmail = updatedUser.email || updatedUser.correo || updatedUser.mail || "";
+          const updatedEmail =
+            updatedUser.email || updatedUser.correo || updatedUser.mail || "";
           if (uEmail && updatedEmail && uEmail === updatedEmail) return true;
           // match by documento as fallback
           const uDoc = u.documento || u.identificacion || "";
-          const updatedDoc = updatedUser.documento || updatedUser.identificacion || "";
+          const updatedDoc =
+            updatedUser.documento || updatedUser.identificacion || "";
           if (uDoc && updatedDoc && uDoc === updatedDoc) return true;
           return false;
         });
         if (found) {
           const merged = { ...found, ...updatedUser };
-          if (found.password && !merged.password) merged.password = found.password;
+          if (found.password && !merged.password)
+            merged.password = found.password;
           if (found.rol && !merged.rol) merged.rol = found.rol;
           userService.update(merged);
         }
@@ -248,11 +280,21 @@ export const ClientMiPerfil = () => {
           <div className="relative mb-4">
             <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center border-4 border-blue-300 shadow-lg overflow-hidden">
               {tempAvatar ? (
-                <img src={tempAvatar} alt="avatar-preview" className="w-full h-full object-cover" />
+                <img
+                  src={tempAvatar}
+                  alt="avatar-preview"
+                  className="w-full h-full object-cover"
+                />
               ) : user.avatar ? (
-                <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+                <img
+                  src={user.avatar}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                <span className="text-3xl font-bold text-blue-600">{getInitials()}</span>
+                <span className="text-3xl font-bold text-blue-600">
+                  {getInitials()}
+                </span>
               )}
             </div>
             <input
@@ -289,18 +331,30 @@ export const ClientMiPerfil = () => {
                   onClick={() => {
                     try {
                       // Persist avatar to current session user
-                      const stored = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-                      const updated = { ...stored, avatar: tempAvatar, lastAvatarUpdate: new Date().toISOString() };
+                      const stored = JSON.parse(
+                        localStorage.getItem("syspharma_user") || "{}",
+                      );
+                      const updated = {
+                        ...stored,
+                        avatar: tempAvatar,
+                        lastAvatarUpdate: new Date().toISOString(),
+                      };
                       // Ensure we don't remove password/rol
                       if (stored.password) updated.password = stored.password;
                       if (stored.rol) updated.rol = stored.rol;
-                      localStorage.setItem("syspharma_user", JSON.stringify(updated));
+                      localStorage.setItem(
+                        "syspharma_user",
+                        JSON.stringify(updated),
+                      );
                       setUser(updated);
 
                       // update global users if exists
                       try {
                         const allUsers = userService.getAll();
-                        const found = allUsers.find((u) => u.id === updated.id || u.email === updated.email);
+                        const found = allUsers.find(
+                          (u) =>
+                            u.id === updated.id || u.email === updated.email,
+                        );
                         if (found) {
                           userService.update({ ...found, avatar: tempAvatar });
                         }
@@ -309,9 +363,17 @@ export const ClientMiPerfil = () => {
                       }
 
                       setTempAvatar(null);
-                      setToast({ message: "Foto actualizada", type: "success", zIndex: 70 });
+                      setToast({
+                        message: "Foto actualizada",
+                        type: "success",
+                        zIndex: 70,
+                      });
                     } catch (err) {
-                      setToast({ message: "Error guardando la foto", type: "error", zIndex: 70 });
+                      setToast({
+                        message: "Error guardando la foto",
+                        type: "error",
+                        zIndex: 70,
+                      });
                     }
                   }}
                   className="mt-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-bold"
@@ -324,7 +386,8 @@ export const ClientMiPerfil = () => {
 
           {/* Nombre - De user state */}
           <h3 className="text-base font-bold text-gray-900 text-center mt-3 line-clamp-2">
-            {(user.nombres || user.nombre || "").trim() || (user.apellidos || "").trim()
+            {(user.nombres || user.nombre || "").trim() ||
+            (user.apellidos || "").trim()
               ? `${(user.nombres || user.nombre || "").trim()} ${(user.apellidos || "").trim()}`.trim()
               : "Nombre no asignado"}
           </h3>
@@ -484,7 +547,6 @@ export const ClientMiPerfil = () => {
                 value={formData.direccion}
                 onChange={handleInputChange}
                 readOnly={!isEditing}
-               
                 className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm read-only:bg-gray-50 read-only:text-gray-700 read-only:cursor-default read-only:border-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all placeholder-gray-400"
               />
             </div>

@@ -7,7 +7,13 @@ import { turnService } from "../services/turnService";
  * Se muestra cuando no hay turno activo
  * No permite cerrar sin completar la apertura
  */
-export const OpenShiftModal = ({ isOpen, onShiftOpened, user, canClose = false, onCancel = null }) => {
+export const OpenShiftModal = ({
+  isOpen,
+  onShiftOpened,
+  user,
+  canClose = false,
+  onCancel = null,
+}) => {
   const [montoBase, setMontoBase] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

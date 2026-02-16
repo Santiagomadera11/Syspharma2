@@ -61,10 +61,14 @@ export const EmployeeServicesPage = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  const [hasActiveTurn, setHasActiveTurn] = useState(turnService.hasActiveTurn());
+  const [hasActiveTurn, setHasActiveTurn] = useState(
+    turnService.hasActiveTurn(),
+  );
   const [showTurnTooltip, setShowTurnTooltip] = useState(false);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
-  const [user] = useState(JSON.parse(localStorage.getItem("syspharma_user") || "{}"));
+  const [user] = useState(
+    JSON.parse(localStorage.getItem("syspharma_user") || "{}"),
+  );
 
   // Escuchar cambios en servicios y estado de turno desde otras páginas
   useEffect(() => {
@@ -126,13 +130,13 @@ export const EmployeeServicesPage = () => {
 
   const handleDelete = (id) => {
     deleteItem(id);
-    window.dispatchEvent(new CustomEvent('services:changed'));
+    window.dispatchEvent(new CustomEvent("services:changed"));
   };
 
   const handleSave = (formData) => {
     if (editingItem) updateItem(editingItem.id, formData);
     else addItem({ ...formData, id: `SRV-${Date.now().toString().slice(-4)}` });
-    window.dispatchEvent(new CustomEvent('services:changed'));
+    window.dispatchEvent(new CustomEvent("services:changed"));
   };
 
   // --- FILTROS Y PAGINACIÓN ---
@@ -183,8 +187,8 @@ export const EmployeeServicesPage = () => {
             onMouseLeave={() => setShowTurnTooltip(false)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors ${
               hasActiveTurn
-                ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+                ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-60"
             }`}
           >
             <Plus size={16} /> Nuevo

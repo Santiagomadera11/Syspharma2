@@ -1,5 +1,13 @@
 import React, { useState, useMemo } from "react";
-import { Package, User, Globe, Filter, Download, Eye, TrendingUp } from "lucide-react";
+import {
+  Package,
+  User,
+  Globe,
+  Filter,
+  Download,
+  Eye,
+  TrendingUp,
+} from "lucide-react";
 import { ordersService } from "../../sales/orders/services/ordersService";
 
 export const OrderReportsPage = () => {
@@ -13,9 +21,12 @@ export const OrderReportsPage = () => {
   // Filtros
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      const matchOrigin = originFilter === "Todos" || order.origin === originFilter;
-      const matchStatus = statusFilter === "Todos" || order.estado === statusFilter;
-      const matchSearch = searchTerm === "" || 
+      const matchOrigin =
+        originFilter === "Todos" || order.origin === originFilter;
+      const matchStatus =
+        statusFilter === "Todos" || order.estado === statusFilter;
+      const matchSearch =
+        searchTerm === "" ||
         order.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.userName?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -28,13 +39,18 @@ export const OrderReportsPage = () => {
   const stats = useMemo(() => {
     const employeeOrders = orders.filter((o) => o.origin === "empleado");
     const webOrders = orders.filter((o) => o.origin === "web");
-    const pendingValidation = orders.filter((o) => o.estado === "Pendientes de Validación");
+    const pendingValidation = orders.filter(
+      (o) => o.estado === "Pendientes de Validación",
+    );
 
     return {
       total: orders.length,
       empleado: employeeOrders.length,
       web: webOrders.length,
-      empleadoRevenue: employeeOrders.reduce((sum, o) => sum + (o.total || 0), 0),
+      empleadoRevenue: employeeOrders.reduce(
+        (sum, o) => sum + (o.total || 0),
+        0,
+      ),
       webRevenue: webOrders.reduce((sum, o) => sum + (o.total || 0), 0),
       pendingValidation: pendingValidation.length,
     };
@@ -53,22 +69,32 @@ export const OrderReportsPage = () => {
 
   const getOriginBadge = (origin) => {
     if (origin === "empleado") {
-      return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 w-fit"><User size={12} /> Empleado</span>;
+      return (
+        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 w-fit">
+          <User size={12} /> Empleado
+        </span>
+      );
     }
-    return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 w-fit"><Globe size={12} /> Web</span>;
+    return (
+      <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1 w-fit">
+        <Globe size={12} /> Web
+      </span>
+    );
   };
 
   const getStatusBadge = (estado) => {
     const colors = {
-      "Pendiente": "bg-yellow-100 text-yellow-700",
+      Pendiente: "bg-yellow-100 text-yellow-700",
       "En proceso": "bg-blue-100 text-blue-700",
-      "Entregado": "bg-green-100 text-green-700",
-      "Cancelado": "bg-red-100 text-red-700",
+      Entregado: "bg-green-100 text-green-700",
+      Cancelado: "bg-red-100 text-red-700",
       "Pendientes de Validación": "bg-orange-100 text-orange-700",
     };
 
     return (
-      <span className={`${colors[estado] || "bg-gray-100 text-gray-700"} px-2 py-1 rounded text-xs font-semibold`}>
+      <span
+        className={`${colors[estado] || "bg-gray-100 text-gray-700"} px-2 py-1 rounded text-xs font-semibold`}
+      >
         {estado}
       </span>
     );
@@ -79,7 +105,9 @@ export const OrderReportsPage = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Reporte de Pedidos</h1>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Reporte de Pedidos
+          </h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Análisis de órdenes por origen (empleado vs web) y estado
           </p>
@@ -95,15 +123,23 @@ export const OrderReportsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-xs text-gray-500 mb-1">Total Pedidos</p>
           <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
-          <p className="text-xs text-gray-500 mt-2">{formatCurrency(stats.empleadoRevenue + stats.webRevenue)}</p>
+          <p className="text-xs text-gray-500 mt-2">
+            {formatCurrency(stats.empleadoRevenue + stats.webRevenue)}
+          </p>
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 bg-gradient-to-br from-blue-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-blue-600 font-semibold mb-1">De Empleados</p>
-              <p className="text-2xl font-bold text-blue-700">{stats.empleado}</p>
-              <p className="text-xs text-blue-600 mt-2">{formatCurrency(stats.empleadoRevenue)}</p>
+              <p className="text-xs text-blue-600 font-semibold mb-1">
+                De Empleados
+              </p>
+              <p className="text-2xl font-bold text-blue-700">
+                {stats.empleado}
+              </p>
+              <p className="text-xs text-blue-600 mt-2">
+                {formatCurrency(stats.empleadoRevenue)}
+              </p>
             </div>
             <User className="text-blue-400" size={32} />
           </div>
@@ -112,9 +148,13 @@ export const OrderReportsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-purple-200 bg-gradient-to-br from-purple-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-purple-600 font-semibold mb-1">De Web</p>
+              <p className="text-xs text-purple-600 font-semibold mb-1">
+                De Web
+              </p>
               <p className="text-2xl font-bold text-purple-700">{stats.web}</p>
-              <p className="text-xs text-purple-600 mt-2">{formatCurrency(stats.webRevenue)}</p>
+              <p className="text-xs text-purple-600 mt-2">
+                {formatCurrency(stats.webRevenue)}
+              </p>
             </div>
             <Globe className="text-purple-400" size={32} />
           </div>
@@ -123,8 +163,12 @@ export const OrderReportsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-orange-200 bg-gradient-to-br from-orange-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-orange-600 font-semibold mb-1">Pendientes Validación</p>
-              <p className="text-2xl font-bold text-orange-700">{stats.pendingValidation}</p>
+              <p className="text-xs text-orange-600 font-semibold mb-1">
+                Pendientes Validación
+              </p>
+              <p className="text-2xl font-bold text-orange-700">
+                {stats.pendingValidation}
+              </p>
             </div>
             <Filter className="text-orange-400" size={32} />
           </div>
@@ -133,9 +177,14 @@ export const OrderReportsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-green-200 bg-gradient-to-br from-green-50">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-green-600 font-semibold mb-1">Tasa Empleado</p>
+              <p className="text-xs text-green-600 font-semibold mb-1">
+                Tasa Empleado
+              </p>
               <p className="text-2xl font-bold text-green-700">
-                {stats.total > 0 ? ((stats.empleado / stats.total) * 100).toFixed(1) : 0}%
+                {stats.total > 0
+                  ? ((stats.empleado / stats.total) * 100).toFixed(1)
+                  : 0}
+                %
               </p>
             </div>
             <TrendingUp className="text-green-400" size={32} />
@@ -173,9 +222,13 @@ export const OrderReportsPage = () => {
           <option value="En proceso">En Proceso</option>
           <option value="Entregado">Entregado</option>
           <option value="Cancelado">Cancelado</option>
-          <option value="Pendientes de Validación">Pendientes de Validación</option>
+          <option value="Pendientes de Validación">
+            Pendientes de Validación
+          </option>
         </select>
-        {(searchTerm || originFilter !== "Todos" || statusFilter !== "Todos") && (
+        {(searchTerm ||
+          originFilter !== "Todos" ||
+          statusFilter !== "Todos") && (
           <button
             onClick={() => {
               setSearchTerm("");
@@ -195,29 +248,62 @@ export const OrderReportsPage = () => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
               <tr>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">ID Pedido</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Cliente</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Origen</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Creado Por</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Total</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Estado</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Fecha</th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">Acciones</th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  ID Pedido
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Cliente
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Origen
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Creado Por
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Total
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Estado
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Fecha
+                </th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
-                  <tr key={order.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="py-3 px-4 text-xs font-mono font-semibold text-gray-800">{order.id}</td>
-                    <td className="py-3 px-4 text-xs text-gray-700">{order.cliente}</td>
-                    <td className="py-3 px-4 text-xs">{getOriginBadge(order.origin || "web")}</td>
-                    <td className="py-3 px-4 text-xs text-gray-600">
-                      {order.origin === "empleado" ? order.userName || "N/A" : order.creadoPor}
+                  <tr
+                    key={order.id}
+                    className="border-b border-gray-200 hover:bg-gray-50"
+                  >
+                    <td className="py-3 px-4 text-xs font-mono font-semibold text-gray-800">
+                      {order.id}
                     </td>
-                    <td className="py-3 px-4 text-xs font-bold text-gray-800">{formatCurrency(order.total)}</td>
-                    <td className="py-3 px-4 text-xs">{getStatusBadge(order.estado)}</td>
-                    <td className="py-3 px-4 text-xs text-gray-600">{formatDate(order.fecha)}</td>
+                    <td className="py-3 px-4 text-xs text-gray-700">
+                      {order.cliente}
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      {getOriginBadge(order.origin || "web")}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-600">
+                      {order.origin === "empleado"
+                        ? order.userName || "N/A"
+                        : order.creadoPor}
+                    </td>
+                    <td className="py-3 px-4 text-xs font-bold text-gray-800">
+                      {formatCurrency(order.total)}
+                    </td>
+                    <td className="py-3 px-4 text-xs">
+                      {getStatusBadge(order.estado)}
+                    </td>
+                    <td className="py-3 px-4 text-xs text-gray-600">
+                      {formatDate(order.fecha)}
+                    </td>
                     <td className="py-3 px-4 text-xs">
                       <button
                         onClick={() => setSelectedOrder(order)}
@@ -231,7 +317,10 @@ export const OrderReportsPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-6 text-center text-gray-500 text-sm">
+                  <td
+                    colSpan="8"
+                    className="py-6 text-center text-gray-500 text-sm"
+                  >
                     No hay pedidos con los filtros aplicados
                   </td>
                 </tr>
@@ -246,8 +335,13 @@ export const OrderReportsPage = () => {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Detalles del Pedido {selectedOrder.id}</h2>
-              <button onClick={() => setSelectedOrder(null)} className="text-gray-500 hover:text-gray-700 text-2xl">
+              <h2 className="text-xl font-bold text-gray-800">
+                Detalles del Pedido {selectedOrder.id}
+              </h2>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
                 ×
               </button>
             </div>
@@ -255,23 +349,33 @@ export const OrderReportsPage = () => {
             <div className="space-y-4">
               {/* Información General */}
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <h3 className="font-bold text-gray-800 mb-3">Información General</h3>
+                <h3 className="font-bold text-gray-800 mb-3">
+                  Información General
+                </h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-gray-600">Cliente</p>
-                    <p className="font-semibold text-gray-800">{selectedOrder.cliente}</p>
+                    <p className="font-semibold text-gray-800">
+                      {selectedOrder.cliente}
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-600">Documento</p>
-                    <p className="font-semibold text-gray-800">{selectedOrder.documento}</p>
+                    <p className="font-semibold text-gray-800">
+                      {selectedOrder.documento}
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-600">Origen</p>
-                    <div className="mt-1">{getOriginBadge(selectedOrder.origin || "web")}</div>
+                    <div className="mt-1">
+                      {getOriginBadge(selectedOrder.origin || "web")}
+                    </div>
                   </div>
                   <div>
                     <p className="text-gray-600">Estado</p>
-                    <div className="mt-1">{getStatusBadge(selectedOrder.estado)}</div>
+                    <div className="mt-1">
+                      {getStatusBadge(selectedOrder.estado)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -286,16 +390,22 @@ export const OrderReportsPage = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-blue-700">Empleado</span>
-                      <span className="font-semibold text-blue-900">{selectedOrder.userName}</span>
+                      <span className="font-semibold text-blue-900">
+                        {selectedOrder.userName}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-blue-700">ID Usuario</span>
-                      <span className="font-semibold text-blue-900">{selectedOrder.userId}</span>
+                      <span className="font-semibold text-blue-900">
+                        {selectedOrder.userId}
+                      </span>
                     </div>
                     {selectedOrder.turnId && (
                       <div className="flex justify-between">
                         <span className="text-blue-700">ID Turno</span>
-                        <span className="font-semibold text-blue-900">{selectedOrder.turnId}</span>
+                        <span className="font-semibold text-blue-900">
+                          {selectedOrder.turnId}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -310,12 +420,21 @@ export const OrderReportsPage = () => {
                 </h3>
                 <div className="space-y-2 text-sm">
                   {selectedOrder.productos.map((prod, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-white p-2 rounded">
+                    <div
+                      key={idx}
+                      className="flex justify-between items-center bg-white p-2 rounded"
+                    >
                       <div>
-                        <p className="font-semibold text-gray-800">{prod.nombre}</p>
-                        <p className="text-xs text-gray-600">Cantidad: {prod.cantidad}</p>
+                        <p className="font-semibold text-gray-800">
+                          {prod.nombre}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Cantidad: {prod.cantidad}
+                        </p>
                       </div>
-                      <span className="font-bold text-purple-700">{formatCurrency(prod.precio * prod.cantidad)}</span>
+                      <span className="font-bold text-purple-700">
+                        {formatCurrency(prod.precio * prod.cantidad)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -323,16 +442,22 @@ export const OrderReportsPage = () => {
 
               {/* Resumen Financiero */}
               <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg border border-green-200">
-                <h3 className="font-bold text-green-800 mb-3">Resumen Financiero</h3>
+                <h3 className="font-bold text-green-800 mb-3">
+                  Resumen Financiero
+                </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-green-700">Subtotal</span>
-                    <span className="font-bold text-green-800">{formatCurrency(selectedOrder.total)}</span>
+                    <span className="font-bold text-green-800">
+                      {formatCurrency(selectedOrder.total)}
+                    </span>
                   </div>
                   {selectedOrder.metodoPago && (
                     <div className="flex justify-between items-center">
                       <span className="text-green-700">Método de Pago</span>
-                      <span className="font-semibold text-green-800">{selectedOrder.metodoPago}</span>
+                      <span className="font-semibold text-green-800">
+                        {selectedOrder.metodoPago}
+                      </span>
                     </div>
                   )}
                 </div>

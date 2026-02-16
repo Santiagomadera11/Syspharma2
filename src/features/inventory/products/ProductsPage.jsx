@@ -37,7 +37,7 @@ export const ProductsPage = () => {
     setProducts(productService.getAll());
     setCategories(categoryService.getAll());
     setProviders(providerService.getAll());
-    
+
     // Refrescar cada 1 segundo para sincronizar cambios de stock, categorías y proveedores
     const interval = setInterval(() => {
       const updatedProducts = productService.getAll();
@@ -47,14 +47,14 @@ export const ProductsPage = () => {
       setCategories(updatedCategories);
       setProviders(updatedProviders);
     }, 1000);
-    
+
     // Escuchar eventos de cambio de categorías
     const handleCategoryChange = () => {
       setCategories(categoryService.getAll());
     };
     window.addEventListener("categories:changed", handleCategoryChange);
     window.addEventListener("products:changed", handleCategoryChange);
-    
+
     return () => {
       clearInterval(interval);
       window.removeEventListener("categories:changed", handleCategoryChange);
@@ -66,7 +66,7 @@ export const ProductsPage = () => {
 
   const handleCreate = () => {
     // Navegar internamente usando React Router (sin recarga completa)
-    navigate('/admin/productos/nuevo');
+    navigate("/admin/productos/nuevo");
   };
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -78,12 +78,12 @@ export const ProductsPage = () => {
       const updatedProduct = { ...editingItem, ...data };
       const updatedProducts = productService.update(updatedProduct);
       setProducts(updatedProducts);
-      
+
       // Si el producto en detalle es el que se editó, actualizar también el detalle
       if (detailProduct && detailProduct.id === editingItem.id) {
         setDetailProduct(updatedProduct);
       }
-      
+
       setNotification({
         message: `${data.nombre} actualizado correctamente`,
         type: "success",
@@ -99,10 +99,10 @@ export const ProductsPage = () => {
         duration: 3000,
       });
     }
-    
+
     // Emitir evento de actualización de productos para ClientCatalogo
-    window.dispatchEvent(new CustomEvent('syspharma_products_updated'));
-    
+    window.dispatchEvent(new CustomEvent("syspharma_products_updated"));
+
     setIsModalOpen(false);
     setEditingItem(null);
   };
@@ -220,8 +220,12 @@ export const ProductsPage = () => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-emerald-700 text-white sticky top-0 z-10">
               <tr>
-                <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold">ID</th>
-                <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold">Nombre</th>
+                <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold">
+                  ID
+                </th>
+                <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold">
+                  Nombre
+                </th>
                 <th className="py-3 px-3 sm:px-4 text-[11px] font-semibold hidden md:table-cell">
                   Categoría
                 </th>
@@ -251,7 +255,10 @@ export const ProductsPage = () => {
                     </td>
                     <td className="py-3 px-3 sm:px-4">
                       <div className="flex items-center gap-2">
-                        <Package size={14} className="text-emerald-500 flex-shrink-0" />
+                        <Package
+                          size={14}
+                          className="text-emerald-500 flex-shrink-0"
+                        />
                         <span className="text-xs font-semibold text-gray-900 truncate">
                           {prod.nombre}
                         </span>
@@ -340,19 +347,26 @@ export const ProductsPage = () => {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <Package size={18} className="text-emerald-500 flex-shrink-0 mt-1" />
+                  <Package
+                    size={18}
+                    className="text-emerald-500 flex-shrink-0 mt-1"
+                  />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-900 truncate">{prod.nombre}</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">
+                      {prod.nombre}
+                    </p>
                     <p className="text-xs text-gray-600">ID: {prod.id}</p>
                   </div>
                 </div>
                 <StatusToggle estado={prod.estado} productId={prod.id} />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <p className="text-gray-500 font-medium">Categoría</p>
-                  <p className="text-gray-900 font-semibold">{prod.categoria}</p>
+                  <p className="text-gray-900 font-semibold">
+                    {prod.categoria}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-500 font-medium">Stock</p>
@@ -459,9 +473,9 @@ export const ProductsPage = () => {
               {detailProduct.imagen && (
                 <div className="flex justify-center">
                   <div className="w-full max-w-xs h-64 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
-                    <img 
-                      src={detailProduct.imagen} 
-                      alt={detailProduct.nombre} 
+                    <img
+                      src={detailProduct.imagen}
+                      alt={detailProduct.nombre}
                       className="max-w-full max-h-full object-contain p-4"
                     />
                   </div>
@@ -515,14 +529,21 @@ export const ProductsPage = () => {
                     Precio
                   </label>
                   <div className="space-y-1">
-                    {detailProduct.enOferta && detailProduct.porcentajeDescuento > 0 ? (
+                    {detailProduct.enOferta &&
+                    detailProduct.porcentajeDescuento > 0 ? (
                       <>
                         <p className="text-xs text-gray-500 line-through">
                           $ {detailProduct.precio}
                         </p>
                         <p className="text-sm text-emerald-600 font-bold">
-                          $ {Math.round(detailProduct.precio * (1 - detailProduct.porcentajeDescuento / 100))}
-                          <span className="ml-1 text-red-500">(-{detailProduct.porcentajeDescuento}%)</span>
+                          ${" "}
+                          {Math.round(
+                            detailProduct.precio *
+                              (1 - detailProduct.porcentajeDescuento / 100),
+                          )}
+                          <span className="ml-1 text-red-500">
+                            (-{detailProduct.porcentajeDescuento}%)
+                          </span>
                         </p>
                       </>
                     ) : (

@@ -69,21 +69,24 @@
 ## 🐛 Diagnóstico si algo NO funciona
 
 ### "El botón NO se habilita después de abrir turno"
+
 - [ ] Abre DevTools → Console
 - [ ] Verifica que NO hay errores en rojo
 - [ ] Ejecuta:
   ```javascript
-  localStorage.getItem("syspharma_current_turn")
+  localStorage.getItem("syspharma_current_turn");
   ```
   Debe retornar un objeto JSON con la caja abierta
 
 ### "El tooltip NO aparece"
+
 - [ ] Abre DevTools → Inspector de elementos
 - [ ] Pasa mouse sobre el botón gris
 - [ ] Busca el elemento `<div>` con clase `absolute top-full`
 - [ ] Si no existe, hay un bug en la renderización
 
 ### "El logout falla o no limpia localStorage"
+
 - [ ] Abre DevTools → Console
 - [ ] Busca errores en rojo en el logout
 - [ ] Verifica que `turnService.closeTurnAndLogout()` se ejecutó correctamente
@@ -108,4 +111,3 @@
 - El sistema usa **event listeners globales** (`turn:changed`) para sincronizar botones
 - Después de abrir/cerrar turno, las páginas se actualizan automáticamente sin recargar
 - Si recargas la página manualmente (`F5`), el estado se preserva correctamente desde localStorage
-
