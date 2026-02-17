@@ -487,9 +487,9 @@ export const ProductsPage = () => {
       {/* Modal de Detalle del Producto */}
       {detailProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] shadow-2xl flex flex-col">
             {/* Header */}
-            <div className="sticky top-0 px-6 py-5 flex items-center justify-between border-b border-emerald-100 bg-emerald-50">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-emerald-100 bg-emerald-50 flex-shrink-0">
               <div>
                 <h2 className="text-lg font-semibold text-emerald-900">
                   Detalle del Producto
@@ -504,178 +504,115 @@ export const ProductsPage = () => {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-6">
-              {/* Imagen del Producto */}
-              {detailProduct.imagen && (
-                <div className="flex justify-center">
-                  <div className="w-full max-w-xs h-64 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={detailProduct.imagen}
-                      alt={detailProduct.nombre}
-                      className="max-w-full max-h-full object-contain p-4"
-                    />
+            <div className="flex-1 p-4 sm:p-6 overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                {/* Imagen del Producto */}
+                {detailProduct.imagen && (
+                  <div className="md:col-span-1 flex items-start justify-center">
+                    <div className="w-full h-48 bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
+                      <img
+                        src={detailProduct.imagen}
+                        alt={detailProduct.nombre}
+                        className="max-w-full max-h-full object-contain p-2"
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Grid de Detalles */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Grid de Detalles */}
+                <div className={`${detailProduct.imagen ? "md:col-span-2" : "md:col-span-3"} grid grid-cols-2 gap-2 sm:gap-3 text-sm overflow-y-auto`}>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase">
-                    ID
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {detailProduct.id}
-                  </p>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block">ID</label>
+                  <p className="text-xs text-gray-900 font-medium truncate">{detailProduct.id}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase">
-                    Nombre
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {detailProduct.nombre}
-                  </p>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block">Nombre</label>
+                  <p className="text-xs text-gray-900 font-medium line-clamp-2">{detailProduct.nombre}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase">
-                    Categoría
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {detailProduct.categoria}
-                  </p>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block">Categoría</label>
+                  <p className="text-xs text-gray-900 font-medium truncate">{detailProduct.categoria}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase">
-                    Tipo de Producto
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {detailProduct.tipoProducto}
-                  </p>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block">Tipo</label>
+                  <p className="text-xs text-gray-900 font-medium truncate">{detailProduct.tipoProducto}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase">
-                    Stock
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {detailProduct.stock}
-                  </p>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block">Stock</label>
+                  <p className="text-xs text-gray-900 font-bold">{detailProduct.stock}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase">
-                    Precio
-                  </label>
-                  <div className="space-y-1">
-                    {detailProduct.enOferta &&
-                    detailProduct.porcentajeDescuento > 0 ? (
-                      <>
-                        <p className="text-xs text-gray-500 line-through">
-                          $ {detailProduct.precio}
-                        </p>
-                        <p className="text-sm text-emerald-600 font-bold">
-                          ${" "}
-                          {Math.round(
-                            detailProduct.precio *
-                              (1 - detailProduct.porcentajeDescuento / 100),
-                          )}
-                          <span className="ml-1 text-red-500">
-                            (-{detailProduct.porcentajeDescuento}%)
-                          </span>
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-emerald-600 font-bold">
-                        $ {detailProduct.precio}
+                  <label className="text-xs font-semibold text-gray-600 uppercase block">Precio</label>
+                  {detailProduct.enOferta && detailProduct.porcentajeDescuento > 0 ? (
+                    <div>
+                      <p className="text-xs text-gray-500 line-through">$ {detailProduct.precio}</p>
+                      <p className="text-xs text-emerald-600 font-bold">
+                        ${Math.round(detailProduct.precio * (1 - detailProduct.porcentajeDescuento / 100))}
+                        <span className="text-red-500 ml-1">-{detailProduct.porcentajeDescuento}%</span>
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-emerald-600 font-bold">$ {detailProduct.precio}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase">
-                    Estado
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {detailProduct.estado}
-                  </p>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block">Estado</label>
+                  <p className="text-xs text-gray-900 font-medium">{detailProduct.estado}</p>
                 </div>
-              </div>
 
-              {/* Si es medicamento, mostrar más detalles */}
-              {detailProduct.tipoProducto === "Medicamento" && (
-                <div className="border-t pt-4 space-y-4">
-                  <h3 className="font-semibold text-gray-800">
-                    Información del Medicamento
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Si es medicamento, mostrar más detalles */}
+                {detailProduct.tipoProducto === "Medicamento" && (
+                  <>
+                    <div className="col-span-2 border-t pt-2 mt-2">
+                      <h3 className="font-semibold text-xs text-gray-800 uppercase mb-2">Información del Medicamento</h3>
+                    </div>
                     {detailProduct.presentacion && (
                       <div>
-                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                          Presentación
-                        </label>
-                        <p className="text-sm text-gray-900">
-                          {detailProduct.presentacion}
-                        </p>
+                        <label className="text-xs font-semibold text-gray-600 uppercase block">Presentación</label>
+                        <p className="text-xs text-gray-900 truncate">{detailProduct.presentacion}</p>
                       </div>
                     )}
                     {detailProduct.viaAdministracion && (
                       <div>
-                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                          Vía de Administración
-                        </label>
-                        <p className="text-sm text-gray-900">
-                          {detailProduct.viaAdministracion}
-                        </p>
+                        <label className="text-xs font-semibold text-gray-600 uppercase block">Vía Admin</label>
+                        <p className="text-xs text-gray-900 truncate">{detailProduct.viaAdministracion}</p>
                       </div>
                     )}
                     {detailProduct.concentracion && (
                       <div>
-                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                          Concentración
-                        </label>
-                        <p className="text-sm text-gray-900">
-                          {detailProduct.concentracion}
-                        </p>
+                        <label className="text-xs font-semibold text-gray-600 uppercase block">Concentración</label>
+                        <p className="text-xs text-gray-900 truncate">{detailProduct.concentracion}</p>
                       </div>
                     )}
                     {detailProduct.composicion && (
                       <div>
-                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                          Composición
-                        </label>
-                        <p className="text-sm text-gray-900">
-                          {detailProduct.composicion}
-                        </p>
+                        <label className="text-xs font-semibold text-gray-600 uppercase block">Composición</label>
+                        <p className="text-xs text-gray-900 truncate">{detailProduct.composicion}</p>
                       </div>
                     )}
                     {detailProduct.registroSanitario && (
                       <div>
-                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                          Registro Sanitario
-                        </label>
-                        <p className="text-sm text-gray-900">
-                          {detailProduct.registroSanitario}
-                        </p>
+                        <label className="text-xs font-semibold text-gray-600 uppercase block">Registro Sanitario</label>
+                        <p className="text-xs text-gray-900 truncate">{detailProduct.registroSanitario}</p>
                       </div>
                     )}
                     {detailProduct.requiereFormula !== undefined && (
                       <div>
-                        <label className="text-xs font-semibold text-gray-600 uppercase">
-                          Requiere Fórmula
-                        </label>
-                        <p className="text-sm text-gray-900">
-                          {detailProduct.requiereFormula ? "Sí" : "No"}
-                        </p>
+                        <label className="text-xs font-semibold text-gray-600 uppercase block">Requiere Fórmula</label>
+                        <p className="text-xs text-gray-900">{detailProduct.requiereFormula ? "Sí" : "No"}</p>
                       </div>
                     )}
-                  </div>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
+            </div>
             </div>
 
             {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0">
               <button
                 onClick={() => setDetailProduct(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                className="px-3 py-2 text-xs sm:text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Cerrar
               </button>

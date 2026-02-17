@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Calendar,
   Stethoscope,
+  User,
   LogOut,
   X,
 } from "lucide-react";
@@ -110,6 +111,13 @@ const EmployeeSidebar = ({ isOpen, onClose, onShowLogoutModal }) => {
             icon={Calendar}
             label="Citas"
             active={isActive("/employee/citas")}
+          />
+
+          <MenuItem
+            to="/employee/mi-perfil"
+            icon={User}
+            label="Mi Perfil"
+            active={isActive("/employee/mi-perfil")}
           />
         </nav>
 

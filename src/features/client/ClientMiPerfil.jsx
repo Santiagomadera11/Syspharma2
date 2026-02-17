@@ -143,7 +143,6 @@ export const ClientMiPerfil = () => {
       !formData.nombres ||
       !formData.apellidos ||
       !formData.documento ||
-      !formData.telefono ||
       !formData.direccion
     ) {
       setToast({
@@ -509,7 +508,7 @@ export const ClientMiPerfil = () => {
             {/* Fila 3: Celular */}
             <div>
               <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-                Celular <span className="text-red-500">*</span>
+                Celular
               </label>
               <input
                 type="tel"

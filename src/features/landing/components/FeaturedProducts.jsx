@@ -12,6 +12,7 @@ import ProductDetailModal from "../../../shared/ui/ProductDetailModal";
 import ProductCardGrid from "../../client/components/ProductCard";
 import useCart from "../../../shared/context/CartContext";
 import GuestOrderModal from "./GuestOrderModal";
+import { toast } from "../../../shared/utils/toast";
 
 export const FeaturedProducts = () => {
   const [paginaActual, setPaginaActual] = useState(0);
@@ -88,8 +89,10 @@ export const FeaturedProducts = () => {
                   onAdd={() => {
                     try {
                       cart.addToCart(producto);
+                      toast.success(`¡${producto.nombre} agregado al carrito!`);
                     } catch (e) {
                       console.error(e);
+                      toast.error("Error al agregar al carrito");
                     }
                   }}
                   onQuickBuy={() => {

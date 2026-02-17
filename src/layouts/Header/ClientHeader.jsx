@@ -16,6 +16,7 @@ export const ClientHeader = ({ onMenuClick }) => {
   const [favCount, setFavCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [cartAnimating, setCartAnimating] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("syspharma_user");
@@ -44,7 +45,11 @@ export const ClientHeader = ({ onMenuClick }) => {
     loadCart();
     loadFavorites();
 
-    const cartHandler = () => loadCart();
+    const cartHandler = () => {
+      loadCart();
+      setCartAnimating(true);
+      setTimeout(() => setCartAnimating(false), 600);
+    };
     const favHandler = () => loadFavorites();
     window.addEventListener("syspharma_cart_updated", cartHandler);
     window.addEventListener("syspharma_favorites_updated", favHandler);
@@ -117,10 +122,10 @@ export const ClientHeader = ({ onMenuClick }) => {
 
         <button
           onClick={() => navigate("/client/carrito")}
-          className="relative text-green-100 hover:text-white transition-colors"
+          className={`relative text-green-100 hover:text-white transition-colors ${cartAnimating ? "animate-pulse" : ""}`}
           aria-label="Carrito"
         >
-          <ShoppingCart size={20} />
+          <ShoppingCart size={20} className={cartAnimating ? "scale-110 transition-transform duration-300" : ""} />
           {cartCount > 0 ? (
             <span className="absolute -top-1 -right-1 min-w-[18px] h-5 bg-emerald-600 text-white rounded-full text-[11px] font-bold flex items-center justify-center px-1 border border-green-600">
               {cartCount}

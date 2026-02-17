@@ -7,6 +7,7 @@ import { useState } from "react";
 import ProductDetailModal from "../../shared/ui/ProductDetailModal";
 import ProductCardGrid from "../client/components/ProductCard";
 import useCart from "../../shared/context/CartContext";
+import { toast } from "../../shared/utils/toast";
 
 export const LandingPage = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -191,8 +192,10 @@ export const LandingPage = () => {
                   onAdd={() => {
                     try {
                       cart.addToCart(product);
+                      toast.success(`¡${product.nombre} agregado al carrito!`);
                     } catch (e) {
                       console.error(e);
+                      toast.error("Error al agregar al carrito");
                     }
                   }}
                   onQuickBuy={() => setSelectedProduct(product)}

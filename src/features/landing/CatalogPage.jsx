@@ -7,9 +7,9 @@ export const CatalogPage = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <PublicNavbar />
 
-      <div className="bg-primary-900 text-white py-6 text-center shadow-md">
+      <div className="bg-white text-gray-800 py-6 text-center">
         <h1 className="text-2xl font-bold mb-1">Catálogo</h1>
-        <p className="text-primary-200 text-xs">Todos los productos</p>
+        <p className="text-gray-600 text-xs">Todos los productos</p>
       </div>
 
       <div className="py-2 flex-1">

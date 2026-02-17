@@ -146,6 +146,7 @@ export const AppRouter = () => {
             path="reportes/desempeño"
             element={<SalesPerformanceReportsPage />}
           />
+          <Route path="mi-perfil" element={<ClientMiPerfil />} />
 
           {/* --- SISTEMA --- */}
           <Route path="configuracion" element={<SettingsPage />} />
@@ -179,6 +180,7 @@ export const AppRouter = () => {
 
           {/* ✅ NUEVA RUTA: Citas del Empleado */}
           <Route path="citas" element={<EmployeeAppointmentsPage />} />
+          <Route path="mi-perfil" element={<ClientMiPerfil />} />
         </Route>
 
         {/* =================================================================
