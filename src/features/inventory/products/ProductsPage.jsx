@@ -30,7 +30,7 @@ export const ProductsPage = () => {
   const [notification, setNotification] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const itemsPerPage = 20;
+  const itemsPerPage = 5;
 
   // Cargar productos, categorías y proveedores al montar el componente
   useEffect(() => {
@@ -121,6 +121,21 @@ export const ProductsPage = () => {
     currentPage * itemsPerPage,
   );
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  // Reset to first page when search/filter or products change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, products.length]);
+
+  // Clamp currentPage if totalPages decreased
+  useEffect(() => {
+    if (totalPages === 0) {
+      setCurrentPage(1);
+    } else if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages]);
 
   const getStatusBadge = (estado) => {
     // Lógica simple para badge
@@ -215,8 +230,8 @@ export const ProductsPage = () => {
       </div>
 
       {/* VISTA TABLA EN DESKTOP */}
-      <div className="hidden sm:flex flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex-col overflow-hidden">
-        <div className="flex-1 overflow-auto">
+      <div className="hidden sm:flex flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex-col overflow-visible">
+        <div className="flex-1">
           <table className="w-full text-left border-collapse">
             <thead className="bg-emerald-700 text-white sticky top-0 z-10">
               <tr>
@@ -315,21 +330,42 @@ export const ProductsPage = () => {
             </tbody>
           </table>
         </div>
-        {/* Paginación simple igual que antes... */}
-        <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
-          <span className="text-[10px] text-gray-500">Pág {currentPage}</span>
-          <div className="flex gap-1">
+        {/* Paginación con números */}
+        <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
+          <div className="text-[10px] text-gray-500">Pág {currentPage} de {totalPages || 1}</div>
+
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage((c) => Math.max(1, c - 1))}
               disabled={currentPage === 1}
               className="p-1 border rounded bg-white disabled:opacity-50"
+              aria-label="Página anterior"
             >
               <ChevronLeft size={14} />
             </button>
+
+            <div className="hidden md:flex gap-1">
+              {pages.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setCurrentPage(p)}
+                  className={`px-2 py-0.5 text-xs rounded ${
+                    p === currentPage
+                      ? "bg-emerald-600 text-white"
+                      : "bg-white border border-gray-200"
+                  }`}
+                  aria-current={p === currentPage}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
             <button
               onClick={() => setCurrentPage((c) => Math.min(totalPages, c + 1))}
               disabled={currentPage === totalPages}
               className="p-1 border rounded bg-white disabled:opacity-50"
+              aria-label="Página siguiente"
             >
               <ChevronRight size={14} />
             </button>
