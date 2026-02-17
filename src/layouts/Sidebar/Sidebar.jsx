@@ -4,6 +4,7 @@ import { authService } from "../../features/auth/authService";
 import {
   LayoutDashboard,
   Users,
+  User,
   ShoppingCart,
   Package,
   Tags,
@@ -85,6 +86,7 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           label="Usuarios"
           active={isActive("/admin/usuarios")}
         />
+
 
         {/* --- GRUPO COMPRAS (Ahora con Link propio) --- */}
         <MenuGroup
@@ -169,7 +171,15 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
             icon={TrendingUp}
             active={isActive("/admin/reportes/desempeño")}
           />
+          {/* Mi Perfil moved below the Reportes group to be a top-level item */}
         </MenuGroup>
+
+        <MenuItem
+          to="/admin/mi-perfil"
+          icon={User}
+          label="Mi Perfil"
+          active={isActive("/admin/mi-perfil")}
+        />
 
         <div className="pt-3 pb-1 border-t border-gray-700 mt-2">
           <p className="px-3 text-[9px] font-bold text-gray-500 uppercase tracking-wider">

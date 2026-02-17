@@ -103,7 +103,6 @@ export const CartProvider = ({ children }) => {
       };
       return [item, ...prev];
     });
-    setIsCartOpen(true);
   };
 
   const removeFromCart = (id, qty = 1) => {
