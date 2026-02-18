@@ -3,6 +3,7 @@ import {
   Plus, Search, Eye, Edit, Trash2, 
   ChevronLeft, ChevronRight, Filter, Stethoscope, Clock
 } from "lucide-react";
+import { ConfirmDialog } from "../../shared/ui/ConfirmDialog.jsx";
 import ServiceFormModal from "./components/ServiceFormModal";
 import { useCrud } from "../../shared/hooks/useCrud"; 
 
@@ -45,9 +46,17 @@ export const ServicesPage = () => {
   };
 
   const handleEdit = (service) => {
-    setEditingItem(service);
-    setIsViewMode(false);
-    setIsModalOpen(true);
+    setConfirmConfig({
+      open: true,
+      title: "Confirmar edición",
+      message: `¿Editar el servicio ${service.nombre}?`,
+      confirmLabel: "Editar",
+      onConfirm: () => {
+        setEditingItem(service);
+        setIsViewMode(false);
+        setIsModalOpen(true);
+      },
+    });
   };
 
   const handleView = (service) => {
@@ -56,10 +65,23 @@ export const ServicesPage = () => {
     setIsModalOpen(true);
   };
 
+  const [confirmConfig, setConfirmConfig] = useState({
+    open: false,
+    title: "Confirmar eliminación",
+    message: "¿Eliminar este servicio?",
+    onConfirm: null,
+  });
+
   const handleDelete = (id) => {
-    if (!window.confirm(`¿Eliminar este servicio?`)) return;
-    deleteItem(id);
-    window.dispatchEvent(new CustomEvent('services:changed'));
+    setConfirmConfig({
+      open: true,
+      title: "Confirmar eliminación",
+      message: "¿Eliminar este servicio?",
+      onConfirm: () => {
+        deleteItem(id);
+        window.dispatchEvent(new CustomEvent('services:changed'));
+      },
+    });
   };
 
   const confirmStatusChange = (service) => {
@@ -94,7 +116,7 @@ export const ServicesPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
+      <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
         <div>
           <h1 className="text-lg font-bold text-gray-800">Servicios</h1>
@@ -185,6 +207,18 @@ export const ServicesPage = () => {
         onSave={handleSave}
         initialData={editingItem}
         isViewMode={isViewMode} 
+      />
+
+      <ConfirmDialog
+        open={confirmConfig.open}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmLabel={confirmConfig.confirmLabel}
+        onCancel={() => setConfirmConfig((c) => ({ ...c, open: false }))}
+        onConfirm={() => {
+          confirmConfig.onConfirm && confirmConfig.onConfirm();
+          setConfirmConfig((c) => ({ ...c, open: false }));
+        }}
       />
     </div>
   );

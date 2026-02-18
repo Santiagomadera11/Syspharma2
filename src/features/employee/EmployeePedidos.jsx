@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "../sales/orders/services/ordersService";
+import { permissionService } from "../settings/permissionService";
 import { productService } from "../inventory/products/services/productService";
 import { inventoryService } from "../inventory/services/inventoryService";
 import { salesService } from "../sales/services/salesService";
@@ -22,6 +23,9 @@ import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 export const EmployeePedidos = () => {
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const canEditOrder = permissionService.hasPerm(user.rol, "billing.create");
+  const canDeleteOrder = permissionService.hasPerm(user.rol, "billing.refund");
   const [orders, setOrders] = useState(ordersService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -35,9 +39,6 @@ export const EmployeePedidos = () => {
   const [orderToChangeStatus, setOrderToChangeStatus] = useState(null);
   const [viewMode, setViewMode] = useState("activos"); // "activos" para Pendiente/En proceso, "historial" para Entregado/Cancelado
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
-  const [user] = useState(
-    JSON.parse(localStorage.getItem("syspharma_user") || "{}"),
-  );
   const [tooltipOrderId, setTooltipOrderId] = useState(null);
 
   const itemsPerPage = 10;
@@ -594,7 +595,7 @@ export const EmployeePedidos = () => {
                             <Check size={14} />
                           </button>
                         )}
-                        {order.estado === "Pendiente" && (
+                        {order.estado === "Pendiente" && canEditOrder && (
                           <button
                             onClick={() => handleEditOrder(order)}
                             className="bg-amber-50 hover:bg-amber-100 text-amber-600 p-1.5 rounded-md border border-amber-200"

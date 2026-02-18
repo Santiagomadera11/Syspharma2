@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { X, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { ToastNotification } from "../../../shared/ui/ToastNotification";
 import { rolesService } from "../../settings/rolesService";
 import { formValidations } from "../../../shared/utils/formValidations";
 import { getDocumentTypes } from "../../settings/services/parameterService";
+import { userService } from "../services/userService";
 
 export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +20,6 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
     estado: true,
   });
   const [errors, setErrors] = useState({});
-  const [toast, setToast] = useState(null);
   const [rolesOptions, setRolesOptions] = useState([]);
   const [documentTypes, setDocumentTypes] = useState([]);
 
@@ -163,6 +162,24 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       return;
     }
 
+    // Validar email único (tanto en crear como editar)
+    const allUsers = userService.getAll();
+    const emailLower = formData.email.trim().toLowerCase();
+    const emailExists = allUsers.some(
+      (u) =>
+        u.email &&
+        u.email.trim().toLowerCase() === emailLower &&
+        (!userToEdit || u.id !== userToEdit.id)
+    );
+    if (emailExists) {
+      setToast({
+        message: "El email ya está registrado en otro usuario.",
+        type: "error",
+        zIndex: 80,
+      });
+      return;
+    }
+
     // prepare payload (exclude confirmPassword)
     let payload = { ...formData };
     delete payload.confirmPassword;
@@ -181,17 +198,14 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       }
     }
 
-    onSave(payload);
-    setToast({
-      message: userToEdit
-        ? "Usuario actualizado correctamente"
-        : "Usuario creado correctamente",
-      type: "success",
-      zIndex: 70,
-    });
-    setTimeout(() => {
-      onClose();
-    }, 600);
+    const success = onSave(payload);
+    
+    // Solo cerrar modal si el guardado fue exitoso
+    if (success !== false) {
+      setTimeout(() => {
+        onClose();
+      }, 300);
+    }
   };
 
   // Clases comunes para inputs compactos
@@ -217,7 +231,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       {/* Modal Compacto */}
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] animate-fade-in-up">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl flex flex-col max-h-[90vh] animate-fade-in-up">
         {/* Encabezado Delgado */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-gray-50 rounded-t-xl">
           <h2 className="text-sm font-bold text-gray-800">
@@ -430,14 +444,6 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
           </button>
         </div>
       </div>
-      {toast && (
-        <ToastNotification
-          message={toast.message}
-          type={toast.type}
-          zIndex={toast.zIndex}
-          onClose={() => setToast(null)}
-        />
-      )}
     </div>
   );
 };

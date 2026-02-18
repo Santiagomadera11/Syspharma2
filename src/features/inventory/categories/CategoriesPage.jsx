@@ -6,6 +6,7 @@ import {
 
 // ✅ IMPORTACIÓN CORRECTA DEL COMPONENTE
 import CategoryFormModal from "./components/CategoryFormModal";
+import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog";
 import { categoryService } from "./services/categoryService";
 
 export const CategoriesPage = () => {
@@ -16,6 +17,7 @@ export const CategoriesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [modalMode, setModalMode] = useState("create"); // 'create' | 'view' | 'edit'
+  const [confirmDelete, setConfirmDelete] = useState({ show: false, cat: null });
 
   // --- CONFIGURACIÓN COMPACTA (6 ITEMS) ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,9 +84,14 @@ export const CategoriesPage = () => {
   };
 
   const handleDelete = (cat) => {
-    if (!window.confirm(`Eliminar categoría ${cat.nombre}?`)) return;
-    categoryService.delete(cat.id);
-    setCategories(categoryService.getAll());
+    setConfirmDelete({ show: true, cat });
+  };
+  const confirmDeleteCategory = () => {
+    if (confirmDelete.cat) {
+      categoryService.delete(confirmDelete.cat.id);
+      setCategories(categoryService.getAll());
+    }
+    setConfirmDelete({ show: false, cat: null });
   };
 
   const handleSave = (data) => {
@@ -247,6 +254,7 @@ export const CategoriesPage = () => {
       </div>
 
       {/* ✅ MODAL INTEGRADO */}
+
       <CategoryFormModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
@@ -254,6 +262,17 @@ export const CategoriesPage = () => {
         mode={modalMode}
         onSave={handleSave}
         onDelete={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={confirmDelete.show}
+        title="Confirmar eliminación"
+        message={confirmDelete.cat ? `¿Estás seguro de eliminar la categoría "${confirmDelete.cat.nombre}"? Esta acción no se puede deshacer.` : ''}
+        onCancel={() => setConfirmDelete({ show: false, cat: null })}
+        onConfirm={confirmDeleteCategory}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        danger
       />
 
     </div>

@@ -28,7 +28,7 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto animate-fade-in-up">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl max-h-[80vh] overflow-y-auto animate-fade-in-up">
         {/* Header */}
         <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-green-50 sticky top-0">
           <div>

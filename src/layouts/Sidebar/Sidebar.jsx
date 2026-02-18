@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authService } from "../../features/auth/authService";
+import { permissionService } from "../../features/settings/permissionService";
 import {
   LayoutDashboard,
   Users,
@@ -38,6 +39,9 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
   // Función auxiliar: verifica si la ruta actual coincide exactamente o empieza con el path
   const isActive = (path) => location.pathname === path;
   const isGroupActive = (path) => location.pathname.startsWith(path);
+
+  const user = authService.getCurrentUser();
+  const has = (perm) => permissionService.hasPerm(user?.rol, perm);
 
   return (
     <aside className="w-60 bg-[#2C3E50] flex flex-col text-white shadow-xl flex-shrink-0 border-l border-gray-700 h-full overflow-hidden">
@@ -80,12 +84,14 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           </p>
         </div>
 
-        <MenuItem
-          to="/admin/usuarios"
-          icon={Users}
-          label="Usuarios"
-          active={isActive("/admin/usuarios")}
-        />
+        {has("users.view") && (
+          <MenuItem
+            to="/admin/usuarios"
+            icon={Users}
+            label="Usuarios"
+            active={isActive("/admin/usuarios")}
+          />
+        )}
 
 
         {/* --- GRUPO COMPRAS (Ahora con Link propio) --- */}
@@ -118,21 +124,23 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
         </MenuGroup>
 
         {/* --- GRUPO VENTAS --- */}
-        <MenuGroup
-          to="/admin/ventas"
-          title="Ventas"
-          icon={DollarSign}
-          isOpen={openMenus.ventas}
-          onToggle={() => toggleMenu("ventas")}
-          active={isActive("/admin/ventas")}
-        >
-          <SubMenuItem
-            to="/admin/pedidos"
-            label="Pedidos"
-            icon={ClipboardList}
-            active={isActive("/admin/pedidos")}
-          />
-        </MenuGroup>
+        {has("billing.view") && (
+          <MenuGroup
+            to="/admin/ventas"
+            title="Ventas"
+            icon={DollarSign}
+            isOpen={openMenus.ventas}
+            onToggle={() => toggleMenu("ventas")}
+            active={isActive("/admin/ventas")}
+          >
+            <SubMenuItem
+              to="/admin/pedidos"
+              label="Pedidos"
+              icon={ClipboardList}
+              active={isActive("/admin/pedidos")}
+            />
+          </MenuGroup>
+        )}
 
         {/* --- GRUPO SERVICIOS --- */}
         <MenuGroup
@@ -187,12 +195,14 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           </p>
         </div>
 
-        <MenuItem
-          to="/admin/configuracion"
-          icon={Settings}
-          label="Configuración"
-          active={isActive("/admin/configuracion")}
-        />
+        {has("system.view") && (
+          <MenuItem
+            to="/admin/configuracion"
+            icon={Settings}
+            label="Configuración"
+            active={isActive("/admin/configuracion")}
+          />
+        )}
       </nav>
 
       {/* Footer */}

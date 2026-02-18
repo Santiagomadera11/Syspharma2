@@ -73,7 +73,7 @@ export const RegisterExpenseModal = ({ isOpen, onClose, onSaveSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col animate-fade-in-up">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl flex flex-col animate-fade-in-up max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-amber-50 rounded-t-xl">
           <div>

@@ -275,12 +275,13 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
       {/* max-h-[90vh] permite que el modal tenga su propio scroll si es necesario, sin afectar la página de atrás */}
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[96vh]">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-[90vw] md:max-w-3xl lg:max-w-4xl flex flex-col max-h-[90vh] overflow-y-auto">
+        {/* smaller padding container */}
         
         {/* Header */}
-        <div className="bg-green-50 px-5 py-4 border-b border-green-200 flex justify-between items-center flex-shrink-0">
+        <div className="bg-green-50 px-4 py-3 border-b border-green-200 flex justify-between items-center flex-shrink-0">
           <h3 className="font-bold text-gray-900 text-lg">
             {title}
           </h3>
@@ -289,16 +290,16 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
           </button>
         </div>
 
-        {/* Body (Scrollable internamente) */}
-        <div className="p-6 overflow-y-auto flex-1">
+        {/* Body */}
+        <div className="p-4 flex-1 pb-6">
           
           {/* 1. Datos Generales */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Proveedor</label>
+              <label className="block text-[10px] font-bold text-gray-700 mb-1">Proveedor</label>
               <select 
                 disabled={isView}
-                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500 bg-white"
+                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500 bg-white"
                 value={formData.proveedor}
                 onChange={(e) => setFormData({...formData, proveedor: e.target.value})}
               >
