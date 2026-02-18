@@ -11,6 +11,7 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { ordersService } from "../sales/orders/services/ordersService";
+import { LS, read } from "../../shared/services/lsService";
 
 /**
  * ClientMisPedidos - Vista de pedidos para clientes
@@ -22,15 +23,30 @@ export const ClientMisPedidos = () => {
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("desc"); // desc = reciente a antiguo, asc = antiguo a reciente
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Cargar datos al montar
   useEffect(() => {
+    // Obtener datos del usuario actual
+    const currentUser = read(LS.USER) || {};
+    const userEmail = currentUser.email;
+    const userDocumento = currentUser.documento;
 
     // Obtener pedidos del servicio
     const allOrders = ordersService.getAll();
-    // Filtrar pedidos del usuario actual (opcional: si tienes email/documento en el usuario)
-    setOrders(allOrders);
-    applyFiltersAndSort(allOrders, "Todos", "", "desc");
+    
+    // Filtrar pedidos solo del usuario actual (por email o documento)
+    const userOrders = allOrders.filter(
+      (order) =>
+        order.correo === userEmail ||
+        order.email === userEmail ||
+        order.documento === userDocumento ||
+        order.cliente === currentUser.nombre
+    );
+    
+    setOrders(userOrders);
+    applyFiltersAndSort(userOrders, "Todos", "", "desc");
   }, []);
 
   // Aplicar filtros, búsqueda y ordenamiento
@@ -121,12 +137,41 @@ export const ClientMisPedidos = () => {
     return "bg-amber-50 text-amber-700 border-amber-200";
   };
 
-  const handleViewDetail = () => {
-    // TODO: Abrir modal de detalle del pedido
+  const handleViewDetail = (order) => {
+    setSelectedOrder(order);
+    setShowDetailModal(true);
   };
 
-  const handleViewInvoice = () => {
-    // TODO: Generar o descargar factura
+  const handleViewInvoice = (order) => {
+    // Generar factura simple - podría mejorarse con librería como pdfkit
+    if (!isInvoiceEnabled(order.estado)) return;
+    
+    const invoiceContent = `
+FACTURA DE COMPRA
+=====================================
+ID Pedido: ${order.id}
+Fecha: ${new Date(order.fecha).toLocaleDateString()}
+Cliente: ${order.cliente}
+Documento: ${order.documento}
+
+PRODUCTOS:
+${order.productos.map((p) => `  - ${p.nombre}: ${p.cantidad} x $${p.precio.toFixed(2)} = $${(p.cantidad * p.precio).toFixed(2)}`).join("\n")}
+
+-------------------------------------
+TOTAL: $${order.total.toFixed(2)}
+Método de Pago: ${order.metodoPago || "No especificado"}
+Estado: ${order.estado}
+=====================================
+    `;
+    
+    // Descargar como archivo de texto
+    const element = document.createElement("a");
+    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(invoiceContent));
+    element.setAttribute("download", `Factura_${order.id}.txt`);
+    element.style.display = "none";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
   };
 
   const isInvoiceEnabled = (status) => {
@@ -269,8 +314,8 @@ export const ClientMisPedidos = () => {
                   {/* Resumen de Productos */}
                   <div className="col-span-4">
                     <p className="text-sm font-medium text-gray-700">
-                      {order.cantidadProductos} producto
-                      {order.cantidadProductos > 1 ? "s" : ""}
+                      {order.productos.length} producto
+                      {order.productos.length > 1 ? "s" : ""}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       Total: ${order.total.toFixed(2)}
@@ -331,6 +376,119 @@ export const ClientMisPedidos = () => {
           )}
         </div>
       </div>
+
+      {/* Modal de Detalle del Pedido */}
+      {showDetailModal && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="sticky top-0 bg-green-50 border-b border-green-200 p-5 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">{selectedOrder.id}</h2>
+                <p className="text-green-600 text-sm font-medium">
+                  {new Date(selectedOrder.fecha).toLocaleDateString()}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Contenido */}
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              {/* Información General */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-gray-500 text-xs font-medium uppercase">Cliente</p>
+                  <p className="text-gray-900 font-semibold text-sm">{selectedOrder.cliente}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs font-medium uppercase">Documento</p>
+                  <p className="text-gray-900 font-semibold text-sm">{selectedOrder.documento}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs font-medium uppercase">Correo</p>
+                  <p className="text-gray-900 font-semibold text-sm">{selectedOrder.correo || selectedOrder.email}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-xs font-medium uppercase">Método de Pago</p>
+                  <p className="text-gray-900 font-semibold text-sm">{selectedOrder.metodoPago}</p>
+                </div>
+              </div>
+
+              {/* Estado */}
+              <div className="border-t border-gray-200 pt-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-medium text-sm">Estado:</span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(selectedOrder.estado)}`}>
+                    {selectedOrder.estado}
+                  </span>
+                </div>
+              </div>
+
+              {/* Productos */}
+              <div className="border-t border-gray-200 pt-3">
+                <h3 className="font-bold text-base text-gray-900 mb-3">Productos ({selectedOrder.productos.length})</h3>
+                <div className="space-y-2">
+                  {selectedOrder.productos.map((product, idx) => (
+                    <div key={idx} className="flex justify-between items-start p-2 bg-gray-50 rounded">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 text-sm">{product.nombre}</p>
+                        <p className="text-xs text-gray-500">Cant: {product.cantidad}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900 text-sm">
+                          ${(product.cantidad * product.precio).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          ${product.precio.toFixed(2)}/u
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="border-t border-gray-200 pt-3">
+                <div className="flex justify-between items-center bg-green-50 border border-green-200 p-3 rounded">
+                  <span className="text-base font-bold text-gray-900">Total:</span>
+                  <span className="text-2xl font-bold text-green-600">
+                    ${selectedOrder.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Notas */}
+              {selectedOrder.notas && (
+                <div className="border-t border-gray-200 pt-3">
+                  <p className="text-gray-500 text-xs font-medium uppercase mb-2">Notas</p>
+                  <p className="text-gray-700 bg-gray-50 p-2 rounded text-sm">{selectedOrder.notas}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {isInvoiceEnabled(selectedOrder.estado) && (
+              <div className="bg-gray-50 border-t border-gray-200 p-4">
+                <button
+                  onClick={() => {
+                    handleViewInvoice(selectedOrder);
+                    setShowDetailModal(false);
+                  }}
+                  className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <FileText size={16} />
+                  Factura
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

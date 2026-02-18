@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import {
   LS,
   read,
@@ -7,6 +8,7 @@ import {
 } from "../../shared/services/lsService";
 import { getPaymentMethods } from "../settings/services/parameterService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
+import { ordersService } from "../sales/orders/services/ordersService";
 
 const CarritoPage = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -146,7 +148,16 @@ const CarritoPage = () => {
   if (!cartItems || cartItems.length === 0) {
     return (
       <div className="p-6">
-        <h2 className="text-xl font-bold mb-4">Tu Carrito</h2>
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={() => window.history.back()}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Volver"
+          >
+            <ArrowLeft size={24} className="text-gray-700" />
+          </button>
+          <h2 className="text-xl font-bold">Tu Carrito</h2>
+        </div>
         <p>Tu carrito está vacío. Agrega productos desde el catálogo.</p>
       </div>
     );
@@ -154,7 +165,16 @@ const CarritoPage = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Tu Carrito</h2>
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => window.history.back()}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Volver"
+        >
+          <ArrowLeft size={24} className="text-gray-700" />
+        </button>
+        <h2 className="text-xl font-bold">Tu Carrito</h2>
+      </div>
       <div className="space-y-4">
         {cartItems.map((it) => (
           <div
@@ -383,7 +403,6 @@ const CarritoPage = () => {
 
                     // Create order — recompute total using latest product prices
                     const session = read(LS.USER) || {};
-                    const pedidos = read(LS.PEDIDOS) || [];
                     const computedTotal = normCart.reduce((s, it) => {
                       const prod =
                         latestProducts.find((p) => p.id === it.id) || {};
@@ -399,9 +418,10 @@ const CarritoPage = () => {
                     }, 0);
 
                     const order = {
-                      id: Date.now() + Math.floor(Math.random() * 1000),
-                      fecha: new Date().toISOString(),
-                      clienteId: session.id || session.email || null,
+                      cliente: session.nombre || session.email || "Cliente",
+                      documento: session.documento || "",
+                      correo: session.email || "",
+                      fecha: new Date().toISOString().split("T")[0],
                       productos: normCart.map((it) => {
                         const prod =
                           latestProducts.find((p) => p.id === it.id) || {};
@@ -422,10 +442,12 @@ const CarritoPage = () => {
                       }),
                       total: computedTotal,
                       metodoPago: selectedPayment || null,
-                      estado: "Registrado",
+                      estado: "Pendiente",
+                      origin: "web",
+                      creadoPor: "Cliente",
+                      notas: "Compra desde web",
                     };
-                    const newPedidos = [order, ...pedidos];
-                    write(LS.PEDIDOS, newPedidos);
+                    ordersService.create(order);
 
                     // Clear cart
                     write(LS.CART, []);
