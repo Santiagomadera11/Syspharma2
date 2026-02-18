@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -216,11 +217,23 @@ export const AppointmentsPage = () => {
     }
   };
 
+  const [confirmConfig, setConfirmConfig] = useState({
+    open: false,
+    title: "Confirmar eliminación",
+    message: "",
+    onConfirm: null,
+  });
+
   const handleDeleteAppointment = (appointmentId) => {
-    if (window.confirm("¿Estás seguro de eliminar esta cita?")) {
-      appointmentService.deleteAppointment(appointmentId);
-      loadData();
-    }
+    setConfirmConfig({
+      open: true,
+      title: "Confirmar eliminación",
+      message: "¿Estás seguro de eliminar esta cita?",
+      onConfirm: () => {
+        appointmentService.deleteAppointment(appointmentId);
+        loadData();
+      },
+    });
   };
 
   const handleCreateAppointment = () => {
@@ -841,6 +854,17 @@ export const AppointmentsPage = () => {
           initialData={editingExpense}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmConfig.open}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onCancel={() => setConfirmConfig((c) => ({ ...c, open: false }))}
+        onConfirm={() => {
+          confirmConfig.onConfirm && confirmConfig.onConfirm();
+          setConfirmConfig((c) => ({ ...c, open: false }));
+        }}
+      />
     </div>
   );
 };

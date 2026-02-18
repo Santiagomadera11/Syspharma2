@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
+import { permissionService } from "../../settings/permissionService";
 import { productService } from "../../inventory/products/services/productService";
 import { inventoryService } from "../../inventory/services/inventoryService";
 import { write, LS } from '../../../shared/services/lsService';
@@ -30,6 +31,9 @@ import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 export const AdminPedidos = () => {
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const canEditOrder = permissionService.hasPerm(user.rol, "billing.create");
+  const canDeleteOrder = permissionService.hasPerm(user.rol, "billing.refund");
   const [orders, setOrders] = useState(ordersService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
@@ -755,7 +759,7 @@ export const AdminPedidos = () => {
                             <Check size={14} />
                           </button>
                         )}
-                        {order.estado === "Pendiente" && (
+                        {order.estado === "Pendiente" && canEditOrder && (
                           <button
                             onClick={() => handleEditOrder(order)}
                             className="bg-amber-50 hover:bg-amber-100 text-amber-600 p-1.5 rounded-md border border-amber-200"
@@ -771,13 +775,15 @@ export const AdminPedidos = () => {
                         >
                           <Edit size={14} />
                         </button>
-                        <button
-                          onClick={() => handleDeleteOrder(order)}
-                          className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
-                          title="Eliminar pedido"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {canDeleteOrder && (
+                          <button
+                            onClick={() => handleDeleteOrder(order)}
+                            className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
+                            title="Eliminar pedido"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

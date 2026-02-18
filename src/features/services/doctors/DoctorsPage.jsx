@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
+import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog.jsx";
 import { doctorService } from "./services/doctorService";
 import DoctorFormModal from "./components/DoctorFormModal";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
@@ -43,10 +44,25 @@ export const DoctorsPage = () => {
     setIsModalOpen(true);
   };
 
-  // Abrir modal para editar
+  const [confirmConfig, setConfirmConfig] = useState({
+    open: false,
+    title: "Confirmar acción",
+    message: "",
+    onConfirm: null,
+  });
+
+  // Abrir modal para editar (solicita confirmación)
   const handleOpenEdit = (doctor) => {
-    setEditingDoctor(doctor);
-    setIsModalOpen(true);
+    setConfirmConfig({
+      open: true,
+      title: "Confirmar edición",
+      message: `¿Editar los datos de ${doctor.nombre}?`,
+      confirmLabel: "Editar",
+      onConfirm: () => {
+        setEditingDoctor(doctor);
+        setIsModalOpen(true);
+      },
+    });
   };
 
   // Guardar (crear o actualizar)
@@ -77,16 +93,21 @@ export const DoctorsPage = () => {
 
   // Eliminar doctor
   const handleDelete = (id) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este médico?")) {
-      const doctor = doctors.find((d) => d.id === id);
-      doctorService.delete(id);
-      loadDoctors();
-      setNotification({
-        message: `${doctor.nombre} ha sido eliminado`,
-        type: "success",
-        duration: 3000,
-      });
-    }
+    const doctor = doctors.find((d) => d.id === id);
+    setConfirmConfig({
+      open: true,
+      title: "Confirmar eliminación",
+      message: `¿Estás seguro de que deseas eliminar al médico ${doctor.nombre}?`,
+      onConfirm: () => {
+        doctorService.delete(id);
+        loadDoctors();
+        setNotification({
+          message: `${doctor.nombre} ha sido eliminado`,
+          type: "success",
+          duration: 3000,
+        });
+      },
+    });
   };
 
   // Filtrar doctors
@@ -356,6 +377,18 @@ export const DoctorsPage = () => {
           onClose={() => setNotification(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmConfig.open}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmLabel={confirmConfig.confirmLabel}
+        onCancel={() => setConfirmConfig((c) => ({ ...c, open: false }))}
+        onConfirm={() => {
+          confirmConfig.onConfirm && confirmConfig.onConfirm();
+          setConfirmConfig((c) => ({ ...c, open: false }));
+        }}
+      />
     </div>
   );
 };

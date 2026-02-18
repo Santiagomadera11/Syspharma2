@@ -14,9 +14,11 @@ import {
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
 import { productService } from "./services/productService";
+import { permissionService } from "../../settings/permissionService";
 import { categoryService } from "../categories/services/categoryService";
 import { providerService } from "../providers/services/providerService";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
+import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog";
 
 export const ProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -63,6 +65,9 @@ export const ProductsPage = () => {
   }, []);
 
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const canEdit = permissionService.hasPerm(user.rol, "inven.edit");
+  const canDelete = permissionService.hasPerm(user.rol, "inven.delete");
 
   const handleCreate = () => {
     // Navegar internamente usando React Router (sin recarga completa)
@@ -300,20 +305,24 @@ export const ProductsPage = () => {
                         >
                           <Eye size={14} />
                         </button>
-                        <button
-                          onClick={() => handleEdit(prod)}
-                          className="p-1.5 sm:p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
-                          title="Editar"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(prod)}
-                          className="p-1.5 sm:p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => handleEdit(prod)}
+                            className="p-1.5 sm:p-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => setShowDeleteConfirm(prod)}
+                            className="p-1.5 sm:p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -630,61 +639,25 @@ export const ProductsPage = () => {
         </div>
       )}
 
-      {/* Modal de Confirmación de Eliminación */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl">
-            {/* Header */}
-            <div className="px-6 py-5 border-b border-red-100 flex items-center justify-between bg-red-50">
-              <h2 className="text-lg font-semibold text-red-900">
-                Confirmar Eliminación
-              </h2>
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="p-1 hover:bg-red-100 rounded-lg transition-colors text-red-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="px-6 py-5">
-              <p className="text-gray-700 text-sm">
-                ¿Estás seguro de que deseas eliminar el producto{" "}
-                <strong>"{showDeleteConfirm.nombre}"</strong>? Esta acción no se
-                puede deshacer.
-              </p>
-            </div>
-
-            {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  const updatedProducts = productService.delete(
-                    showDeleteConfirm.id,
-                  );
-                  setProducts(updatedProducts);
-                  setNotification({
-                    message: `${showDeleteConfirm.nombre} eliminado correctamente`,
-                    type: "success",
-                    duration: 3000,
-                  });
-                  setShowDeleteConfirm(null);
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!showDeleteConfirm}
+        title="Confirmar eliminación"
+        message={showDeleteConfirm ? `¿Estás seguro de que deseas eliminar el producto "${showDeleteConfirm.nombre}"? Esta acción no se puede deshacer.` : ''}
+        onCancel={() => setShowDeleteConfirm(null)}
+        onConfirm={() => {
+          const updatedProducts = productService.delete(showDeleteConfirm.id);
+          setProducts(updatedProducts);
+          setNotification({
+            message: `${showDeleteConfirm.nombre} eliminado correctamente`,
+            type: "success",
+            duration: 3000,
+          });
+          setShowDeleteConfirm(null);
+        }}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        danger
+      />
     </div>
   );
 };

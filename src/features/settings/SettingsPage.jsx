@@ -3,6 +3,7 @@ import { Shield, Edit, Trash2, Info, Settings } from "lucide-react";
 import { PERMISSIONS_CONFIG } from "./rolesConfig";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { rolesService } from "./rolesService";
+import { permissionService } from "./permissionService";
 import { userService } from "../users/services/userService";
 import ParameterManagement from "./components/ParameterManagement";
 
@@ -131,6 +132,9 @@ export const SettingsPage = () => {
       active: editRole ? !!editRole.active : true,
     };
 
+    // sync permission map using new role name / permissions
+    permissionService.updateRole(payload.name, payload.permissions);
+
     if (editRole) {
       const prevName = editRole.name;
       const next = rolesService.update(payload);
@@ -182,9 +186,25 @@ export const SettingsPage = () => {
   const cancelDelete = () => setDeleteConfirm({ show: false, id: null });
 
   const handleToggleActive = (id) => {
-    // update via rolesService to persist
-    const list = rolesService.getAll();
-    const next = list.map((r) =>
+    // prevent disabling if any user is assigned to the role
+    const allRoles = rolesService.getAll();
+    const target = allRoles.find((r) => r.id === id);
+    if (target && target.active) {
+      const assigned = (userService.getAll() || []).filter(
+        (u) => (u.rol || "").toLowerCase() === (target.name || "").toLowerCase(),
+      );
+      if (assigned.length > 0) {
+        setToast({
+          message: `No se puede desactivar el rol "${target.name}" porque está en uso.`,
+          type: "error",
+          zIndex: 60,
+        });
+        return;
+      }
+    }
+
+    // toggle and persist
+    const next = allRoles.map((r) =>
       r.id === id ? { ...r, active: !r.active } : r,
     );
     rolesService.saveAll(next);
@@ -201,6 +221,14 @@ export const SettingsPage = () => {
     setRoleDesc(role.description || "");
     const map = {};
     (role.permissions || []).forEach((p) => (map[p] = true));
+
+    // if editing administrador, make sure every available permission is checked too
+    if ((role.name || "").toLowerCase() === "administrador") {
+      PERMISSIONS_CONFIG.forEach((p) => {
+        map[p.id] = true;
+      });
+    }
+
     setSelectedPerms(map);
     setModalStep("form");
     setShowModal(true);
@@ -521,9 +549,10 @@ export const SettingsPage = () => {
                     Selecciona los permisos que aplican para este rol.
                   </p>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {Object.keys(categories).map((cat) => (
-                      <div key={cat} className="p-2 rounded-2xl bg-gray-50">
+                  <div className="overflow-y-auto no-scrollbar max-h-[calc(100vh-240px)]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.keys(categories).map((cat) => (
+                        <div key={cat} className="p-2 rounded-2xl bg-gray-50">
                         <h5 className="text-sm font-bold mb-1">{cat}</h5>
                         <p className="text-[11px] text-gray-500 mb-2">
                           Permisos relacionados con {cat.toLowerCase()}.
@@ -553,6 +582,8 @@ export const SettingsPage = () => {
                         </div>
                       </div>
                     ))}
+                  </div>
+
                   </div>
 
                   <div className="mt-3 flex items-center justify-between sticky bottom-0 bg-white pt-3">

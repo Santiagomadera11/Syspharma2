@@ -115,30 +115,132 @@ export const AppRouter = () => {
 
           {/* Dashboard General */}
           <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="usuarios" element={<UsersPage />} />
+          <Route
+            path="usuarios"
+            element={
+              <ProtectedRoute requiredPerm="users.view">
+                <UsersPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* --- MÓDULO DE COMPRAS & INVENTARIO --- */}
-          <Route path="compras" element={<PurchasesPage />} />
-          <Route path="productos" element={<ProductsPage />} />
-          <Route path="productos/nuevo" element={<NewProductPage />} />
-          <Route path="categorias" element={<CategoriesPage />} />
-          <Route path="proveedores" element={<ProvidersPage />} />
+          <Route
+            path="compras"
+            element={
+              <ProtectedRoute requiredPerm="inven.view">
+                <PurchasesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="productos"
+            element={
+              <ProtectedRoute requiredPerm="inven.view">
+                <ProductsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="productos/nuevo"
+            element={
+              <ProtectedRoute requiredPerm="inven.create">
+                <NewProductPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="categorias"
+            element={
+              <ProtectedRoute requiredPerm="inven.view">
+                <CategoriesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="proveedores"
+            element={
+              <ProtectedRoute requiredPerm="inven.view">
+                <ProvidersPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* --- MÓDULO DE VENTAS --- */}
-          <Route path="ventas" element={<SalesPage />} />
-          <Route path="ventas/nueva" element={<CreateOrderPage />} />
-          <Route path="ventas/nueva/productos" element={<CartProductsPage />} />
-          <Route path="pedidos" element={<AdminPedidos />} />
-          <Route path="pedidos/crear" element={<CreateOrderPage />} />
+          <Route
+            path="ventas"
+            element={
+              <ProtectedRoute requiredPerm="billing.view">
+                <SalesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="ventas/nueva"
+            element={
+              <ProtectedRoute requiredPerm="billing.create">
+                <CreateOrderPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="ventas/nueva/productos"
+            element={
+              <ProtectedRoute requiredPerm="billing.create">
+                <CartProductsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="pedidos"
+            element={
+              <ProtectedRoute requiredPerm="billing.view">
+                <AdminPedidos />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="pedidos/crear"
+            element={
+              <ProtectedRoute requiredPerm="billing.create">
+                <CreateOrderPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* --- MÓDULO DE SERVICIOS & CITAS --- */}
-          <Route path="servicios" element={<ServicesPage />} />
-          <Route path="citas" element={<AppointmentsPage />} />
+          <Route
+            path="servicios"
+            element={
+              <ProtectedRoute requiredPerm="services.view">
+                <ServicesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="citas"
+            element={
+              <ProtectedRoute requiredPerm="services.view">
+                <AppointmentsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="citas/disponibilidad"
-            element={<AvailabilityConfigPage />}
+            element={
+              <ProtectedRoute requiredPerm="services.manage">
+                <AvailabilityConfigPage />
+              </ProtectedRoute>
+            }
           />
-          <Route path="medicos" element={<DoctorsPage />} />
+          <Route
+            path="medicos"
+            element={
+              <ProtectedRoute requiredPerm="services.manage">
+                <DoctorsPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* --- MÓDULO DE REPORTES --- */}
           <Route path="reportes/turnos" element={<ShiftHistoryReportsPage />} />
@@ -149,7 +251,14 @@ export const AppRouter = () => {
           <Route path="mi-perfil" element={<ClientMiPerfil />} />
 
           {/* --- SISTEMA --- */}
-          <Route path="configuracion" element={<SettingsPage />} />
+          <Route
+            path="configuracion"
+            element={
+              <ProtectedRoute requiredPerm="system.view">
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* =================================================================
@@ -167,13 +276,34 @@ export const AppRouter = () => {
           <Route path="inicio" element={<EmployeeInicio />} />
 
           {/* Operaciones */}
-          <Route path="compras" element={<EmployeeCompras />} />
-          <Route path="ventas" element={<EmployeeSalesPage />} />
-          <Route path="ventas/nueva" element={<CreateOrderPage />} />
-          <Route path="ventas/nueva/productos" element={<CartProductsPage />} />
-          <Route path="productos" element={<EmployeeProductos />} />
-          <Route path="pedidos" element={<EmployeePedidos />} />
-          <Route path="pedidos/crear" element={<CreateOrderPage />} />
+          <Route path="compras" element={<EmployeeCompras />} requiredPerm="inven.view" />
+          <Route path="ventas" element={<EmployeeSalesPage />} requiredPerm="billing.view" />
+          <Route
+            path="ventas/nueva"
+            element={
+              <ProtectedRoute requiredPerm="billing.create">
+                <CreateOrderPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="ventas/nueva/productos"
+            element={
+              <ProtectedRoute requiredPerm="billing.create">
+                <CartProductsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="productos" element={<EmployeeProductos />} requiredPerm="inven.view" />
+          <Route path="pedidos" element={<EmployeePedidos />} requiredPerm="billing.view" />
+          <Route
+            path="pedidos/crear"
+            element={
+              <ProtectedRoute requiredPerm="billing.create">
+                <CreateOrderPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* ✅ NUEVA RUTA: Servicios del Empleado */}
           <Route path="servicios" element={<EmployeeServicesPage />} />

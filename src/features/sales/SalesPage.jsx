@@ -22,6 +22,7 @@ import { expensesService } from "./services/expensesService";
 import { salesService } from "./services/salesService";
 import { OpenShiftModal } from "./components/OpenShiftModal";
 import { CloseShiftModal } from "./components/CloseShiftModal";
+import { SaleDetailModal } from "./components/SaleDetailModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 export const SalesPage = () => {
@@ -445,6 +446,16 @@ export const SalesPage = () => {
         onShiftClosed={handleShiftClosed}
         onClose={() => setShowCloseShiftModal(false)}
         user={user}
+      />
+
+      {/* Modal de Detalle de Venta */}
+      <SaleDetailModal
+        isOpen={isSaleDetailOpen}
+        onClose={() => {
+          setIsSaleDetailOpen(false);
+          setSelectedSale(null);
+        }}
+        sale={selectedSale}
       />
 
       {/* Toast Notification */}

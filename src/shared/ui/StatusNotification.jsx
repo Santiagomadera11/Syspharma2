@@ -46,16 +46,16 @@ export const StatusNotification = ({
   const { bg, icon, title } = getStyles();
 
   return (
-    <div className="fixed bottom-6 left-6 animate-in slide-in-from-left duration-300 z-50">
+    <div className="fixed bottom-5 left-5 animate-in slide-in-from-left duration-300 z-50">
       <div
-        className={`${bg} text-white px-5 py-3.5 rounded-lg shadow-2xl flex items-center gap-3 min-w-[280px] max-w-sm border-l-4 border-white/40`}
+        className={`${bg} text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2 min-w-[240px] max-w-sm border-l-4 border-white/40`}
       >
-        <div className="bg-white/20 p-1.5 rounded-full flex items-center justify-center flex-shrink-0">
-          {icon}
+        <div className="bg-white/20 p-1 rounded-full flex items-center justify-center flex-shrink-0">
+          {React.cloneElement(icon, { size: 16 })}
         </div>
         <div className="flex-1">
-          <p className="font-semibold text-sm">{title}</p>
-          <p className="text-[12px] opacity-95">{message}</p>
+          <p className="font-semibold text-xs">{title}</p>
+          <p className="text-[11px] opacity-95">{message}</p>
         </div>
       </div>
     </div>

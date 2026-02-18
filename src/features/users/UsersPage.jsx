@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { permissionService } from "../settings/permissionService";
 import { userService } from "./services/userService";
 // IMPORTAMOS EL MODAL
 import { UserFormModal } from "./components/UserFormModal";
@@ -15,9 +16,14 @@ import UserDetailModal from "./components/UserDetailModal";
 import { rolesService } from "../settings/rolesService";
 import { useMemo } from "react";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
+import { ConfirmDialog } from "../../shared/ui/ConfirmDialog.jsx";
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
+  const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const canCreateUser = permissionService.hasPerm(user.rol, "users.create");
+  const canEditUser = permissionService.hasPerm(user.rol, "users.edit");
+  const canDeleteUser = permissionService.hasPerm(user.rol, "users.delete");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -30,6 +36,8 @@ export const UsersPage = () => {
 
   // --- ESTADO PARA NOTIFICACIONES ---
   const [notification, setNotification] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
+  const [confirmStatus, setConfirmStatus] = useState({ show: false, user: null });
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(0);
@@ -69,36 +77,76 @@ export const UsersPage = () => {
 
   // GUARDAR (Función que recibe el modal)
   const handleSaveUser = (userData) => {
+    // Validar documento único
+    const allUsers = userService.getAll();
+    const docExists = allUsers.some(
+      (u) => u.documento === userData.documento && u.id !== editingUser?.id
+    );
+    
+    if (docExists) {
+      setNotification({
+        message: "Ya existe un usuario con este número de documento",
+        type: "error",
+        duration: 3000,
+      });
+      return false; // Retorna false para indicar error
+    }
+    
     if (editingUser) {
       // Si estamos editando, llamamos a update
       const newList = userService.update({ ...editingUser, ...userData });
       setUsers(newList);
+      setNotification({
+        message: "Usuario editado correctamente",
+        type: "success",
+        duration: 3000,
+      });
     } else {
       // Si es nuevo, llamamos a create
       const newList = userService.create(userData);
       setUsers(newList);
+      setNotification({
+        message: "Usuario creado correctamente",
+        type: "success",
+        duration: 3000,
+      });
     }
+    return true; // Retorna true si fue exitoso
   };
 
   const handleToggleStatus = (id) => {
     const user = users.find((u) => u.id === id);
-    const updatedList = userService.toggleStatus(id);
-    setUsers(updatedList);
+    setConfirmStatus({ show: true, user });
+  };
 
-    // Mostrar notificación con el nuevo estado
-    const newStatus = !user.estado;
-    setNotification({
-      message: `${user.nombre} ahora está ${newStatus ? "Activo" : "Inactivo"}`,
-      type: newStatus ? "success" : "warning",
-      duration: 3000,
-    });
+  const confirmToggleStatus = () => {
+    if (confirmStatus.user) {
+      const updatedList = userService.toggleStatus(confirmStatus.user.id);
+      setUsers(updatedList);
+      const newStatus = !confirmStatus.user.estado;
+      setNotification({
+        message: `${confirmStatus.user.nombre} ahora está ${newStatus ? "Activo" : "Inactivo"}`,
+        type: newStatus ? "success" : "warning",
+        duration: 3000,
+      });
+    }
+    setConfirmStatus({ show: false, user: null });
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("¿Eliminar usuario?")) {
-      const updatedList = userService.delete(id);
-      setUsers(updatedList);
-    }
+    setConfirmDelete({ show: true, id });
+  };
+
+  const confirmDeleteUser = () => {
+    const id = confirmDelete.id;
+    const updatedList = userService.delete(id);
+    setUsers(updatedList);
+    setNotification({
+      message: "Usuario eliminado correctamente",
+      type: "success",
+      duration: 3000,
+    });
+    setConfirmDelete({ show: false, id: null });
   };
 
   const handleUpdateUser = (userData) => {
@@ -110,19 +158,26 @@ export const UsersPage = () => {
 
   // ... (El resto de la lógica de filtros y paginación sigue igual) ...
   const filteredUsers = users.filter((user) => {
-    const term = searchTerm.toLowerCase();
+    const term = searchTerm.toLowerCase().trim();
     const estadoTexto = user.estado ? "activo" : "inactivo";
     // status filter
     if (filterStatus === "active" && !user.estado) return false;
     if (filterStatus === "inactive" && user.estado) return false;
 
-    return (
-      user.nombre.toLowerCase().includes(term) ||
-      user.email.toLowerCase().includes(term) ||
-      user.rol.toLowerCase().includes(term) ||
-      (user.documento && user.documento.toLowerCase().includes(term)) ||
-      estadoTexto.includes(term)
-    );
+    if (!term) return true;
+
+    // split into words so "juan admin" matches a user named Juan with rol Administrador
+    const terms = term.split(/\s+/);
+
+    return terms.every((t) => {
+      return (
+        (user.nombre && user.nombre.toLowerCase().includes(t)) ||
+        (user.email && user.email.toLowerCase().includes(t)) ||
+        (user.rol && user.rol.toLowerCase().includes(t)) ||
+        (user.documento && user.documento.toLowerCase().includes(t)) ||
+        estadoTexto.includes(t)
+      );
+    });
   });
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -171,13 +226,15 @@ export const UsersPage = () => {
         </div>
 
         {/* BOTÓN NUEVO CONECTADO */}
-        <button
-          onClick={handleOpenCreate}
-          className="bg-[#34D399] hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
-        >
-          <Plus size={16} />
-          Nuevo
-        </button>
+        {canCreateUser && (
+          <button
+            onClick={handleOpenCreate}
+            className="bg-[#34D399] hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
+          >
+            <Plus size={16} />
+            Nuevo
+          </button>
+        )}
       </div>
 
       {/* 2. Buscador + filtro */}
@@ -299,7 +356,7 @@ export const UsersPage = () => {
                     <button
                       onClick={() => handleToggleStatus(user.id)}
                       className={`relative w-8 h-4 rounded-full transition-colors duration-200 focus:outline-none ${
-                        user.estado ? "bg-gray-700" : "bg-gray-300"
+                        user.estado ? "bg-primary-500" : "bg-gray-300"
                       }`}
                     >
                       <span
@@ -319,19 +376,23 @@ export const UsersPage = () => {
                       </button>
 
                       {/* BOTÓN EDITAR CONECTADO */}
-                      <button
-                        onClick={() => handleOpenEdit(user)}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"
-                      >
-                        <Edit size={14} />
-                      </button>
+                      {canEditUser && (
+                        <button
+                          onClick={() => handleOpenEdit(user)}
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"
+                        >
+                          <Edit size={14} />
+                        </button>
+                      )}
 
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {canDeleteUser && (
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -392,6 +453,34 @@ export const UsersPage = () => {
           onClose={() => setNotification(null)}
         />
       )}
+
+      {/* --- MODAL CONFIRMAR ELIMINACIÓN --- */}
+      <ConfirmDialog
+        open={confirmDelete.show}
+        title="Confirmar eliminación"
+        message="¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer."
+        onCancel={() => setConfirmDelete({ show: false, id: null })}
+        onConfirm={confirmDeleteUser}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        danger
+      />
+
+      {/* --- MODAL CONFIRMAR CAMBIO DE ESTADO --- */}
+      <ConfirmDialog
+        open={confirmStatus.show}
+        title="Cambiar estado de usuario"
+        message={
+          confirmStatus.user
+            ? `¿Deseas poner al usuario ${confirmStatus.user.estado ? "inactivo" : "activo"}?`
+            : "¿Deseas cambiar el estado del usuario?"
+        }
+        onCancel={() => setConfirmStatus({ show: false, user: null })}
+        onConfirm={confirmToggleStatus}
+        confirmText={!confirmStatus.user?.estado ? "Activar" : "Inactivar"}
+        cancelText="Cancelar"
+        danger
+      />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Save, X } from "lucide-react";
+import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog.jsx";
 import {
   getServiceCategories,
   getPaymentMethods,
@@ -122,13 +123,23 @@ const ParameterManagement = ({ user }) => {
     setError("");
   };
 
+  const [confirmConfig, setConfirmConfig] = useState({
+    open: false,
+    title: "Confirmar eliminación",
+    message: "¿Estás seguro de que deseas eliminar este parámetro?",
+    onConfirm: null,
+  });
+
   const handleDelete = (type, id) => {
-    if (
-      window.confirm("¿Estás seguro de que deseas eliminar este parámetro?")
-    ) {
-      deleteParameter(type, id);
-      loadParameters();
-    }
+    setConfirmConfig({
+      open: true,
+      title: "Confirmar eliminación",
+      message: "¿Estás seguro de que deseas eliminar este parámetro?",
+      onConfirm: () => {
+        deleteParameter(type, id);
+        loadParameters();
+      },
+    });
   };
 
   const ParameterTable = ({ data, type, label }) => (
@@ -326,6 +337,18 @@ const ParameterManagement = ({ user }) => {
           los cambios en tiempo real.
         </p>
       </div>
+
+      {/* confirm dialog */}
+      <ConfirmDialog
+        open={confirmConfig.open}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        onCancel={() => setConfirmConfig((c) => ({ ...c, open: false }))}
+        onConfirm={() => {
+          confirmConfig.onConfirm && confirmConfig.onConfirm();
+          setConfirmConfig((c) => ({ ...c, open: false }));
+        }}
+      />
     </div>
   );
 };
