@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { LS, read, write } from "../../shared/services/lsService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import ProductCardGrid from "./components/ProductCard";
@@ -105,7 +106,16 @@ const FavoritosPage = () => {
   if (!favorites || favorites.length === 0) {
     return (
       <div className="p-6">
-        <h2 className="text-xl font-bold mb-4">Tus Favoritos</h2>
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={() => window.history.back()}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Volver"
+          >
+            <ArrowLeft size={24} className="text-gray-700" />
+          </button>
+          <h2 className="text-xl font-bold">Tus Favoritos</h2>
+        </div>
         <p>Tu lista de deseos está vacía. ¡Explora el catálogo!</p>
       </div>
     );
@@ -113,7 +123,16 @@ const FavoritosPage = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Tus Favoritos</h2>
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => window.history.back()}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Volver"
+        >
+          <ArrowLeft size={24} className="text-gray-700" />
+        </button>
+        <h2 className="text-xl font-bold">Tus Favoritos</h2>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {favorites.map((p) => (
           <ProductCardGrid
