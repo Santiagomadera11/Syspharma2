@@ -13,6 +13,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "../sales/orders/services/ordersService";
 import { productService } from "../inventory/products/services/productService";
+import { inventoryService } from "../inventory/services/inventoryService";
 import { salesService } from "../sales/services/salesService";
 import { OrderDetailModal } from "../sales/orders/components/OrderDetailModal";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
@@ -84,14 +85,41 @@ export const EmployeePedidos = () => {
     setIsStatusModalOpen(true);
   };
 
-  // Función para completar pedido (cambiar a "Entregado" y registrar venta)
+  // Función para completar pedido (cambiar a "Entregado", descontar stock y registrar venta)
   const handleCompleteOrder = (order) => {
     if (order.estado === "Pendiente" || order.estado === "En proceso") {
-      // Cambiar estado a Entregado
+      // 🔴 PASO 1: Validar que hay stock disponible
+      const itemsParaDescontar = order.productos.map(item => ({
+        productId: item.id,
+        cantidad: item.cantidad
+      }));
+
+      const validationResult = inventoryService.validateStockAvailable(itemsParaDescontar);
+      if (!validationResult.isValid) {
+        setNotification({
+          message: `No hay stock disponible: ${validationResult.message}`,
+          type: "error",
+          zIndex: 1000,
+        });
+        return;
+      }
+
+      // 🔴 PASO 2: Descontar stock usando FEFO
+      const descuentoResult = inventoryService.deductMultipleProductsFEFO(itemsParaDescontar);
+      if (!descuentoResult.success) {
+        setNotification({
+          message: `Error al descontar stock: ${descuentoResult.message}`,
+          type: "error",
+          zIndex: 1000,
+        });
+        return;
+      }
+
+      // 🔴 PASO 3: Cambiar estado a Entregado
       ordersService.updateStatus(order.id, "Entregado");
       setOrders(ordersService.getAll());
 
-      // Registrar como venta
+      // 🔴 PASO 4: Registrar como venta
       const today = new Date().toLocaleDateString("es-CO");
       try {
         const salesKey = "syspharma_sales";
@@ -114,7 +142,7 @@ export const EmployeePedidos = () => {
       }
 
       setNotification({
-        message: `Pedido ${order.id} completado y registrado como venta`,
+        message: `✅ Pedido ${order.id} completado, stock descuentado (${itemsParaDescontar.reduce((sum, i) => sum + i.cantidad, 0)} unidades) y registrado como venta`,
         type: "success",
         zIndex: 1000,
       });

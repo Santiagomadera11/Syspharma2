@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Plus, Trash2, ArrowLeft, Package } from "lucide-react";
+import { Search, Plus, Trash2, ArrowLeft, Package, AlertCircle, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { productService } from "../../inventory/products/services/productService";
+import { inventoryService } from "../../inventory/services/inventoryService";
 import { read, write, LS } from "../../../shared/services/lsService";
 import { ordersService } from "./services/ordersService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
@@ -60,6 +61,8 @@ export const CreateOrderPage = () => {
 
   const [cart, setCart] = useState(loadCartFromStorage);
   const [notification, setNotification] = useState(null);
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [stockIssues, setStockIssues] = useState([]);
 
   // Guardar carrito en localStorage
   useEffect(() => {
@@ -247,6 +250,7 @@ export const CreateOrderPage = () => {
 
   // Confirmar pedido
   const handleConfirmOrder = () => {
+    // Validaciones básicas
     if (!clientInfo.documento || !clientInfo.nombre) {
       setNotification({
         message: "Por favor completa documento y nombre del cliente",
@@ -262,6 +266,32 @@ export const CreateOrderPage = () => {
         type: "error",
         zIndex: 50,
       });
+      return;
+    }
+
+    // Para pedidos (no ventas), validar campos adicionales
+    if (!isSale) {
+      if (!clientInfo.telefono || !clientInfo.telefono.trim()) {
+        setNotification({
+          message: "El teléfono es obligatorio para registrar un pedido",
+          type: "error",
+          zIndex: 50,
+        });
+        return;
+      }
+    }
+
+    // 🔴 VALIDACIÓN DE STOCK: Verificar disponibilidad ANTES de procesar
+    const itemsParaValidar = cart.map(item => ({
+      productId: item.id,
+      cantidad: item.cantidad
+    }));
+    
+    const validationResult = inventoryService.validateStockAvailable(itemsParaValidar);
+    
+    if (!validationResult.isValid) {
+      setStockIssues(validationResult.unavailable);
+      setIsStockModalOpen(true);
       return;
     }
 
@@ -313,9 +343,7 @@ export const CreateOrderPage = () => {
         userId: isEmployee ? currentUser?.id : null,
         userName: isEmployee ? currentUser?.nombre : null,
       });
-      // Si es una venta (isSale === true) registrarla también en el servicio de ventas
-      // Para ventas creadas por Administrador/Web, registrar también en el servicio de ventas.
-      // Si es empleado, `ordersService.create` ya registra la venta ligada al turno.
+      
       if (isSale && !isEmployee) {
         try {
           salesService.create({
@@ -335,60 +363,32 @@ export const CreateOrderPage = () => {
       }
     }
 
-    // Actualizar stock de productos
-    if (isEditing && editingOrderId) {
-      // Para edición: devolver stock original y reducir stock nuevo
-      originalProducts.forEach((item) => {
-        const currentProduct = productService.getById(item.id);
-        if (currentProduct) {
-          productService.update(item.id, {
-            stock: currentProduct.stock + item.cantidad, // Devolver stock original
-          });
-        }
-      });
-
-      // Después de devolver el stock original, reducir el stock del carrito actualizado
-      cart.forEach((item) => {
-        const currentProduct = productService.getById(item.id);
-        if (currentProduct && currentProduct.stock >= item.cantidad) {
-          productService.update(item.id, {
-            stock: currentProduct.stock - item.cantidad,
-          });
-        }
-      });
-    } else {
-      // Para creación: reducir stock normalmente
-      cart.forEach((item) => {
-        const currentProduct = productService.getById(item.id);
-        console.log(
-          `Producto ${item.nombre} (ID: ${item.id}): stock actual ${currentProduct?.stock}, cantidad a descontar ${item.cantidad}`,
-        );
-        if (currentProduct && currentProduct.stock >= item.cantidad) {
-          const newStock = currentProduct.stock - item.cantidad;
-          productService.update(item.id, {
-            stock: newStock,
-          });
-          console.log(
-            `✅ Stock actualizado para ${item.nombre}: ${currentProduct.stock} -> ${newStock}`,
-          );
-        } else {
-          console.error(
-            `❌ Error: No hay suficiente stock para ${item.nombre}. Stock actual: ${currentProduct?.stock}, requerido: ${item.cantidad}`,
-          );
-        }
-      });
+    // 🔴 DESCUENTO DE STOCK: SOLO PARA VENTAS (isSale), NO PARA PEDIDOS
+    if (isSale) {
+      // Para ventas: descontar stock inmediatamente usando FEFO
+      const descuentoResult = inventoryService.deductMultipleProductsFEFO(itemsParaValidar);
+      
+      if (!descuentoResult.success) {
+        setNotification({
+          message: "Error al descontar stock: " + descuentoResult.message,
+          type: "error",
+          zIndex: 50,
+        });
+        return;
+      }
     }
+    // Para pedidos: NO descontar stock aquí. Se descuentará solo cuando se complete el pedido.
 
     setProducts(productService.getAll());
 
     setNotification({
       message: isEditing
         ? isSale
-          ? "Venta actualizada exitosamente"
+          ? "Venta actualizada exitosamente y stock descuentado"
           : "Pedido actualizado exitosamente"
         : isSale
-          ? "Venta registrada exitosamente"
-          : "Pedido creado exitosamente",
+          ? "Venta registrada exitosamente y stock descuentado"
+          : "Pedido creado exitosamente. Se completará cuando se marque como entregado.",
       type: "success",
       zIndex: 50,
     });
@@ -568,7 +568,9 @@ export const CreateOrderPage = () => {
                   </div>
 
                   <div>
-                    <label className={labelClass}>Teléfono</label>
+                    <label className={labelClass}>
+                      Teléfono {!isSale && "*"}
+                    </label>
                     <input
                       type="tel"
                       placeholder="3101234567"
@@ -578,6 +580,11 @@ export const CreateOrderPage = () => {
                       }
                       className={inputClass}
                     />
+                    {!isSale && (
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        Requerido para registrar pedidos
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -683,6 +690,57 @@ export const CreateOrderPage = () => {
           zIndex={notification.zIndex}
           onClose={() => setNotification(null)}
         />
+      )}
+
+      {/* 🔴 Modal de Stock Insuficiente */}
+      {isStockModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+            
+            {/* Header Rojo */}
+            <div className="bg-red-50 px-6 py-4 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                <AlertCircle size={20} className="text-red-600" />
+                Stock Insuficiente
+              </h3>
+              <button 
+                onClick={() => setIsStockModalOpen(false)} 
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 flex-1 overflow-y-auto">
+              <p className="text-gray-700 text-sm font-medium mb-4">
+                No hay suficiente stock disponible para completar esta operación:
+              </p>
+              <div className="space-y-2">
+                {stockIssues.map((issue, idx) => (
+                  <div key={idx} className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm font-bold text-gray-800">{issue.nombre}</p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Requerido: <span className="font-bold">{issue.requerido}</span> | 
+                      Disponible: <span className="font-bold text-red-600">{issue.disponible}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer Rojo */}
+            <div className="bg-red-50 border-t border-red-200 p-4">
+              <button 
+                onClick={() => setIsStockModalOpen(false)}
+                className="w-full px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded transition-colors shadow-sm"
+              >
+                Entendido
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
     </div>
   );

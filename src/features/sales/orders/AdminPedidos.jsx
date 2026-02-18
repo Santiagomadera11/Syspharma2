@@ -22,6 +22,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
 import { productService } from "../../inventory/products/services/productService";
+import { inventoryService } from "../../inventory/services/inventoryService";
 import { write, LS } from '../../../shared/services/lsService';
 import { salesService } from "../services/salesService";
 import { OrderDetailModal } from "./components/OrderDetailModal";
@@ -73,14 +74,41 @@ export const AdminPedidos = () => {
     setIsStatusModalOpen(true);
   };
 
-  // Función para completar pedido (cambiar a "Entregado" y registrar venta)
+  // Función para completar pedido (cambiar a "Entregado", descontar stock y registrar venta)
   const handleCompleteOrder = (order) => {
     if (order.estado === "Pendiente" || order.estado === "En proceso") {
-      // Cambiar estado a Entregado
+      // 🔴 PASO 1: Validar que hay stock disponible
+      const itemsParaDescontar = order.productos.map(item => ({
+        productId: item.id,
+        cantidad: item.cantidad
+      }));
+
+      const validationResult = inventoryService.validateStockAvailable(itemsParaDescontar);
+      if (!validationResult.isValid) {
+        setNotification({
+          message: `No hay stock disponible: ${validationResult.message}`,
+          type: "error",
+          zIndex: 1000,
+        });
+        return;
+      }
+
+      // 🔴 PASO 2: Descontar stock usando FEFO
+      const descuentoResult = inventoryService.deductMultipleProductsFEFO(itemsParaDescontar);
+      if (!descuentoResult.success) {
+        setNotification({
+          message: `Error al descontar stock: ${descuentoResult.message}`,
+          type: "error",
+          zIndex: 1000,
+        });
+        return;
+      }
+
+      // 🔴 PASO 3: Cambiar estado a Entregado
       ordersService.updateStatus(order.id, "Entregado");
       setOrders(ordersService.getAll());
 
-      // Registrar como venta
+      // 🔴 PASO 4: Registrar como venta
       const today = new Date().toLocaleDateString("es-CO");
       try {
         const salesKey = "syspharma_sales";
@@ -103,7 +131,7 @@ export const AdminPedidos = () => {
       }
 
       setNotification({
-        message: `Pedido ${order.id} completado y registrado como venta`,
+        message: `✅ Pedido ${order.id} completado, stock descuentado (${itemsParaDescontar.reduce((sum, i) => sum + i.cantidad, 0)} unidades) y registrado como venta`,
         type: "success",
         zIndex: 1000,
       });
@@ -123,71 +151,39 @@ export const AdminPedidos = () => {
     if (orderToChangeStatus) {
       const currentStatus = orderToChangeStatus.estado;
 
-      // Lógica de manejo de stock
+      // 🔴 Lógica de manejo de stock: SOLO cancelaciones y devoluciones
       if (newStatus === "Cancelado" && currentStatus !== "Cancelado") {
-        // Cancelar: devolver productos al stock
-        orderToChangeStatus.productos.forEach((item) => {
-          if (item && item.id) {
-            const currentProduct = productService.getById(item.id);
-            if (currentProduct) {
-              productService.update(item.id, {
-                stock: currentProduct.stock + (item.cantidad || 0),
-              });
+        // Cancelar desde cualquier estado: si fue entregado, devolver stock
+        if (currentStatus === "Entregado") {
+          const itemsADevolver = orderToChangeStatus.productos.map(item => ({
+            productId: item.id,
+            cantidad: item.cantidad
+          }));
+          
+          const devolucionResult = inventoryService.deductMultipleProductsFEFO(itemsADevolver.map(i => ({
+            ...i,
+            cantidad: -i.cantidad // Cantidad negativa para devolución
+          })));
+
+          // Para devoluciones invertidas, usamos returnStock
+          orderToChangeStatus.productos.forEach((item) => {
+            if (item && item.id) {
+              inventoryService.returnStock(item.id, item.cantidad || 0);
             }
-          }
-        });
+          });
+        }
       } else if (
         newStatus === "Pendiente" &&
         (currentStatus === "En proceso" || currentStatus === "Entregado")
       ) {
-        // Devolver a Pendiente desde En proceso/Entregado: devolver productos al stock
-        orderToChangeStatus.productos.forEach((item) => {
-          if (item && item.id) {
-            const currentProduct = productService.getById(item.id);
-            if (currentProduct) {
-              productService.update(item.id, {
-                stock: currentProduct.stock + (item.cantidad || 0),
-              });
+        // Devolver a Pendiente desde Entregado: devolver productos al stock
+        if (currentStatus === "Entregado") {
+          orderToChangeStatus.productos.forEach((item) => {
+            if (item && item.id) {
+              inventoryService.returnStock(item.id, item.cantidad || 0);
             }
-          }
-        });
-      } else if (
-        (newStatus === "En proceso" || newStatus === "Entregado") &&
-        currentStatus === "Pendiente"
-      ) {
-        // Validar que hay suficiente stock antes de descontar
-        const insufficientStock = orderToChangeStatus.productos.some((item) => {
-          if (!item || !item.id) return true; // Producto inválido
-          const currentProduct = productService.getById(item.id);
-          return !currentProduct || currentProduct.stock < (item.cantidad || 0);
-        });
-
-        if (insufficientStock) {
-          setNotification({
-            message: `No hay suficiente stock para cambiar el estado del pedido ${orderToChangeStatus.id}`,
-            type: "error",
-            zIndex: 1000,
           });
-          setIsStatusModalOpen(false);
-          setOrderToChangeStatus(null);
-          return;
         }
-
-        // Pasar de Pendiente a En proceso/Entregado: descontar del stock
-        orderToChangeStatus.productos.forEach((item) => {
-          if (item && item.id) {
-            const currentProduct = productService.getById(item.id);
-            if (
-              currentProduct &&
-              currentProduct.stock >= (item.cantidad || 0)
-            ) {
-              const newStock = currentProduct.stock - (item.cantidad || 0);
-              productService.update(item.id, {
-                stock: newStock,
-              });
-            }
-          }
-        });
       }
 
       ordersService.updateStatus(orderToChangeStatus.id, newStatus);
