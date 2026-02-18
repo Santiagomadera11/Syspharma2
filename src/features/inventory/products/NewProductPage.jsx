@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, DollarSign, Package } from "lucide-react";
+import { ArrowLeft, Save, DollarSign, Package, X, CheckCircle, AlertCircle } from "lucide-react";
 import { productService } from "./services/productService";
 import { categoryService } from "../categories/services/categoryService";
 import { providerService } from "../providers/services/providerService";
@@ -31,6 +31,13 @@ const NewProductPage = () => {
     requiereFormula: false,
   });
   const [imagePreview, setImagePreview] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmData, setConfirmData] = useState({
+    type: 'success', // 'success' o 'error'
+    title: '',
+    message: '',
+    onConfirm: null
+  });
   const fileRef = React.createRef();
 
   useEffect(() => {
@@ -62,20 +69,130 @@ const NewProductPage = () => {
   };
 
   const handleSave = () => {
-    // Normalizar tipos
+    // Validar campos requeridos
+    if (!formData.nombre.trim()) {
+      setConfirmData({
+        type: 'error',
+        title: 'Campo Requerido',
+        message: 'Por favor ingresa el nombre del producto',
+        onConfirm: () => setShowConfirmModal(false)
+      });
+      setShowConfirmModal(true);
+      return;
+    }
+
+    if (!formData.categoria) {
+      setConfirmData({
+        type: 'error',
+        title: 'Campo Requerido',
+        message: 'Por favor selecciona una categoría',
+        onConfirm: () => setShowConfirmModal(false)
+      });
+      setShowConfirmModal(true);
+      return;
+    }
+
+    if (!formData.precio || Number(formData.precio) <= 0) {
+      setConfirmData({
+        type: 'error',
+        title: 'Precio Inválido',
+        message: 'Por favor ingresa un precio válido mayor a 0',
+        onConfirm: () => setShowConfirmModal(false)
+      });
+      setShowConfirmModal(true);
+      return;
+    }
+
+    // Inicializar array de lotes
+    const lotes = [];
+    const stockInitial = Number(formData.stock) || 0;
+
+    // Si hay stock inicial, crear registro de inventario inicial
+    if (stockInitial > 0) {
+      const loteInicial = {
+        idLote: Date.now(),
+        numeroLote: 'INVENTARIO-INICIAL',
+        fechaVence: '2030-12-31',
+        cantidad: stockInitial,
+        fechaIngreso: new Date().toISOString().split('T')[0],
+        costUnit: 0,
+        iva: 0,
+        notas: 'Inventario inicial registrado al crear el producto'
+      };
+      lotes.push(loteInicial);
+    }
+
+    // Calcular stock total como suma de cantidades en lotes
+    const stockTotal = lotes.reduce((sum, lote) => sum + lote.cantidad, 0);
+
+    // Armar payload con estructura compatible con lotes
     const payload = {
       ...formData,
+      nombre: formData.nombre.trim(),
       precio: Number(formData.precio) || 0,
-      stock: Number(formData.stock) || 0,
+      precioVenta: Number(formData.precio) || 0,
+      stock: stockTotal,
+      stockTotal: stockTotal,
+      lotes: lotes,
+      categoria: formData.categoria || '',
+      proveedor: formData.proveedor || '',
+      imagen: formData.imagen || null
     };
 
-    productService.create(payload);
+    try {
+      productService.create(payload);
 
-    // Notificar cambios y volver al listado
-    window.dispatchEvent(new CustomEvent("products:changed"));
-    window.dispatchEvent(new CustomEvent("syspharma_products_updated"));
+      // Notificar cambios
+      window.dispatchEvent(new CustomEvent("products:changed"));
+      window.dispatchEvent(new CustomEvent("syspharma_products_updated"));
 
-    navigate("/admin/productos");
+      // Mostrar confirmación con modal
+      const successMessage = stockInitial > 0 
+        ? `Producto creado exitosamente con inventario inicial de ${stockInitial} unidades`
+        : 'Producto creado exitosamente';
+
+      setConfirmData({
+        type: 'success',
+        title: 'Producto Registrado',
+        message: successMessage,
+        onConfirm: () => {
+          setShowConfirmModal(false);
+          // Limpiar formulario
+          setFormData({
+            nombre: "",
+            tipoProducto: "Producto General",
+            categoria: "",
+            proveedor: "",
+            precio: "",
+            stock: "",
+            estado: "Activo",
+            esDestacado: false,
+            enOferta: false,
+            porcentajeDescuento: 0,
+            esRecomendado: false,
+            composicion: "",
+            concentracion: "",
+            presentacion: "",
+            viaAdministracion: "",
+            registroSanitario: "",
+            requiereFormula: false,
+          });
+          setImagePreview(null);
+          // Redirigir al listado
+          navigate("/admin/productos");
+        }
+      });
+      setShowConfirmModal(true);
+    } catch (error) {
+      setConfirmData({
+        type: 'error',
+        title: 'Error',
+        message: 'Error al guardar el producto. Intenta nuevamente.',
+        onConfirm: () => setShowConfirmModal(false)
+      });
+      setShowConfirmModal(true);
+      console.error('Error:', error);
+    }
   };
 
   return (
@@ -372,6 +489,58 @@ const NewProductPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de Confirmación */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className={`px-6 py-4 border-b flex justify-between items-center ${
+              confirmData.type === 'success' 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <div className="flex items-center gap-3">
+                {confirmData.type === 'success' ? (
+                  <CheckCircle size={24} className="text-green-600" />
+                ) : (
+                  <AlertCircle size={24} className="text-red-600" />
+                )}
+                <h3 className="font-bold text-gray-900 text-lg">{confirmData.title}</h3>
+              </div>
+              <button 
+                onClick={() => setShowConfirmModal(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <p className="text-gray-700 text-sm leading-relaxed">{confirmData.message}</p>
+            </div>
+
+            {/* Footer */}
+            <div className={`px-6 py-4 border-t ${
+              confirmData.type === 'success' 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <button
+                onClick={() => confirmData.onConfirm && confirmData.onConfirm()}
+                className={`w-full px-4 py-2 rounded font-semibold text-white text-sm transition-colors ${
+                  confirmData.type === 'success'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

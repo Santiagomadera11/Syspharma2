@@ -205,7 +205,7 @@ export const PurchasesPage = () => {
 
                     <td className="py-1.5 px-3 text-xs text-gray-500">{compra.fecha}</td>
                     <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">$ {compra.total.toLocaleString()}</td>
-                    <td className="py-1.5 px-3 text-xs text-center text-gray-600 font-medium bg-gray-50 mx-auto rounded">{compra.items}</td>
+                    <td className="py-1.5 px-3 text-xs text-center text-gray-600 font-medium bg-gray-50 mx-auto rounded">{Array.isArray(compra.items) ? compra.items.length : compra.items}</td>
                     <td className="py-1.5 px-3 text-center">{getStatusBadge(compra.estado)}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
