@@ -7,9 +7,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  EyeOff,
+  AlertCircle,
+  CheckCircle,
+  X,
 } from "lucide-react";
-import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog.jsx";
 import { doctorService } from "./services/doctorService";
 import DoctorFormModal from "./components/DoctorFormModal";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
@@ -19,20 +20,35 @@ export const DoctorsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // Estados para el modal
+  // Estados para modales
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [doctorToToggle, setDoctorToToggle] = useState(null);
+  const [isToggleConfirmOpen, setIsToggleConfirmOpen] = useState(false);
 
   // Estado para notificaciones
   const [notification, setNotification] = useState(null);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 5; // ✅ Reducido a 5 para mejor compacidad
+  const itemsPerPage = 5;
 
   useEffect(() => {
     loadDoctors();
   }, []);
+
+  // Auto-dismiss de notificaciones
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const loadDoctors = () => {
     setDoctors(doctorService.getAll());
@@ -44,70 +60,71 @@ export const DoctorsPage = () => {
     setIsModalOpen(true);
   };
 
-  const [confirmConfig, setConfirmConfig] = useState({
-    open: false,
-    title: "Confirmar acción",
-    message: "",
-    onConfirm: null,
-  });
-
-  // Abrir modal para editar (solicita confirmación)
+  // Abrir modal para editar
   const handleOpenEdit = (doctor) => {
-    setConfirmConfig({
-      open: true,
-      title: "Confirmar edición",
-      message: `¿Editar los datos de ${doctor.nombre}?`,
-      confirmLabel: "Editar",
-      onConfirm: () => {
-        setEditingDoctor(doctor);
-        setIsModalOpen(true);
-      },
-    });
+    setEditingDoctor(doctor);
+    setIsModalOpen(true);
   };
 
-  // Guardar (crear o actualizar)
+  // Abrir detalle del doctor
+  const handleViewDetail = (doctor) => {
+    setSelectedDoctor(doctor);
+    setIsDetailModalOpen(true);
+  };
+
+  // Guardar doctor (crear o actualizar)
   const handleSaveDoctor = () => {
     loadDoctors();
     setNotification({
       message: editingDoctor
-        ? "Médico actualizado correctamente"
-        : "Médico creado correctamente",
+        ? "Doctor actualizado correctamente"
+        : "Doctor agregado correctamente",
       type: "success",
       duration: 3000,
     });
+    setIsModalOpen(false);
+    setEditingDoctor(null);
   };
 
-  // Cambiar estado (activo/inactivo)
-  const handleToggleStatus = (id) => {
-    const doctor = doctors.find((d) => d.id === id);
-    doctorService.toggleStatus(id);
-    loadDoctors();
+  // Iniciar proceso de cambio de estado
+  const handleToggleStatus = (doctor) => {
+    setDoctorToToggle(doctor);
+    setIsToggleConfirmOpen(true);
+  };
 
-    const newStatus = !doctor.estado;
-    setNotification({
-      message: `${doctor.nombre} ahora está ${newStatus ? "Activo" : "Inactivo"}`,
-      type: newStatus ? "success" : "warning",
-      duration: 3000,
-    });
+  // Confirmar cambio de estado
+  const confirmToggleStatus = () => {
+    if (doctorToToggle) {
+      doctorService.toggleStatus(doctorToToggle.id);
+      loadDoctors();
+      const newStatus = !doctorToToggle.estado;
+      setNotification({
+        message: `Doctor ${doctorToToggle.nombre} ${newStatus ? "activado" : "desactivado"} correctamente`,
+        type: newStatus ? "success" : "warning",
+        duration: 3000,
+      });
+      setIsToggleConfirmOpen(false);
+      setDoctorToToggle(null);
+    }
   };
 
   // Eliminar doctor
-  const handleDelete = (id) => {
-    const doctor = doctors.find((d) => d.id === id);
-    setConfirmConfig({
-      open: true,
-      title: "Confirmar eliminación",
-      message: `¿Estás seguro de que deseas eliminar al médico ${doctor.nombre}?`,
-      onConfirm: () => {
-        doctorService.delete(id);
-        loadDoctors();
-        setNotification({
-          message: `${doctor.nombre} ha sido eliminado`,
-          type: "success",
-          duration: 3000,
-        });
-      },
-    });
+  const handleDeleteDoctor = (doctor) => {
+    setShowDeleteConfirm(doctor);
+  };
+
+  // Confirmar eliminación
+  const confirmDelete = () => {
+    if (showDeleteConfirm) {
+      doctorService.delete(showDeleteConfirm.id);
+      loadDoctors();
+      setNotification({
+        message: "Doctor eliminado correctamente",
+        type: "success",
+        duration: 3000,
+      });
+      setShowDeleteConfirm(null);
+    }
   };
 
   // Filtrar doctors
@@ -132,8 +149,32 @@ export const DoctorsPage = () => {
     (currentPage + 1) * itemsPerPage
   );
 
+  // Toggle Switch Component
+  const StatusToggle = ({ doctor }) => {
+    const isActive = doctor.estado;
+    return (
+      <button
+        onClick={() => handleToggleStatus(doctor)}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
+          isActive
+            ? "bg-emerald-500 shadow-md shadow-emerald-200"
+            : "bg-gray-300 shadow-md shadow-gray-200"
+        }`}
+        role="switch"
+        aria-checked={isActive}
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+            isActive ? "translate-x-6" : "translate-x-0.5"
+          }`}
+        />
+        <span className="sr-only">{isActive ? "Activo" : "Inactivo"}</span>
+      </button>
+    );
+  };
+
   return (
-    <div className="h-full flex flex-col gap-6 font-sans">
+    <div className="h-full flex flex-col gap-6 font-sans overflow-hidden no-scrollbar">
       {/* Header */}
       <div className="flex items-start justify-between flex-shrink-0">
         <div>
@@ -186,7 +227,7 @@ export const DoctorsPage = () => {
       </div>
 
       {/* Tabla de Médicos */}
-      <div className="flex-1 overflow-auto bg-white rounded-xl shadow-sm border border-gray-100">
+      <div className="flex-1 overflow-auto no-scrollbar bg-white rounded-xl shadow-sm border border-gray-100">
         <table className="w-full">
           <thead className="bg-emerald-600 text-white sticky top-0">
             <tr>
@@ -257,46 +298,28 @@ export const DoctorsPage = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        doctor.estado
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {doctor.estado ? "Activo" : "Inactivo"}
-                    </span>
+                    <StatusToggle doctor={doctor} />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleToggleStatus(doctor.id)}
-                        className={`p-1 rounded transition-colors ${
-                          doctor.estado
-                            ? "text-green-600 hover:bg-green-50"
-                            : "text-red-600 hover:bg-red-50"
-                        }`}
-                        title={
-                          doctor.estado ? "Desactivar" : "Activar"
-                        }
+                        onClick={() => handleViewDetail(doctor)}
+                        className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                        title="Ver detalles"
                       >
-                        {doctor.estado ? (
-                          <Eye size={16} />
-                        ) : (
-                          <EyeOff size={16} />
-                        )}
+                        <Eye size={16} />
                       </button>
 
                       <button
                         onClick={() => handleOpenEdit(doctor)}
-                        className="p-1 text-gray-600 hover:bg-gray-50 rounded transition-colors"
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Editar"
                       >
                         <Edit size={16} />
                       </button>
 
                       <button
-                        onClick={() => handleDelete(doctor.id)}
+                        onClick={() => handleDeleteDoctor(doctor)}
                         className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                         title="Eliminar"
                       >
@@ -358,7 +381,7 @@ export const DoctorsPage = () => {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal de Formulario */}
       <DoctorFormModal
         isOpen={isModalOpen}
         onClose={() => {
@@ -378,17 +401,212 @@ export const DoctorsPage = () => {
         />
       )}
 
-      <ConfirmDialog
-        open={confirmConfig.open}
-        title={confirmConfig.title}
-        message={confirmConfig.message}
-        confirmLabel={confirmConfig.confirmLabel}
-        onCancel={() => setConfirmConfig((c) => ({ ...c, open: false }))}
-        onConfirm={() => {
-          confirmConfig.onConfirm && confirmConfig.onConfirm();
-          setConfirmConfig((c) => ({ ...c, open: false }));
-        }}
-      />
+      {/* Modal de Detalle del Doctor */}
+      {isDetailModalOpen && selectedDoctor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col animate-in fade-in duration-200">
+            {/* Header */}
+            <div className="px-6 py-4 flex items-center justify-between border-b border-emerald-100 bg-emerald-50 flex-shrink-0">
+              <div>
+                <h2 className="text-lg font-semibold text-emerald-900">
+                  {selectedDoctor.nombre}
+                </h2>
+              </div>
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="p-1 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-6 overflow-y-auto">
+              <div className="space-y-4">
+                {/* Especialidad */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">
+                    Especialidad
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {selectedDoctor.especialidad}
+                  </p>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">
+                    Email
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {selectedDoctor.email}
+                  </p>
+                </div>
+
+                {/* Teléfono */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">
+                    Teléfono
+                  </label>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {selectedDoctor.telefono}
+                  </p>
+                </div>
+
+                {/* Días Laborales */}
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">
+                    Días Laborales
+                  </label>
+                  {selectedDoctor.diasLaborales && selectedDoctor.diasLaborales.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedDoctor.diasLaborales.map((dia, index) => (
+                        <span
+                          key={index}
+                          className="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-md text-xs font-medium"
+                        >
+                          {dia}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No especificado</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0">
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Eliminación */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            {/* Header */}
+            <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <AlertCircle size={18} className="text-red-600" />
+                Eliminar Médico
+              </h3>
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                ¿Estás seguro de eliminar al médico <strong>"{showDeleteConfirm.nombre}"</strong>?
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors flex items-center gap-1 shadow-sm"
+              >
+                <Trash2 size={14} />
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirmar Cambio de Estado */}
+      {isToggleConfirmOpen && doctorToToggle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            {/* Header */}
+            <div
+              className={`px-5 py-3 border-b flex justify-between items-center ${
+                doctorToToggle.estado
+                  ? "bg-red-50 border-red-200"
+                  : "bg-green-50 border-green-200"
+              }`}
+            >
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                {doctorToToggle.estado ? (
+                  <AlertCircle size={18} className="text-red-600" />
+                ) : (
+                  <CheckCircle size={18} className="text-green-600" />
+                )}
+                {doctorToToggle.estado ? "Desactivar Médico" : "Activar Médico"}
+              </h3>
+              <button
+                onClick={() => setIsToggleConfirmOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                {doctorToToggle.estado
+                  ? `¿Desactivar al médico "${doctorToToggle.nombre}"?`
+                  : `¿Activar al médico "${doctorToToggle.nombre}"?`}
+              </p>
+              {doctorToToggle.estado && (
+                <p className="text-xs text-gray-500 mt-2">
+                  El médico no podrá recibir citas.
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              className={`px-5 py-3 border-t flex justify-end gap-2 ${
+                doctorToToggle.estado
+                  ? "bg-red-50 border-red-200"
+                  : "bg-green-50 border-green-200"
+              }`}
+            >
+              <button
+                onClick={() => setIsToggleConfirmOpen(false)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmToggleStatus}
+                className={`px-4 py-2 text-xs font-bold text-white rounded-md transition-colors flex items-center gap-1 shadow-sm ${
+                  doctorToToggle.estado
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-green-600 hover:bg-green-700"
+                }`}
+              >
+                {doctorToToggle.estado ? "Desactivar" : "Activar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

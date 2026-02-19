@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { 
   Plus, Search, Eye, Edit, Trash2, 
-  ChevronLeft, ChevronRight, Filter, Tag
+  ChevronLeft, ChevronRight, Filter, Tag,
+  CheckCircle, AlertCircle, X
 } from "lucide-react";
 
 // ✅ IMPORTACIÓN CORRECTA DEL COMPONENTE
 import CategoryFormModal from "./components/CategoryFormModal";
-import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog";
 import { categoryService } from "./services/categoryService";
+import { productService } from "../products/services/productService";
 
 export const CategoriesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -17,7 +18,6 @@ export const CategoriesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [modalMode, setModalMode] = useState("create"); // 'create' | 'view' | 'edit'
-  const [confirmDelete, setConfirmDelete] = useState({ show: false, cat: null });
 
   // --- CONFIGURACIÓN COMPACTA (6 ITEMS) ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,30 +25,40 @@ export const CategoriesPage = () => {
 
   const [categories, setCategories] = useState([]);
 
+  // Estados para confirmación de estado
+  const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
+  const [categoryToToggle, setCategoryToToggle] = useState(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
+  const [notification, setNotification] = useState(null);
+
   // Cargar categorías desde el servicio
   useEffect(() => {
     const loadCategories = () => {
       const data = categoryService.getAll();
-      setCategories(data);
+      const enrichedData = enrichCategoriesWithProductCount(data);
+      setCategories(enrichedData);
     };
 
     loadCategories();
 
-    // Escuchar cambios en categorías
-    const handleCategoryChange = () => {
-      loadCategories();
-    };
+    // Escuchar cambios en categorías y productos
+    const handleCategoryChange = () => loadCategories();
+    const handleProductsChange = () => loadCategories();
+    
     window.addEventListener("categories:changed", handleCategoryChange);
+    window.addEventListener("products:changed", handleProductsChange);
 
     return () => {
       window.removeEventListener("categories:changed", handleCategoryChange);
+      window.removeEventListener("products:changed", handleProductsChange);
     };
   }, []);
 
   // Filtrado
   const filteredItems = categories.filter((cat) => {
     const texto = searchTerm.toLowerCase();
-    const matchTexto = cat.nombre.toLowerCase().includes(texto) || (cat.id && cat.id.toLowerCase().includes(texto));
+    const matchTexto = cat.nombre.toLowerCase().includes(texto) || (cat.id && String(cat.id).toLowerCase().includes(texto));
     const matchEstado = statusFilter === "Todos" || 
       (statusFilter === "Activo" && cat.estado) || 
       (statusFilter === "Inactivo" && !cat.estado);
@@ -63,6 +73,15 @@ export const CategoriesPage = () => {
 
   const nextPage = () => { if (currentPage < totalPages) setCurrentPage(currentPage + 1); };
   const prevPage = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
+
+  // Función para enriquecer categorías con conteo de productos
+  const enrichCategoriesWithProductCount = (categoriesList) => {
+    const products = productService.getAll();
+    return categoriesList.map(cat => ({
+      ...cat,
+      productos: products.filter(p => p.categoria === cat.nombre).length
+    }));
+  };
 
   const getStatusBadge = (estado) => {
     const baseClass = "px-2 py-0.5 rounded text-[10px] font-bold border";
@@ -84,33 +103,74 @@ export const CategoriesPage = () => {
   };
 
   const handleDelete = (cat) => {
-    setConfirmDelete({ show: true, cat });
+    setCategoryToDelete(cat);
+    setIsDeleteConfirmOpen(true);
   };
+
   const confirmDeleteCategory = () => {
-    if (confirmDelete.cat) {
-      categoryService.delete(confirmDelete.cat.id);
-      setCategories(categoryService.getAll());
+    if (categoryToDelete) {
+      categoryService.delete(categoryToDelete.id);
+      const updatedCategories = enrichCategoriesWithProductCount(categoryService.getAll());
+      setCategories(updatedCategories);
+      setNotification({
+        message: `Categoría "${categoryToDelete.nombre}" eliminada correctamente`,
+        type: "success",
+      });
     }
-    setConfirmDelete({ show: false, cat: null });
+    setIsDeleteConfirmOpen(false);
+    setCategoryToDelete(null);
   };
 
   const handleSave = (data) => {
-    if (modalMode === 'edit') {
+    const isEdit = modalMode === 'edit';
+    const actionMessage = isEdit 
+      ? `Categoría "${data.nombre}" actualizada correctamente`
+      : `Categoría "${data.nombre}" creada correctamente`;
+    
+    if (isEdit) {
       categoryService.update(data);
     } else {
-      // create
       categoryService.create(data);
     }
-    setCategories(categoryService.getAll());
+    
+    const updatedCategories = enrichCategoriesWithProductCount(categoryService.getAll());
+    setCategories(updatedCategories);
+    setNotification({
+      message: actionMessage,
+      type: "success",
+    });
     setIsModalOpen(false);
     setSelectedCategory(null);
     setModalMode('create');
   };
 
   const confirmStatusChange = (cat) => {
-    categoryService.toggleStatus(cat.id);
-    setCategories(categoryService.getAll());
+    setCategoryToToggle(cat);
+    setIsStatusConfirmOpen(true);
   };
+
+  const confirmToggleStatus = () => {
+    if (categoryToToggle) {
+      categoryService.toggleStatus(categoryToToggle.id);
+      const newStatus = !categoryToToggle.estado;
+      const updatedCategories = enrichCategoriesWithProductCount(categoryService.getAll());
+      setCategories(updatedCategories);
+      setNotification({
+        message: `Categoría "${categoryToToggle.nombre}" ${newStatus ? 'activada' : 'desactivada'} correctamente`,
+        type: "success",
+      });
+      setIsStatusConfirmOpen(false);
+      setCategoryToToggle(null);
+    }
+  };
+
+  // Auto-dismiss notification después de 3 segundos
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   return (
     <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
@@ -122,7 +182,11 @@ export const CategoriesPage = () => {
           <p className="text-xs text-gray-500">Clasificación de productos</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setSelectedCategory(null);
+            setModalMode('create');
+            setIsModalOpen(true);
+          }}
           className="flex items-center gap-1.5 bg-[#34D399] hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
         >
           <Plus size={16} /> Nueva
@@ -164,7 +228,6 @@ export const CategoriesPage = () => {
               <tr>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">ID</th>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">Nombre</th>
-                <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">Descripción</th>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-center">Productos</th>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-center">Estado</th>
                 <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider text-center">Acciones</th>
@@ -186,8 +249,12 @@ export const CategoriesPage = () => {
                       </div>
                     </td>
 
-                    <td className="py-1.5 px-3 text-xs text-gray-500 truncate max-w-[200px]">{cat.descripcion}</td>
-                    <td className="py-1.5 px-3 text-xs text-center font-bold text-gray-600">{cat.productos}</td>
+                    <td className="py-1.5 px-3 text-xs text-center font-bold">
+                      {cat.productos > 0 
+                        ? <span className="text-emerald-600">{cat.productos}</span>
+                        : <span className="text-gray-400">Sin asociar</span>
+                      }
+                    </td>
                     
                     <td className="py-1.5 px-3">
                       <button
@@ -222,7 +289,7 @@ export const CategoriesPage = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-gray-400 text-xs">
+                  <td colSpan={5} className="py-8 text-center text-gray-400 text-xs">
                     No hay categorías registradas.
                   </td>
                 </tr>
@@ -264,16 +331,135 @@ export const CategoriesPage = () => {
         onDelete={handleDelete}
       />
 
-      <ConfirmDialog
-        open={confirmDelete.show}
-        title="Confirmar eliminación"
-        message={confirmDelete.cat ? `¿Estás seguro de eliminar la categoría "${confirmDelete.cat.nombre}"? Esta acción no se puede deshacer.` : ''}
-        onCancel={() => setConfirmDelete({ show: false, cat: null })}
-        onConfirm={confirmDeleteCategory}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
-        danger
-      />
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && categoryToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            
+            {/* Header */}
+            <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <AlertCircle size={18} className="text-red-600" />
+                Eliminar Categoría
+              </h3>
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                ¿Estás seguro de eliminar la categoría <strong>"{categoryToDelete.nombre}"</strong>?
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDeleteCategory}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors flex items-center gap-1 shadow-sm"
+              >
+                <Trash2 size={14} />
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification && (
+        <div className="fixed bottom-4 left-4 max-w-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="bg-white rounded-lg shadow-lg border border-green-200 p-4 flex items-start gap-3">
+            <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-gray-800">{notification.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Toggle Confirmation Modal */}
+      {isStatusConfirmOpen && categoryToToggle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            
+            {/* Header */}
+            <div className={`px-5 py-3 border-b flex justify-between items-center ${
+              categoryToToggle.estado 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                {categoryToToggle.estado ? (
+                  <AlertCircle size={18} className="text-red-600" />
+                ) : (
+                  <CheckCircle size={18} className="text-green-600" />
+                )}
+                {categoryToToggle.estado ? 'Desactivar Categoría' : 'Activar Categoría'}
+              </h3>
+              <button 
+                onClick={() => setIsStatusConfirmOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                {categoryToToggle.estado 
+                  ? `¿Desactivar la categoría "${categoryToToggle.nombre}"?`
+                  : `¿Activar la categoría "${categoryToToggle.nombre}"?`
+                }
+              </p>
+              {categoryToToggle.estado && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Los productos de esta categoría no serán visibles en el catálogo.
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${
+              categoryToToggle.estado 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <button 
+                onClick={() => setIsStatusConfirmOpen(false)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmToggleStatus}
+                className={`px-4 py-2 text-xs font-bold text-white rounded-md transition-colors flex items-center gap-1 shadow-sm ${
+                  categoryToToggle.estado
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {categoryToToggle.estado ? 'Desactivar' : 'Activar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

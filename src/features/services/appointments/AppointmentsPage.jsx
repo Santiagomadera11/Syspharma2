@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -30,6 +29,7 @@ import { availabilityService } from "./services/availabilityService";
 import AppointmentFormModal from "./components/AppointmentFormModal";
 import AppointmentDetailModal from "./components/AppointmentDetailModal";
 import ExpenseFormModal from "./components/ExpenseFormModal";
+import { StatusNotification } from "../../../shared/ui/StatusNotification";
 import { AvailabilityConfigPage } from "./AvailabilityConfigPage";
 import DoctorsPage from "../doctors/DoctorsPage";
 
@@ -56,6 +56,8 @@ export const AppointmentsPage = () => {
   const [expenses, setExpenses] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [notification, setNotification] = useState(null);
 
   // Modales
   const [selectedDate, setSelectedDate] = useState(null);
@@ -65,6 +67,7 @@ export const AppointmentsPage = () => {
   const [isDaySummaryModalOpen, setIsDaySummaryModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
   const [appointmentToChangeStatus, setAppointmentToChangeStatus] =
     useState(null);
@@ -82,10 +85,20 @@ export const AppointmentsPage = () => {
     return () => window.removeEventListener("appointments:changed", onChange);
   }, []);
 
-  // ✅ Reset página cuando cambia la búsqueda
+  // ✅ Reset página cuando cambia la búsqueda o filtro
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, statusFilter]);
+
+  // ✅ Auto-dismiss para notificaciones
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const loadData = () => {
     setAppointments(appointmentService.getAppointments());
@@ -207,6 +220,11 @@ export const AppointmentsPage = () => {
   const handleStatusChange = (appointmentId, newStatus) => {
     appointmentService.updateAppointmentStatus(appointmentId, newStatus);
     loadData();
+    setNotification({
+      message: `Estado actualizado a ${newStatus}`,
+      type: "success",
+      duration: 3000,
+    });
   };
 
   const confirmStatusChange = (newStatus) => {
@@ -217,23 +235,22 @@ export const AppointmentsPage = () => {
     }
   };
 
-  const [confirmConfig, setConfirmConfig] = useState({
-    open: false,
-    title: "Confirmar eliminación",
-    message: "",
-    onConfirm: null,
-  });
-
   const handleDeleteAppointment = (appointmentId) => {
-    setConfirmConfig({
-      open: true,
-      title: "Confirmar eliminación",
-      message: "¿Estás seguro de eliminar esta cita?",
-      onConfirm: () => {
-        appointmentService.deleteAppointment(appointmentId);
-        loadData();
-      },
-    });
+    const apt = appointments.find(a => a.id === appointmentId);
+    setShowDeleteConfirm(apt);
+  };
+
+  const confirmDeleteAppointment = () => {
+    if (showDeleteConfirm) {
+      appointmentService.deleteAppointment(showDeleteConfirm.id);
+      loadData();
+      setNotification({
+        message: "Cita eliminada correctamente",
+        type: "success",
+        duration: 3000,
+      });
+      setShowDeleteConfirm(null);
+    }
   };
 
   const handleCreateAppointment = () => {
@@ -352,8 +369,9 @@ export const AppointmentsPage = () => {
   // --- RENDERIZADO LISTA ---
   const renderAppointmentsList = () => {
     const filtered = appointments.filter(
-      (apt) =>
-        (apt.paciente?.toLowerCase() || "").includes(
+      (apt) => {
+        // Filtro de búsqueda
+        const matchSearch = (apt.paciente?.toLowerCase() || "").includes(
           searchTerm.toLowerCase(),
         ) ||
         (apt.servicio?.toLowerCase() || "").includes(
@@ -362,7 +380,13 @@ export const AppointmentsPage = () => {
         (
           doctors.find((d) => d.id === apt.doctorId)?.nombre?.toLowerCase() ||
           ""
-        ).includes(searchTerm.toLowerCase()),
+        ).includes(searchTerm.toLowerCase());
+
+        // Filtro de estado
+        const matchStatus = statusFilter === "Todos" || apt.estado === statusFilter;
+
+        return matchSearch && matchStatus;
+      }
     );
 
     // ✅ Ordenar por fecha y hora (más nuevo primero)
@@ -401,6 +425,18 @@ export const AppointmentsPage = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="Todos">Todos</option>
+            <option value="Confirmar Asistencia">Confirmar Asistencia</option>
+            <option value="En Consulta">En Consulta</option>
+            <option value="Completada">Completada</option>
+            <option value="No Asistió">No Asistió</option>
+            <option value="Cancelada">Cancelada</option>
+          </select>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
@@ -465,6 +501,16 @@ export const AppointmentsPage = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-center items-center gap-1">
+                          <button
+                            onClick={() => {
+                              setSelectedAppointment(apt);
+                              setIsDetailModalOpen(true);
+                            }}
+                            className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded"
+                            title="Ver Detalle"
+                          >
+                            <Eye size={16} />
+                          </button>
                           <button
                             onClick={() => {
                               setAppointmentToChangeStatus(apt);
@@ -563,16 +609,16 @@ export const AppointmentsPage = () => {
         {(activeTab === "calendario" || activeTab === "citas") && (
           <div className="flex gap-2">
             <button
-              onClick={handleCreateAppointment}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
-            >
-              <Plus size={16} /> Nueva Cita
-            </button>
-            <button
               onClick={handleCreateExpense}
               className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
             >
               <Plus size={16} /> Agregar Gasto
+            </button>
+            <button
+              onClick={handleCreateAppointment}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
+            >
+              <Plus size={16} /> Nueva Cita
             </button>
           </div>
         )}
@@ -690,14 +736,25 @@ export const AppointmentsPage = () => {
       )}
 
       {/* Contenido Principal (Outlet de Tabs) */}
-      <div className="flex-1 overflow-auto no-scrollbar">
-        {activeTab === "calendario" && renderCalendar()}
-        {activeTab === "citas" && renderAppointmentsList()}
-        {activeTab === "disponibilidad" && <AvailabilityConfigPage />}
-        {activeTab === "medicos" && <DoctorsPage />}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-auto no-scrollbar">
+          {activeTab === "calendario" && renderCalendar()}
+          {activeTab === "citas" && renderAppointmentsList()}
+          {activeTab === "disponibilidad" && <AvailabilityConfigPage />}
+          {activeTab === "medicos" && <DoctorsPage />}
+        </div>
       </div>
 
       {/* --- MODALES --- */}
+
+      {notification && (
+        <StatusNotification
+          message={notification.message}
+          type={notification.type || "success"}
+          duration={notification.duration || 3000}
+          onClose={() => setNotification(null)}
+        />
+      )}
 
       {isAppointmentModalOpen && (
         <AppointmentFormModal
@@ -708,6 +765,11 @@ export const AppointmentsPage = () => {
           }}
           onSave={() => {
             loadData();
+            setNotification({
+              message: "Cita agendada correctamente",
+              type: "success",
+              duration: 3000,
+            });
             window.dispatchEvent(new CustomEvent('appointments:changed'));
             setIsAppointmentModalOpen(false);
             setEditingAppointment(null);
@@ -788,36 +850,57 @@ export const AppointmentsPage = () => {
       )}
 
       {isStatusModalOpen && appointmentToChangeStatus && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="font-bold text-gray-800 mb-4">Cambiar Estado</h3>
-            <div className="space-y-2">
-              {[
-                "Confirmar Asistencia",
-                "En Consulta",
-                "Completada",
-                "No Asistió",
-                "Cancelada",
-              ].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => confirmStatusChange(status)}
-                  className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-all ${
-                    appointmentToChangeStatus.estado === status
-                      ? "bg-blue-50 border-blue-500 text-blue-700 font-bold"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {status}
-                </button>
-              ))}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            
+            {/* Header */}
+            <div className="bg-green-50 px-5 py-3 border-b border-green-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <CheckCircle size={18} className="text-green-600" />
+                Cambiar Estado de Cita
+              </h3>
+              <button 
+                onClick={() => setIsStatusModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <button
-              onClick={() => setIsStatusModalOpen(false)}
-              className="mt-4 w-full py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg"
-            >
-              Cancelar
-            </button>
+
+            {/* Body */}
+            <div className="p-5">
+              <div className="space-y-2">
+                {[
+                  "Confirmar Asistencia",
+                  "En Consulta",
+                  "Completada",
+                  "No Asistió",
+                  "Cancelada",
+                ].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => confirmStatusChange(status)}
+                    className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-all ${
+                      appointmentToChangeStatus.estado === status
+                        ? "bg-green-50 border-green-500 text-green-700 font-bold"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-green-50 border-t border-green-200 p-4">
+              <button
+                onClick={() => setIsStatusModalOpen(false)}
+                className="w-full py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -847,6 +930,11 @@ export const AppointmentsPage = () => {
               JSON.stringify(updatedExpenses),
             );
             window.dispatchEvent(new CustomEvent('expenses:changed'));
+            setNotification({
+              message: "Gasto registrado correctamente",
+              type: "success",
+              duration: 3000,
+            });
             loadData();
             setIsExpenseModalOpen(false);
             setEditingExpense(null);
@@ -855,16 +943,57 @@ export const AppointmentsPage = () => {
         />
       )}
 
-      <ConfirmDialog
-        open={confirmConfig.open}
-        title={confirmConfig.title}
-        message={confirmConfig.message}
-        onCancel={() => setConfirmConfig((c) => ({ ...c, open: false }))}
-        onConfirm={() => {
-          confirmConfig.onConfirm && confirmConfig.onConfirm();
-          setConfirmConfig((c) => ({ ...c, open: false }));
-        }}
-      />
+      {/* Modal de Confirmación de Eliminación */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            {/* Header Rojo */}
+            <div className="bg-red-50 px-5 py-4 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <AlertCircle size={18} className="text-red-600" />
+                Eliminar Cita
+              </h3>
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                ¿Estás seguro de que deseas eliminar la cita de{" "}
+                <strong>{showDeleteConfirm.paciente}</strong>?
+              </p>
+              <p className="text-xs text-gray-500 mt-3">
+                Fecha: {new Date(showDeleteConfirm.fecha + "T00:00:00").toLocaleDateString()} a las {showDeleteConfirm.hora}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-red-50 border-t border-red-200 px-5 py-3 flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 bg-white hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteAppointment}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg flex items-center gap-1.5 transition-colors"
+              >
+                <Trash2 size={14} />
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

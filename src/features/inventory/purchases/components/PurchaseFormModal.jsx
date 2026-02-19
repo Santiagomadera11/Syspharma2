@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, ShoppingCart, Plus, Trash2, CheckCircle } from "lucide-react";
+import { X, Save, ShoppingCart, Plus, Trash2, CheckCircle, Printer } from "lucide-react";
 import { productService } from "../../products/services/productService";
 import { providerService } from "../../providers/services/providerService";
 
@@ -68,6 +68,12 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
         estado: initialData.estado || "Pendiente",
         id: initialData.id,
       });
+      // Cargar los items de la compra si existen
+      if (initialData.items && Array.isArray(initialData.items)) {
+        setPurchaseItems(initialData.items);
+      } else {
+        setPurchaseItems([]);
+      }
     } else {
       setFormData({
         proveedor: "",
@@ -77,8 +83,8 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
         items: 0,
         estado: "Pendiente",
       });
+      setPurchaseItems([]);
     }
-    setPurchaseItems([]);
     setSelectedProduct("");
     setProductCost("");
     setProductQuantity("");
@@ -293,7 +299,81 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
         {/* Body */}
         <div className="p-4 flex-1 pb-6">
           
-          {/* 1. Datos Generales */}
+          {isView ? (
+            // ✅ VISTA DE FACTURA (READ-ONLY)
+            <>
+              {/* Header Info */}
+              <div className="grid grid-cols-3 gap-6 mb-8 pb-6 border-b border-gray-200">
+                <div>
+                  <p className="text-xs text-gray-500 font-bold mb-1">PROVEEDOR</p>
+                  <p className="text-lg font-bold text-gray-900">{formData.proveedor}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold mb-1">FECHA</p>
+                  <p className="text-lg font-bold text-gray-900">{formData.fecha}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-bold mb-1">N° FACTURA</p>
+                  <p className="text-lg font-bold text-gray-900">{formData.factura}</p>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="mb-8">
+                <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 pb-2 border-b border-gray-200">Productos</h4>
+                <table className="w-full text-sm">
+                  <thead className="border-b border-gray-300">
+                    <tr>
+                      <th className="text-left px-2 py-2 text-xs font-bold text-gray-700">Producto</th>
+                      <th className="text-center px-2 py-2 text-xs font-bold text-gray-700">Cant</th>
+                      <th className="text-center px-2 py-2 text-xs font-bold text-gray-700">Lote</th>
+                      <th className="text-center px-2 py-2 text-xs font-bold text-gray-700">Vencimiento</th>
+                      <th className="text-right px-2 py-2 text-xs font-bold text-gray-700">Costo Unit.</th>
+                      <th className="text-right px-2 py-2 text-xs font-bold text-gray-700">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseItems.map((item) => (
+                      <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-2 py-3 text-gray-800">{item.nombre}</td>
+                        <td className="px-2 py-3 text-center text-gray-700 font-medium">{item.quantity}</td>
+                        <td className="px-2 py-3 text-center text-gray-700">{item.lote}</td>
+                        <td className="px-2 py-3 text-center text-gray-700">{item.vencimiento}</td>
+                        <td className="px-2 py-3 text-right text-gray-700 font-medium">
+                          ${Number(item.cost || 0).toLocaleString()}
+                        </td>
+                        <td className="px-2 py-3 text-right text-gray-900 font-bold">
+                          ${Number(item.subtotal || 0).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Total */}
+              <div className="flex justify-end mb-6">
+                <div className="bg-green-50 border-2 border-green-200 rounded-lg px-8 py-4">
+                  <p className="text-xs text-gray-600 font-bold mb-1 uppercase">Total a Pagar</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    ${Number(formData.total || 0).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                  </p>
+                </div>
+              </div>
+
+              {/* Support Document Link */}
+              {archivoFactura && (
+                <div className="text-center">
+                  <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center justify-center gap-2 mx-auto">
+                    📄 Ver adjunto
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            // ✅ FORMULARIO DE EDICIÓN/CREACIÓN
+            <>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <div>
               <label className="block text-[10px] font-bold text-gray-700 mb-1">Proveedor</label>
@@ -506,11 +586,20 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                </tfoot>
             </table>
           </div>
+            </>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="bg-green-50 border-t border-green-200 p-4 flex-shrink-0">
-          {!isView && (
+        <div className="bg-green-50 border-t border-green-200 p-4 flex-shrink-0 flex gap-3">
+          {isView ? (
+            <button 
+              onClick={onClose}
+              className="w-full px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded flex items-center justify-center gap-2 transition-colors shadow-sm"
+            >
+              <Printer size={16} /> Imprimir Comprobante
+            </button>
+          ) : (
             <button 
               onClick={handleFinalizePurchase} 
               disabled={purchaseItems.length === 0}
