@@ -48,8 +48,12 @@ export const ServicesPage = () => {
   const handleEdit = (service) => {
     setConfirmConfig({
       open: true,
-      title: "Confirmar edición",
-      message: `¿Editar el servicio ${service.nombre}?`,
+      title: "Editar Servicio",
+      message: (
+        <>
+          ¿Estás seguro de editar el servicio <b>"{service.nombre}"</b>?
+        </>
+      ),
       confirmText: "Editar",
       danger: false,
       onConfirm: () => {
@@ -78,10 +82,16 @@ export const ServicesPage = () => {
   const [statusChangeService, setStatusChangeService] = useState(null);
 
   const handleDelete = (id) => {
+    const service = services.find((s) => s.id === id);
     setConfirmConfig({
       open: true,
-      title: "Confirmar eliminación",
-      message: "¿Eliminar este servicio?",
+      title: "Eliminar Categoría",
+      message: (
+        <>
+          ¿Estás seguro de eliminar el servicio <b>"{service?.nombre}"</b>?<br />
+          <span className="text-xs text-gray-500 block mt-2">Esta acción no se puede deshacer.</span>
+        </>
+      ),
       confirmText: "Eliminar",
       danger: true,
       onConfirm: () => {

@@ -5,9 +5,9 @@ import {
   CheckCircle, AlertCircle, X
 } from "lucide-react";
 
-// ✅ IMPORTAMOS EL MODAL DESDE LA CARPETA COMPONENTS
 import ProviderFormModal from "./components/ProviderFormModal";
 import { providerService } from "./services/providerService";
+import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog.jsx";
 
 export const ProvidersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -362,52 +362,16 @@ export const ProvidersPage = () => {
       )}
 
       {/* 🗑️ Modal de Confirmación de Eliminación */}
-      {isDeleteConfirmOpen && providerToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-            
-            {/* Header Rojo */}
-            <div className="bg-red-50 px-6 py-4 border-b border-red-200 flex justify-between items-center">
-              <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
-                <AlertCircle size={20} className="text-red-600" />
-                Eliminar Proveedor
-              </h3>
-              <button 
-                onClick={() => setIsDeleteConfirmOpen(false)} 
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="p-6 flex-1">
-              <p className="text-gray-700 font-medium text-sm mb-2">
-                {providerToDelete.empresa}
-              </p>
-              <p className="text-gray-600 text-sm">
-                Esta acción eliminará permanentemente el proveedor y todos sus registros. No se puede deshacer.
-              </p>
-            </div>
-
-            {/* Footer Rojo */}
-            <div className="bg-red-50 px-6 py-3 border-t border-red-200 flex gap-2">
-              <button 
-                onClick={() => setIsDeleteConfirmOpen(false)}
-                className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={confirmDelete}
-                className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={isDeleteConfirmOpen && !!providerToDelete}
+        title="Eliminar Proveedor"
+        message={<span>¿Estás seguro de eliminar el proveedor <b>"{providerToDelete?.empresa}"</b>?<br/>Esta acción eliminará permanentemente el proveedor y todos sus registros.</span>}
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        danger={true}
+      />
 
       {/* 📢 Notificación en esquina inferior izquierda */}
       {notification && (
