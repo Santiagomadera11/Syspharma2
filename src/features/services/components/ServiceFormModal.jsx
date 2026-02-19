@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { formValidations } from "../../../shared/utils/formValidations";
 import { getServiceCategories } from "../../settings/services/parameterService";
+import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 const ServiceFormModal = ({
   isOpen,
@@ -31,6 +32,7 @@ const ServiceFormModal = ({
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
   const [defaultCategory, setDefaultCategory] = useState("");
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     // Load categories from localStorage
@@ -92,13 +94,27 @@ const ServiceFormModal = ({
       alert("Completa los campos obligatorios correctamente");
       return;
     }
+
     const dataToSave = {
       ...formData,
       precio: Number(formData.precio),
       duracion: Number(formData.duracion),
     };
+    
     onSave(dataToSave);
-    onClose();
+    
+    // Mostrar toast de éxito
+    const action = initialData ? "actualizado" : "creado";
+    setToast({
+      message: `Servicio ${action} correctamente`,
+      type: "success",
+      zIndex: 60,
+    });
+    
+    // Cerrar modal después de mostrar el toast
+    setTimeout(() => {
+      onClose();
+    }, 500);
   };
 
   const getTitle = () => {
@@ -268,6 +284,15 @@ const ServiceFormModal = ({
           )}
         </div>
       </div>
+
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          zIndex={toast.zIndex}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

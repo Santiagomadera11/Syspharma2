@@ -27,7 +27,7 @@ export const ToastNotification = ({
   return (
     <div
       style={{ zIndex }}
-      className="fixed top-20 right-5 animate-bounce-in-right"
+      className="fixed bottom-5 left-5 animate-bounce-in-right"
     >
       <div
         className={`${bg} text-white px-4 py-2.5 rounded-lg shadow-xl flex items-center gap-3 min-w-[220px] max-w-xs border-l-4 border-white/30`}
