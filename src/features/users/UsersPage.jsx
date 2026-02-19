@@ -7,6 +7,9 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
+  CheckCircle,
+  X,
 } from "lucide-react";
 import { permissionService } from "../settings/permissionService";
 import { userService } from "./services/userService";
@@ -16,7 +19,6 @@ import UserDetailModal from "./components/UserDetailModal";
 import { rolesService } from "../settings/rolesService";
 import { useMemo } from "react";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
-import { ConfirmDialog } from "../../shared/ui/ConfirmDialog.jsx";
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -455,32 +457,122 @@ export const UsersPage = () => {
       )}
 
       {/* --- MODAL CONFIRMAR ELIMINACIÓN --- */}
-      <ConfirmDialog
-        open={confirmDelete.show}
-        title="Confirmar eliminación"
-        message="¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer."
-        onCancel={() => setConfirmDelete({ show: false, id: null })}
-        onConfirm={confirmDeleteUser}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
-        danger
-      />
+      {confirmDelete.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            
+            {/* Header */}
+            <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <AlertCircle size={18} className="text-red-600" />
+                Eliminar Usuario
+              </h3>
+              <button 
+                onClick={() => setConfirmDelete({ show: false, id: null })}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                ¿Estás seguro de eliminar este usuario?
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
+              <button 
+                onClick={() => setConfirmDelete({ show: false, id: null })}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDeleteUser}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors flex items-center gap-1 shadow-sm"
+              >
+                <Trash2 size={14} />
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- MODAL CONFIRMAR CAMBIO DE ESTADO --- */}
-      <ConfirmDialog
-        open={confirmStatus.show}
-        title="Cambiar estado de usuario"
-        message={
-          confirmStatus.user
-            ? `¿Deseas poner al usuario ${confirmStatus.user.estado ? "inactivo" : "activo"}?`
-            : "¿Deseas cambiar el estado del usuario?"
-        }
-        onCancel={() => setConfirmStatus({ show: false, user: null })}
-        onConfirm={confirmToggleStatus}
-        confirmText={!confirmStatus.user?.estado ? "Activar" : "Inactivar"}
-        cancelText="Cancelar"
-        danger
-      />
+      {confirmStatus.show && confirmStatus.user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            
+            {/* Header */}
+            <div className={`px-5 py-3 border-b flex justify-between items-center ${
+              confirmStatus.user.estado 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                {confirmStatus.user.estado ? (
+                  <AlertCircle size={18} className="text-red-600" />
+                ) : (
+                  <CheckCircle size={18} className="text-green-600" />
+                )}
+                {confirmStatus.user.estado ? 'Desactivar Usuario' : 'Activar Usuario'}
+              </h3>
+              <button 
+                onClick={() => setConfirmStatus({ show: false, user: null })}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                {confirmStatus.user.estado 
+                  ? `¿Desactivar al usuario "${confirmStatus.user.nombre}"?`
+                  : `¿Activar al usuario "${confirmStatus.user.nombre}"?`
+                }
+              </p>
+              {confirmStatus.user.estado && (
+                <p className="text-xs text-gray-500 mt-2">
+                  El usuario no podrá acceder a la plataforma.
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${
+              confirmStatus.user.estado 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <button 
+                onClick={() => setConfirmStatus({ show: false, user: null })}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmToggleStatus}
+                className={`px-4 py-2 text-xs font-bold text-white rounded-md transition-colors flex items-center gap-1 shadow-sm ${
+                  confirmStatus.user.estado
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {confirmStatus.user.estado ? 'Desactivar' : 'Activar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Plus, Search, Eye, Edit, Trash2, 
-  ChevronLeft, ChevronRight, Filter, Building2, Phone, Mail
+  ChevronLeft, ChevronRight, Filter, Building2, Phone, Mail,
+  CheckCircle, AlertCircle, X
 } from "lucide-react";
 
 // ✅ IMPORTAMOS EL MODAL DESDE LA CARPETA COMPONENTS
@@ -24,6 +25,13 @@ export const ProvidersPage = () => {
   // Usar providerService como fuente de verdad (localStorage).
   // Inicialmente la lista estará vacía — sólo aparecerán proveedores que el usuario añada.
   const [providers, setProviders] = useState(() => providerService.getAll());
+
+  // Estados para modales de confirmación
+  const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
+  const [providerToToggle, setProviderToToggle] = useState(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [providerToDelete, setProviderToDelete] = useState(null);
+  const [notification, setNotification] = useState(null);
 
   // Filtros
   const filteredItems = providers.filter((prov) => {
@@ -62,18 +70,38 @@ export const ProvidersPage = () => {
   };
 
   const handleDelete = (prov) => {
-    if (!window.confirm(`Eliminar proveedor ${prov.empresa}?`)) return;
-    const updated = providerService.delete(prov.id);
-    setProviders(updated);
+    setProviderToDelete(prov);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (providerToDelete) {
+      const updated = providerService.delete(providerToDelete.id);
+      setProviders(updated);
+      setNotification({
+        message: `Proveedor "${providerToDelete.empresa}" eliminado correctamente`,
+        type: "success",
+      });
+      setIsDeleteConfirmOpen(false);
+      setProviderToDelete(null);
+    }
   };
 
   const handleSave = (data) => {
     if (modalMode === 'edit') {
       const updated = providerService.update(data);
       setProviders(updated);
+      setNotification({
+        message: `Proveedor "${data.empresa}" actualizado correctamente`,
+        type: "success",
+      });
     } else {
       const updated = providerService.create(data);
       setProviders(updated);
+      setNotification({
+        message: `Proveedor "${data.empresa}" creado correctamente`,
+        type: "success",
+      });
     }
 
     setIsModalOpen(false);
@@ -81,12 +109,33 @@ export const ProvidersPage = () => {
     setModalMode('create');
   };
 
-  const confirmStatusChange = (prov) => {
-    const newStatus = prov.estado === 'Activo' ? 'Inactivo' : 'Activo';
-    const updatedProv = { ...prov, estado: newStatus };
-    const updated = providerService.update(updatedProv);
-    setProviders(updated);
+  const handleToggleStatus = (prov) => {
+    setProviderToToggle(prov);
+    setIsStatusConfirmOpen(true);
   };
+
+  const confirmStatusChange = () => {
+    if (providerToToggle) {
+      const newStatus = providerToToggle.estado === 'Activo' ? 'Inactivo' : 'Activo';
+      const updatedProv = { ...providerToToggle, estado: newStatus };
+      const updated = providerService.update(updatedProv);
+      setProviders(updated);
+      setNotification({
+        message: `Proveedor "${providerToToggle.empresa}" ${newStatus === 'Activo' ? 'activado' : 'desactivado'} correctamente`,
+        type: "success",
+      });
+      setIsStatusConfirmOpen(false);
+      setProviderToToggle(null);
+    }
+  };
+
+  // Auto-dismiss notification después de 3 segundos
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   return (
     <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
@@ -176,7 +225,7 @@ export const ProvidersPage = () => {
                     
                     <td className="py-1.5 px-3">
                       <button
-                        onClick={() => confirmStatusChange(prov)}
+                        onClick={() => handleToggleStatus(prov)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
                           prov.estado === 'Activo'
                             ? 'bg-emerald-600'
@@ -239,6 +288,150 @@ export const ProvidersPage = () => {
         onSave={handleSave}
         onDelete={handleDelete}
       />
+
+      {/* 🔋 Modal de Confirmación de Estado */}
+      {isStatusConfirmOpen && providerToToggle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+            
+            {/* Header */}
+            <div className={`px-6 py-4 border-b flex justify-between items-center ${
+              providerToToggle.estado === 'Activo'
+                ? 'bg-red-50 border-red-200'
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                {providerToToggle.estado === 'Activo' ? (
+                  <>
+                    <AlertCircle size={20} className="text-red-600" />
+                    Desactivar Proveedor
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={20} className="text-green-600" />
+                    Activar Proveedor
+                  </>
+                )}
+              </h3>
+              <button 
+                onClick={() => setIsStatusConfirmOpen(false)} 
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 flex-1">
+              <p className="text-gray-700 font-medium text-sm mb-2">
+                {providerToToggle.empresa}
+              </p>
+              <p className="text-gray-600 text-sm">
+                {providerToToggle.estado === 'Activo'
+                  ? `¿Desactivar este proveedor? Dejará de estar disponible para nuevas compras.`
+                  : `¿Activar este proveedor? Volverá a estar disponible para nuevas compras.`
+                }
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className={`px-6 py-3 border-t flex gap-2 ${
+              providerToToggle.estado === 'Activo'
+                ? 'bg-red-50 border-red-200'
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <button 
+                onClick={() => setIsStatusConfirmOpen(false)}
+                className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmStatusChange}
+                className={`flex-1 px-4 py-2 text-sm font-bold text-white rounded transition-colors ${
+                  providerToToggle.estado === 'Activo'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {providerToToggle.estado === 'Activo' ? 'Desactivar' : 'Activar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🗑️ Modal de Confirmación de Eliminación */}
+      {isDeleteConfirmOpen && providerToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+            
+            {/* Header Rojo */}
+            <div className="bg-red-50 px-6 py-4 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                <AlertCircle size={20} className="text-red-600" />
+                Eliminar Proveedor
+              </h3>
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)} 
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 flex-1">
+              <p className="text-gray-700 font-medium text-sm mb-2">
+                {providerToDelete.empresa}
+              </p>
+              <p className="text-gray-600 text-sm">
+                Esta acción eliminará permanentemente el proveedor y todos sus registros. No se puede deshacer.
+              </p>
+            </div>
+
+            {/* Footer Rojo */}
+            <div className="bg-red-50 px-6 py-3 border-t border-red-200 flex gap-2">
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📢 Notificación en esquina inferior izquierda */}
+      {notification && (
+        <div className="fixed bottom-4 left-4 z-40 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className={`px-4 py-3 rounded-lg shadow-lg border flex items-center gap-3 max-w-xs ${
+            notification.type === 'success'
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            {notification.type === 'success' ? (
+              <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
+            ) : (
+              <AlertCircle size={18} className="text-red-600 flex-shrink-0" />
+            )}
+            <p className="text-sm font-medium">{notification.message}</p>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-2 text-gray-400 hover:text-gray-600"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

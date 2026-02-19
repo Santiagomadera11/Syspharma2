@@ -39,11 +39,11 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
         
         {/* Header */}
-        <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+        <div className="bg-green-50 px-5 py-3 border-b border-green-200 flex justify-between items-center">
           <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-            <Tag size={16} className="text-primary-500"/> {title}
+            <Tag size={16} className="text-emerald-600"/> {title}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+          <button onClick={onClose} className="text-gray-400 hover:text-green-600 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -102,21 +102,10 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
-          <button 
-            onClick={onClose} 
-            className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            Cancelar
-          </button>
+        <div className="bg-green-50 px-5 py-3 border-t border-green-200 flex justify-end gap-2">
           {!isView && (
-            <button onClick={handleSubmit} className="px-4 py-2 text-xs font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-md flex items-center gap-1 shadow-sm transition-colors">
+            <button onClick={handleSubmit} className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md flex items-center gap-1 shadow-sm transition-colors">
               <Save size={16} /> Guardar
-            </button>
-          )}
-          {mode === 'edit' && (
-            <button onClick={handleDelete} className="px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 rounded-md ml-2">
-              Eliminar
             </button>
           )}
         </div>

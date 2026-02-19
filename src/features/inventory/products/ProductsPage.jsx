@@ -11,6 +11,8 @@ import {
   Filter,
   Package,
   X,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
 import { productService } from "./services/productService";
@@ -18,7 +20,6 @@ import { permissionService } from "../../settings/permissionService";
 import { categoryService } from "../categories/services/categoryService";
 import { providerService } from "../providers/services/providerService";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
-import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog";
 
 export const ProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -32,6 +33,8 @@ export const ProductsPage = () => {
   const [notification, setNotification] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
+  const [productToToggle, setProductToToggle] = useState(null);
   const itemsPerPage = 5;
 
   // Cargar productos, categorías y proveedores al montar el componente
@@ -74,8 +77,9 @@ export const ProductsPage = () => {
     navigate("/admin/productos/nuevo");
   };
   const handleEdit = (item) => {
-    setEditingItem(item);
-    setIsModalOpen(true);
+    // Guardar el producto a editar en localStorage y navegar
+    localStorage.setItem("syspharma_editing_product", JSON.stringify(item));
+    navigate("/admin/productos/nuevo");
   };
   const handleSave = (data) => {
     if (editingItem) {
@@ -151,17 +155,31 @@ export const ProductsPage = () => {
     );
   };
 
-  const handleStatusToggle = (productId, currentStatus) => {
-    const updatedProducts = productService.toggleStatus(productId);
-    setProducts(updatedProducts);
-    const product = updatedProducts.find((p) => p.id === productId);
-    if (product) {
-      const newStatus = product.estado ? "Activo" : "Inactivo";
-      setNotification({
-        message: `${product.nombre} ahora está ${newStatus}`,
-        type: newStatus === "Activo" ? "success" : "warning",
-        duration: 3000,
-      });
+  const handleStatusToggle = (product) => {
+    setProductToToggle(product);
+    setIsStatusConfirmOpen(true);
+  };
+
+  const confirmToggleStatus = () => {
+    if (productToToggle) {
+      const updatedProducts = productService.toggleStatus(productToToggle.id);
+      setProducts(updatedProducts);
+      const product = updatedProducts.find((p) => p.id === productToToggle.id);
+      if (product) {
+        const newStatus = product.estado ? "Activo" : "Inactivo";
+        setNotification({
+          message: `${product.nombre} ahora está ${newStatus}`,
+          type: "success",
+          duration: 3000,
+        });
+
+        // Actualizar detalle si está abierto
+        if (detailProduct && detailProduct.id === productToToggle.id) {
+          setDetailProduct(product);
+        }
+      }
+      setIsStatusConfirmOpen(false);
+      setProductToToggle(null);
     }
   };
 
@@ -170,11 +188,11 @@ export const ProductsPage = () => {
   };
 
   // Componente Toggle/Switch
-  const StatusToggle = ({ estado, productId }) => {
+  const StatusToggle = ({ estado, product }) => {
     const isActive = estado;
     return (
       <button
-        onClick={() => handleStatusToggle(productId, estado)}
+        onClick={() => handleStatusToggle(product)}
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
           isActive
             ? "bg-emerald-500 shadow-md shadow-emerald-200"
@@ -294,7 +312,7 @@ export const ProductsPage = () => {
                       $ {prod.precio}
                     </td>
                     <td className="py-3 px-3 sm:px-4 text-center">
-                      <StatusToggle estado={prod.estado} productId={prod.id} />
+                      <StatusToggle estado={prod.estado} product={prod} />
                     </td>
                     <td className="py-3 px-3 sm:px-4">
                       <div className="flex justify-center gap-1">
@@ -403,7 +421,7 @@ export const ProductsPage = () => {
                     <p className="text-xs text-gray-600">ID: {prod.id}</p>
                   </div>
                 </div>
-                <StatusToggle estado={prod.estado} productId={prod.id} />
+                <StatusToggle estado={prod.estado} product={prod} />
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -566,7 +584,7 @@ export const ProductsPage = () => {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-600 uppercase block">Estado</label>
-                  <p className="text-xs text-gray-900 font-medium">{detailProduct.estado}</p>
+                  <p className="text-xs text-gray-900 font-medium">{detailProduct.estado ? "Activo" : "Inactivo"}</p>
                 </div>
 
                 {/* Si es medicamento, mostrar más detalles */}
@@ -639,25 +657,132 @@ export const ProductsPage = () => {
         </div>
       )}
 
-      <ConfirmDialog
-        open={!!showDeleteConfirm}
-        title="Confirmar eliminación"
-        message={showDeleteConfirm ? `¿Estás seguro de que deseas eliminar el producto "${showDeleteConfirm.nombre}"? Esta acción no se puede deshacer.` : ''}
-        onCancel={() => setShowDeleteConfirm(null)}
-        onConfirm={() => {
-          const updatedProducts = productService.delete(showDeleteConfirm.id);
-          setProducts(updatedProducts);
-          setNotification({
-            message: `${showDeleteConfirm.nombre} eliminado correctamente`,
-            type: "success",
-            duration: 3000,
-          });
-          setShowDeleteConfirm(null);
-        }}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
-        danger
-      />
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            
+            {/* Header */}
+            <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <AlertCircle size={18} className="text-red-600" />
+                Eliminar Producto
+              </h3>
+              <button 
+                onClick={() => setShowDeleteConfirm(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                ¿Estás seguro de eliminar el producto <strong>"{showDeleteConfirm.nombre}"</strong>?
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
+              <button 
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  const updatedProducts = productService.delete(showDeleteConfirm.id);
+                  setProducts(updatedProducts);
+                  setNotification({
+                    message: `${showDeleteConfirm.nombre} eliminado correctamente`,
+                    type: "success",
+                    duration: 3000,
+                  });
+                  setShowDeleteConfirm(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors flex items-center gap-1 shadow-sm"
+              >
+                <Trash2 size={14} />
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Confirmation Modal */}
+      {isStatusConfirmOpen && productToToggle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            
+            {/* Header */}
+            <div className={`px-5 py-3 border-b flex justify-between items-center ${
+              productToToggle.estado 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                {productToToggle.estado ? (
+                  <AlertCircle size={18} className="text-red-600" />
+                ) : (
+                  <CheckCircle size={18} className="text-green-600" />
+                )}
+                {productToToggle.estado ? 'Desactivar Producto' : 'Activar Producto'}
+              </h3>
+              <button 
+                onClick={() => setIsStatusConfirmOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                {productToToggle.estado 
+                  ? `¿Desactivar el producto "${productToToggle.nombre}"?`
+                  : `¿Activar el producto "${productToToggle.nombre}"?`
+                }
+              </p>
+              {productToToggle.estado && (
+                <p className="text-xs text-gray-500 mt-2">
+                  El producto no será visible en el catálogo.
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${
+              productToToggle.estado 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <button 
+                onClick={() => setIsStatusConfirmOpen(false)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmToggleStatus}
+                className={`px-4 py-2 text-xs font-bold text-white rounded-md transition-colors flex items-center gap-1 shadow-sm ${
+                  productToToggle.estado
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {productToToggle.estado ? 'Desactivar' : 'Activar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

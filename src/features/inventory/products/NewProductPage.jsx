@@ -9,6 +9,8 @@ const NewProductPage = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [providers, setProviders] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
   const [formData, setFormData] = useState({
     nombre: "",
     tipoProducto: "Producto General",
@@ -16,7 +18,7 @@ const NewProductPage = () => {
     proveedor: "",
     precio: "",
     stock: "",
-    estado: "Activo",
+    estado: true,
     // Campos de visibilidad
     esDestacado: false,
     enOferta: false,
@@ -43,6 +45,43 @@ const NewProductPage = () => {
   useEffect(() => {
     setCategories(categoryService.getAll());
     setProviders(providerService.getAll());
+
+    // Verificar si viene de edición
+    const editingProduct = localStorage.getItem("syspharma_editing_product");
+    if (editingProduct) {
+      try {
+        const product = JSON.parse(editingProduct);
+        setIsEditing(true);
+        setEditingProductId(product.id);
+        setFormData({
+          nombre: product.nombre || "",
+          tipoProducto: product.tipoProducto || "Producto General",
+          categoria: product.categoria || "",
+          proveedor: product.proveedor || "",
+          precio: product.precio || "",
+          stock: product.stock || "",
+          estado: product.estado !== undefined ? product.estado : true,
+          esDestacado: product.esDestacado || false,
+          enOferta: product.enOferta || false,
+          porcentajeDescuento: product.porcentajeDescuento || 0,
+          esRecomendado: product.esRecomendado || false,
+          composicion: product.composicion || "",
+          concentracion: product.concentracion || "",
+          presentacion: product.presentacion || "",
+          viaAdministracion: product.viaAdministracion || "",
+          registroSanitario: product.registroSanitario || "",
+          requiereFormula: product.requiereFormula || false,
+          imagen: product.imagen || null,
+        });
+        if (product.imagen) {
+          setImagePreview(product.imagen);
+        }
+        // Limpiar localStorage después de leer
+        localStorage.removeItem("syspharma_editing_product");
+      } catch (error) {
+        console.error("Error reading editing product:", error);
+      }
+    }
 
     const onChange = () => {
       setCategories(categoryService.getAll());
@@ -103,85 +142,106 @@ const NewProductPage = () => {
       return;
     }
 
-    // Inicializar array de lotes
-    const lotes = [];
-    const stockInitial = Number(formData.stock) || 0;
-
-    // Si hay stock inicial, crear registro de inventario inicial
-    if (stockInitial > 0) {
-      const loteInicial = {
-        idLote: Date.now(),
-        numeroLote: 'INVENTARIO-INICIAL',
-        fechaVence: '2030-12-31',
-        cantidad: stockInitial,
-        fechaIngreso: new Date().toISOString().split('T')[0],
-        costUnit: 0,
-        iva: 0,
-        notas: 'Inventario inicial registrado al crear el producto'
-      };
-      lotes.push(loteInicial);
-    }
-
-    // Calcular stock total como suma de cantidades en lotes
-    const stockTotal = lotes.reduce((sum, lote) => sum + lote.cantidad, 0);
-
-    // Armar payload con estructura compatible con lotes
+    // Armar payload
     const payload = {
       ...formData,
       nombre: formData.nombre.trim(),
       precio: Number(formData.precio) || 0,
       precioVenta: Number(formData.precio) || 0,
-      stock: stockTotal,
-      stockTotal: stockTotal,
-      lotes: lotes,
+      stock: isEditing ? formData.stock : Number(formData.stock) || 0,
       categoria: formData.categoria || '',
       proveedor: formData.proveedor || '',
-      imagen: formData.imagen || null
+      imagen: formData.imagen || null,
+      estado: typeof formData.estado === 'boolean' ? formData.estado : true,
     };
 
     try {
-      productService.create(payload);
+      if (isEditing) {
+        // Actualizar producto existente
+        productService.update({ id: editingProductId, ...payload });
+        
+        window.dispatchEvent(new CustomEvent("products:changed"));
+        window.dispatchEvent(new CustomEvent("syspharma_products_updated"));
 
-      // Notificar cambios
-      window.dispatchEvent(new CustomEvent("products:changed"));
-      window.dispatchEvent(new CustomEvent("syspharma_products_updated"));
+        setConfirmData({
+          type: 'success',
+          title: 'Producto Actualizado',
+          message: `${formData.nombre} se ha actualizado correctamente`,
+          onConfirm: () => {
+            setShowConfirmModal(false);
+            navigate("/admin/productos");
+          }
+        });
+      } else {
+        // Crear nuevo producto
+        const stockInitial = Number(formData.stock) || 0;
 
-      // Mostrar confirmación con modal
-      const successMessage = stockInitial > 0 
-        ? `Producto creado exitosamente con inventario inicial de ${stockInitial} unidades`
-        : 'Producto creado exitosamente';
+        // Inicializar array de lotes
+        const lotes = [];
 
-      setConfirmData({
-        type: 'success',
-        title: 'Producto Registrado',
-        message: successMessage,
-        onConfirm: () => {
-          setShowConfirmModal(false);
-          // Limpiar formulario
-          setFormData({
-            nombre: "",
-            tipoProducto: "Producto General",
-            categoria: "",
-            proveedor: "",
-            precio: "",
-            stock: "",
-            estado: "Activo",
-            esDestacado: false,
-            enOferta: false,
-            porcentajeDescuento: 0,
-            esRecomendado: false,
-            composicion: "",
-            concentracion: "",
-            presentacion: "",
-            viaAdministracion: "",
-            registroSanitario: "",
-            requiereFormula: false,
-          });
-          setImagePreview(null);
-          // Redirigir al listado
-          navigate("/admin/productos");
+        // Si hay stock inicial, crear registro de inventario inicial
+        if (stockInitial > 0) {
+          const loteInicial = {
+            idLote: Date.now(),
+            numeroLote: 'INVENTARIO-INICIAL',
+            fechaVence: '2030-12-31',
+            cantidad: stockInitial,
+            fechaIngreso: new Date().toISOString().split('T')[0],
+            costUnit: 0,
+            iva: 0,
+            notas: 'Inventario inicial registrado al crear el producto'
+          };
+          lotes.push(loteInicial);
         }
-      });
+
+        // Calcular stock total como suma de cantidades en lotes
+        const stockTotal = lotes.reduce((sum, lote) => sum + lote.cantidad, 0);
+
+        payload.stock = stockTotal;
+        payload.stockTotal = stockTotal;
+        payload.lotes = lotes;
+
+        productService.create(payload);
+
+        window.dispatchEvent(new CustomEvent("products:changed"));
+        window.dispatchEvent(new CustomEvent("syspharma_products_updated"));
+
+        const successMessage = stockInitial > 0 
+          ? `Producto creado exitosamente con inventario inicial de ${stockInitial} unidades`
+          : 'Producto creado exitosamente';
+
+        setConfirmData({
+          type: 'success',
+          title: 'Producto Registrado',
+          message: successMessage,
+          onConfirm: () => {
+            setShowConfirmModal(false);
+            // Limpiar formulario
+            setFormData({
+              nombre: "",
+              tipoProducto: "Producto General",
+              categoria: "",
+              proveedor: "",
+              precio: "",
+              stock: "",
+              estado: true,
+              esDestacado: false,
+              enOferta: false,
+              porcentajeDescuento: 0,
+              esRecomendado: false,
+              composicion: "",
+              concentracion: "",
+              presentacion: "",
+              viaAdministracion: "",
+              registroSanitario: "",
+              requiereFormula: false,
+            });
+            setImagePreview(null);
+            // Redirigir al listado
+            navigate("/admin/productos");
+          }
+        });
+      }
       setShowConfirmModal(true);
     } catch (error) {
       setConfirmData({
@@ -207,8 +267,8 @@ const NewProductPage = () => {
               <ArrowLeft size={16} />
             </button>
             <div>
-              <h1 className="text-lg font-bold">Agregar Producto</h1>
-              <p className="text-xs text-gray-500">Crear un nuevo producto en el inventario</p>
+              <h1 className="text-lg font-bold">{isEditing ? "Editar Producto" : "Agregar Producto"}</h1>
+              <p className="text-xs text-gray-500">{isEditing ? `Editando: ${formData.nombre}` : "Crear un nuevo producto en el inventario"}</p>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-2">

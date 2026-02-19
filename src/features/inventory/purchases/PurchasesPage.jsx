@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   Plus, Search, Eye, Edit, Trash2, 
-  ChevronLeft, ChevronRight, Filter, ShoppingBag, Settings
+  ChevronLeft, ChevronRight, Filter, ShoppingBag, Settings,
+  CheckCircle, AlertCircle, X, Printer
 } from "lucide-react";
 
 // ✅ IMPORTACIÓN CORRECTA DEL COMPONENTE
@@ -23,6 +24,8 @@ export const PurchasesPage = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [purchaseToChangeStatus, setPurchaseToChangeStatus] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
   // Cargar compras desde el servicio
   useEffect(() => {
@@ -44,9 +47,19 @@ export const PurchasesPage = () => {
     };
   }, []);
 
+  // Auto-descartar notificación
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
   const filtered = compras.filter(c => {
     const texto = searchTerm.toLowerCase();
-    const matchText = c.proveedor.toLowerCase().includes(texto) || c.id.toLowerCase().includes(texto);
+    const matchText = c.proveedor.toLowerCase().includes(texto) || String(c.id).toLowerCase().includes(texto);
     const matchStatus = statusFilter === "Todos" || c.estado === statusFilter;
     const matchDate = !dateFilter || c.fecha === dateFilter;
     return matchText && matchStatus && matchDate;
@@ -84,16 +97,34 @@ export const PurchasesPage = () => {
   };
 
   const handleDelete = (compra) => {
-    if (!window.confirm(`Eliminar compra ${compra.id}?`)) return;
-    purchaseService.delete(compra.id);
-    setCompras(purchaseService.getAll());
+    setShowDeleteConfirm(compra);
+  };
+
+  const confirmDelete = () => {
+    if (showDeleteConfirm) {
+      purchaseService.delete(showDeleteConfirm.id);
+      setCompras(purchaseService.getAll());
+      setNotification({
+        message: `Compra ${showDeleteConfirm.id} eliminada correctamente`,
+        type: "success",
+      });
+      setShowDeleteConfirm(null);
+    }
   };
 
   const handleSave = (data) => {
     if (modalMode === "edit") {
       purchaseService.update(data);
+      setNotification({
+        message: `Compra ${data.id} actualizada correctamente`,
+        type: "success",
+      });
     } else { 
       purchaseService.create(data);
+      setNotification({
+        message: `Compra registrada correctamente`,
+        type: "success",
+      });
     }
     setCompras(purchaseService.getAll());
     setIsModalOpen(false);
@@ -110,6 +141,10 @@ export const PurchasesPage = () => {
     if (purchaseToChangeStatus) {
       purchaseService.changeStatus(purchaseToChangeStatus.id, newStatus);
       setCompras(purchaseService.getAll());
+      setNotification({
+        message: `Estado actualizado a ${newStatus}`,
+        type: "success",
+      });
       setIsStatusModalOpen(false);
       setPurchaseToChangeStatus(null);
     }
@@ -255,34 +290,91 @@ export const PurchasesPage = () => {
       />
 
       {isStatusModalOpen && purchaseToChangeStatus && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="font-bold text-gray-800 mb-4">Cambiar Estado</h3>
-            <div className="space-y-2">
-              {["Recibido", "Pendiente", "En Camino", "Cancelado"].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => confirmStatusChange(status)}
-                  className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-all ${
-                    purchaseToChangeStatus.estado === status
-                      ? "bg-blue-50 border-blue-500 text-blue-700 font-bold"
-                      : "border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {status}
-                </button>
-              ))}
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            {/* Green Header */}
+            <div className="bg-green-50 px-6 py-4 border-b border-green-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-900 text-lg">Cambiar Estado</h3>
+              <button onClick={() => setIsStatusModalOpen(false)} className="text-gray-500 hover:text-gray-700 transition-colors">
+                <X size={20} />
+              </button>
             </div>
-            <button
-              onClick={() => setIsStatusModalOpen(false)}
-              className="mt-4 w-full py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg"
-            >
-              Cancelar
-            </button>
+
+            {/* Body */}
+            <div className="p-6">
+              <div className="space-y-2">
+                {["Recibido", "Pendiente", "En Camino", "Cancelado"].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => confirmStatusChange(status)}
+                    className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-all ${
+                      purchaseToChangeStatus.estado === status
+                        ? "bg-green-50 border-green-500 text-green-700 font-bold"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-green-50 border-t border-green-200 p-4">
+              <button
+                onClick={() => setIsStatusModalOpen(false)}
+                className="w-full py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* ✅ Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            {/* Red Header */}
+            <div className="bg-red-50 px-6 py-4 border-b border-red-200 flex items-center gap-3">
+              <AlertCircle size={24} className="text-red-600" />
+              <h3 className="font-bold text-gray-900 text-lg">Eliminar Compra</h3>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              <p className="text-gray-700 text-sm font-medium mb-1">¿Estás seguro de que deseas eliminar</p>
+              <p className="text-gray-900 font-bold text-sm mb-4">la compra #{showDeleteConfirm.id}?</p>
+              <p className="text-gray-500 text-xs">Esta acción no se puede deshacer.</p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-red-50 border-t border-red-200 p-4 flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center gap-2 transition-colors"
+              >
+                <Trash2 size={16} /> Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Notificación */}
+      {notification && (
+        <div className="fixed bottom-4 left-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2 max-w-xs shadow-lg z-40">
+          <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
+          <span className="text-sm text-green-700">{notification.message}</span>
+        </div>
+      )}
     </div>
   );
 };
