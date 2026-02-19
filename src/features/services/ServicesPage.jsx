@@ -50,7 +50,8 @@ export const ServicesPage = () => {
       open: true,
       title: "Confirmar edición",
       message: `¿Editar el servicio ${service.nombre}?`,
-      confirmLabel: "Editar",
+      confirmText: "Editar",
+      danger: false,
       onConfirm: () => {
         setEditingItem(service);
         setIsViewMode(false);
@@ -69,14 +70,20 @@ export const ServicesPage = () => {
     open: false,
     title: "Confirmar eliminación",
     message: "¿Eliminar este servicio?",
+    confirmText: "Eliminar",
+    danger: true,
     onConfirm: null,
   });
+
+  const [statusChangeService, setStatusChangeService] = useState(null);
 
   const handleDelete = (id) => {
     setConfirmConfig({
       open: true,
       title: "Confirmar eliminación",
       message: "¿Eliminar este servicio?",
+      confirmText: "Eliminar",
+      danger: true,
       onConfirm: () => {
         deleteItem(id);
         window.dispatchEvent(new CustomEvent('services:changed'));
@@ -86,8 +93,19 @@ export const ServicesPage = () => {
 
   const confirmStatusChange = (service) => {
     const newStatus = service.estado === 'Activo' ? 'Inactivo' : 'Activo';
-    updateItem(service.id, { ...service, estado: newStatus });
-    window.dispatchEvent(new CustomEvent('services:changed'));
+    setStatusChangeService({ service, newStatus });
+    setConfirmConfig({
+      open: true,
+      title: `Cambiar estado a ${newStatus}`,
+      message: `¿Cambiar el estado del servicio "${service.nombre}" a ${newStatus}?`,
+      confirmText: newStatus,
+      danger: false,
+      onConfirm: () => {
+        updateItem(service.id, { ...service, estado: newStatus });
+        window.dispatchEvent(new CustomEvent('services:changed'));
+        setStatusChangeService(null);
+      },
+    });
   };
 
   const handleSave = (formData) => {
@@ -213,7 +231,8 @@ export const ServicesPage = () => {
         open={confirmConfig.open}
         title={confirmConfig.title}
         message={confirmConfig.message}
-        confirmLabel={confirmConfig.confirmLabel}
+        confirmText={confirmConfig.confirmText}
+        danger={confirmConfig.danger}
         onCancel={() => setConfirmConfig((c) => ({ ...c, open: false }))}
         onConfirm={() => {
           confirmConfig.onConfirm && confirmConfig.onConfirm();

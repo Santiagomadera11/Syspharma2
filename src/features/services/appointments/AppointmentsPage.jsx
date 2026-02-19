@@ -263,7 +263,7 @@ export const AppointmentsPage = () => {
     setIsExpenseModalOpen(true);
   };
 
-  // --- RENDERIZADO CALENDARIO ---
+  // --- RENDER CALENDARIO GRANDE CON SCROLL ---
   const renderCalendar = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -280,9 +280,7 @@ export const AppointmentsPage = () => {
       const dayAppointments = getAppointmentsForDate(current);
       const isToday = current.toDateString() === new Date().toDateString();
       const isCurrentMonth = current.getMonth() === month;
-      const isUnavailable = availabilityService.isDayUnavailable(
-        current.toISOString().split("T")[0],
-      );
+      const isUnavailable = availabilityService.isDayUnavailable(current.toISOString().split("T")[0]);
 
       days.push({
         date: new Date(current),
@@ -295,64 +293,46 @@ export const AppointmentsPage = () => {
     }
 
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800 capitalize">
-            {currentDate.toLocaleDateString("es-ES", {
-              month: "long",
-              year: "numeric",
-            })}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-800 capitalize">
+            {currentDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
           </h2>
-          <div className="flex gap-1">
-            <button
-              onClick={() =>
-                setCurrentDate(
-                  new Date(currentDate.setMonth(currentDate.getMonth() - 1)),
-                )
-              }
-              className="p-1.5 hover:bg-gray-100 rounded-lg"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={() =>
-                setCurrentDate(
-                  new Date(currentDate.setMonth(currentDate.getMonth() + 1)),
-                )
-              }
-              className="p-1.5 hover:bg-gray-100 rounded-lg"
-            >
-              <ChevronRight size={20} />
-            </button>
+          <div className="flex gap-2">
+            <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronLeft size={20} /></button>
+            <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))} className="p-2 hover:bg-gray-100 rounded-lg"><ChevronRight size={20} /></button>
           </div>
         </div>
+
         <div className="grid grid-cols-7 gap-1 mb-2">
           {["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((day) => (
-            <div
-              key={day}
-              className="text-center text-xs font-semibold text-gray-500"
-            >
-              {day}
-            </div>
+            <div key={day} className="text-center text-sm font-semibold text-gray-600 uppercase pb-2">{day}</div>
           ))}
         </div>
+
         <div className="grid grid-cols-7 gap-1">
           {days.map((day, index) => (
             <div
               key={index}
               onClick={() => !day.isUnavailable && handleDateClick(day.date)}
               className={`
-                min-h-[70px] p-2 border rounded-lg cursor-pointer transition-all relative
-                ${day.isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-300"}
-                ${day.isToday ? "ring-2 ring-emerald-500 z-10" : "border-gray-100"}
-                ${day.isUnavailable ? "bg-red-50/50 cursor-not-allowed" : "hover:shadow-md hover:border-emerald-200"}
+                min-h-[100px] p-2 border rounded-lg cursor-pointer transition-all relative
+                ${day.isCurrentMonth ? "bg-white" : "bg-gray-50 text-gray-400"}
+                ${day.isToday ? "ring-2 ring-blue-500 z-10" : ""}
+                ${day.isUnavailable ? "bg-red-50 cursor-not-allowed opacity-50" : "hover:border-blue-400 hover:shadow-md"}
+                ${day.appointments.length > 0 ? "bg-blue-50/30" : ""}
               `}
             >
-              <div className="text-xs font-bold mb-1">{day.date.getDate()}</div>
-              {day.appointments.length > 0 && (
-                <div className="text-[9px] text-emerald-600 font-semibold mt-1">
-                  {day.appointments.length} {day.appointments.length === 1 ? 'cita' : 'citas'}
+              <div className="text-sm font-bold mb-1">{day.date.getDate()}</div>
+              
+              {day.appointments.length > 0 && currentUserRole === "Administrador" && (
+                <div className="text-blue-500 text-[11px] font-bold mb-2">
+                  {day.appointments.length} cita{day.appointments.length !== 1 ? 's' : ''}
                 </div>
+              )}
+
+              {day.isUnavailable && (
+                <div className="text-[10px] text-red-500 font-medium absolute bottom-1 right-2">No disp.</div>
               )}
             </div>
           ))}
@@ -439,10 +419,10 @@ export const AppointmentsPage = () => {
           </select>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col flex-1">
+          <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
             <table className="w-full">
-              <thead className={`${currentUserRole === "Administrador" ? "bg-emerald-600" : "bg-blue-600"} text-white`}>
+              <thead className={`${currentUserRole === "Administrador" ? "bg-emerald-600" : "bg-blue-600"} text-white sticky top-0`}>
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold">
                     Paciente
@@ -567,7 +547,7 @@ export const AppointmentsPage = () => {
           </div>
 
           {/* ✅ Footer de Paginación */}
-          <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-100">
+          <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-t border-gray-100 flex-shrink-0">
             <span className="text-xs text-gray-500">
               Página {currentPage} de {totalPages || 1} ({sorted.length} total)
             </span>
@@ -596,45 +576,33 @@ export const AppointmentsPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col gap-6 font-sans">
-      {/* Header General */}
-      <div className="flex justify-between items-start flex-shrink-0">
+    // ✅ CORRECCIÓN: Quitamos overflow-hidden y h-full para permitir el scroll natural de la página
+    <div className="flex flex-col gap-6 font-sans p-6 min-h-screen bg-transparent">
+      
+      {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Gestión de Citas</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Control de agenda y flujo financiero diario
-          </p>
+          <p className="text-xs text-gray-500 mt-1">Control de agenda y flujo financiero diario</p>
         </div>
-
         {(activeTab === "calendario" || activeTab === "citas") && (
           <div className="flex gap-2">
-            <button
-              onClick={handleCreateExpense}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
-            >
-              <Plus size={16} /> Agregar Gasto
-            </button>
-            <button
-              onClick={handleCreateAppointment}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105"
-            >
+            <button onClick={handleCreateAppointment} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105">
               <Plus size={16} /> Nueva Cita
+            </button>
+            <button onClick={handleCreateExpense} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm transition-transform hover:scale-105">
+              <Plus size={16} /> Agregar Gasto
             </button>
           </div>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 flex-shrink-0 overflow-x-auto">
+      <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
         {[
           { id: "calendario", icon: Calendar, label: "Calendario" },
           { id: "citas", icon: List, label: "Lista de Citas" },
-          {
-            id: "disponibilidad",
-            icon: Settings,
-            label: "Disponibilidad",
-            adminOnly: true,
-          },
+          { id: "disponibilidad", icon: Settings, label: "Disponibilidad", adminOnly: true },
           { id: "medicos", icon: Users, label: "Médicos", adminOnly: true },
         ].map((tab) => {
           if (tab.adminOnly && currentUserRole !== "Administrador") return null;
@@ -643,9 +611,7 @@ export const AppointmentsPage = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "text-blue-600 border-blue-600"
-                  : "text-gray-500 border-transparent hover:text-gray-700"
+                activeTab === tab.id ? "text-blue-600 border-blue-600" : "text-gray-500 border-transparent hover:text-gray-700"
               }`}
             >
               <tab.icon size={16} /> {tab.label}
@@ -654,27 +620,18 @@ export const AppointmentsPage = () => {
         })}
       </div>
 
-      {/* --- SECCIÓN FINANCIERA (ESTADÍSTICAS) --- */}
+      {/* KPIs */}
       {(activeTab === "calendario" || activeTab === "citas") && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5 flex-shrink-0 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-gray-700 text-sm">
-              Resumen Financiero
-            </h3>
+            <h3 className="font-bold text-gray-700 text-sm">Resumen Financiero</h3>
             <div className="flex bg-gray-100 p-1 rounded-lg">
-              {[
-                { val: "dia", label: "Día" },
-                { val: "semana", label: "Semana" },
-                { val: "mes", label: "Mes" },
-                { val: "año", label: "Año" },
-              ].map((p) => (
+              {[{ val: "dia", label: "Día" }, { val: "semana", label: "Semana" }, { val: "mes", label: "Mes" }, { val: "año", label: "Año" }].map((p) => (
                 <button
                   key={p.val}
                   onClick={() => setPeriodFilter(p.val)}
                   className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                    periodFilter === p.val
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                    periodFilter === p.val ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
                   {p.label}
@@ -682,67 +639,30 @@ export const AppointmentsPage = () => {
               ))}
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 1. Citas Registradas */}
+            {/* Cards KPIs */}
             <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/50 flex flex-col justify-between h-28">
-              <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase">
-                <Calendar size={16} /> Citas ({periodFilter})
-              </div>
-              <div>
-                <span className="text-3xl font-bold text-blue-900">
-                  {financialSummary.totalCitas}
-                </span>
-                <p className="text-xs text-blue-600 mt-1">citas registradas</p>
-              </div>
+              <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase"><Calendar size={16} /> Citas ({periodFilter})</div>
+              <div><span className="text-3xl font-bold text-blue-900">{financialSummary.totalCitas}</span><p className="text-xs text-blue-600 mt-1">citas registradas</p></div>
             </div>
-
-            {/* 2. Ingresos (Solo Completadas) */}
-            <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/50 flex flex-col justify-between h-28">
-              <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs uppercase">
-                <TrendingUp size={16} /> Ingresos ({periodFilter})
-              </div>
-              <div>
-                <span className="text-3xl font-bold text-emerald-900">
-                  $ {financialSummary.ingresos.toLocaleString()}
-                </span>
-                <p className="text-xs text-emerald-600 mt-1">
-                  Citas Completadas
-                </p>
-              </div>
+            <div className="p-4 rounded-xl border border-green-100 bg-green-50/50 flex flex-col justify-between h-28">
+              <div className="flex items-center gap-2 text-green-700 font-bold text-xs uppercase"><TrendingUp size={16} /> Ingresos ({periodFilter})</div>
+              <div><span className="text-3xl font-bold text-green-900">$ {financialSummary.ingresos.toLocaleString()}</span><p className="text-xs text-green-600 mt-1">Citas Completadas</p></div>
             </div>
-
-            {/* 3. Gastos y Balance */}
             <div className="p-4 rounded-xl border border-orange-100 bg-orange-50/50 flex flex-col justify-between h-28">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-orange-700 font-bold text-xs uppercase">
-                  <TrendingDown size={16} /> Gastos
-                </div>
-                <span className="text-xs font-bold text-orange-800">
-                  $ {financialSummary.gastos.toLocaleString()}
-                </span>
-              </div>
-              <div className="mt-2 pt-2 border-t border-orange-200">
-                <p className="text-xs text-gray-500">Balance Neto:</p>
-                <span
-                  className={`text-xl font-bold ${financialSummary.balance >= 0 ? "text-green-700" : "text-red-600"}`}
-                >
-                  $ {financialSummary.balance.toLocaleString()}
-                </span>
-              </div>
+              <div className="flex items-center justify-between"><div className="flex items-center gap-2 text-orange-700 font-bold text-xs uppercase"><TrendingDown size={16} /> Gastos</div><span className="text-xs font-bold text-orange-800">$ {financialSummary.gastos.toLocaleString()}</span></div>
+              <div className="mt-2 pt-2 border-t border-orange-200"><p className="text-xs text-gray-500">Balance Neto:</p><span className={`text-xl font-bold ${financialSummary.balance >= 0 ? 'text-green-700' : 'text-red-600'}`}>$ {financialSummary.balance.toLocaleString()}</span></div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Contenido Principal (Outlet de Tabs) */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-auto no-scrollbar">
-          {activeTab === "calendario" && renderCalendar()}
-          {activeTab === "citas" && renderAppointmentsList()}
-          {activeTab === "disponibilidad" && <AvailabilityConfigPage />}
-          {activeTab === "medicos" && <DoctorsPage />}
-        </div>
+      {/* Contenido Principal - Se expande naturalmente */}
+      <div className="flex-1">
+        {activeTab === "calendario" && renderCalendar()}
+        {activeTab === "citas" && renderAppointmentsList()}
+        {activeTab === "disponibilidad" && <AvailabilityConfigPage />}
+        {activeTab === "medicos" && <DoctorsPage />}
       </div>
 
       {/* --- MODALES --- */}
