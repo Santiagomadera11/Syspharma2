@@ -15,7 +15,7 @@ export const EmployeeProductos = () => {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [detailProduct, setDetailProduct] = useState(null);
-  const itemsPerPage = 6;
+  const itemsPerPage = 5;
 
   // Cargar productos al montar el componente
   useEffect(() => {
@@ -98,7 +98,7 @@ export const EmployeeProductos = () => {
       </div>
 
       <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1">
           <table className="w-full text-left border-collapse">
             <thead className="bg-blue-700 text-white sticky top-0 z-10">
               <tr>
@@ -183,23 +183,23 @@ export const EmployeeProductos = () => {
           </table>
         </div>
 
-        {/* Paginación */}
-        <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex justify-between items-center flex-shrink-0">
-          <span className="text-[10px] text-gray-500">Pág {currentPage}</span>
-          <div className="flex gap-1">
+        {/* Paginación mejorada */}
+        <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
+          <span className="text-[11px] text-gray-500">Pág {currentPage} de {totalPages || 1}</span>
+          <div className="flex gap-0.5">
             <button
               onClick={() => setCurrentPage((c) => Math.max(1, c - 1))}
               disabled={currentPage === 1}
-              className="p-1 border rounded bg-white disabled:opacity-50 hover:bg-blue-50"
+              className="px-1.5 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
             >
-              <ChevronLeft size={14} />
+              <ChevronLeft size={14}/>
             </button>
             <button
               onClick={() => setCurrentPage((c) => Math.min(totalPages, c + 1))}
-              disabled={currentPage === totalPages}
-              className="p-1 border rounded bg-white disabled:opacity-50 hover:bg-blue-50"
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="px-1.5 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 disabled:opacity-50"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={14}/>
             </button>
           </div>
         </div>

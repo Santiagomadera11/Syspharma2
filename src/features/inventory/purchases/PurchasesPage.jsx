@@ -85,13 +85,31 @@ export const PurchasesPage = () => {
   };
 
   const handleView = (compra) => {
-    setSelectedPurchase(compra);
+    // Si la compra tiene un campo 'items' que es un número, buscar la compra completa en el storage
+    let compraCompleta = compra;
+    if (!Array.isArray(compra.items)) {
+      const comprasAll = purchaseService.getAll();
+      const encontrada = comprasAll.find(c => c.id === compra.id);
+      if (encontrada && Array.isArray(encontrada.items)) {
+        compraCompleta = encontrada;
+      }
+    }
+    setSelectedPurchase(compraCompleta);
     setModalMode("view");
     setIsModalOpen(true);
   };
 
   const handleEdit = (compra) => {
-    setSelectedPurchase(compra);
+    // Si la compra tiene un campo 'items' que es un número, buscar la compra completa en el storage
+    let compraCompleta = compra;
+    if (!Array.isArray(compra.items)) {
+      const comprasAll = purchaseService.getAll();
+      const encontrada = comprasAll.find(c => c.id === compra.id);
+      if (encontrada && Array.isArray(encontrada.items)) {
+        compraCompleta = encontrada;
+      }
+    }
+    setSelectedPurchase(compraCompleta);
     setModalMode("edit");
     setIsModalOpen(true);
   };
