@@ -119,18 +119,7 @@ export const SalesPage = () => {
   };
 
   const handleNewSale = () => {
-    // Solo empleados deben validar turno
-    if (user.rol !== "Administrador") {
-      const validation = turnService.validateOperationAllowed();
-      if (!validation.valid) {
-        setToast({
-          message: validation.message,
-          type: "error",
-          zIndex: 70,
-        });
-        return;
-      }
-    }
+    // Permitir que tanto Administrador como Empleado puedan hacer una venta
     navigate("/admin/ventas/nueva");
   };
 

@@ -55,7 +55,7 @@ export const rolesService = {
       "#3b82f6",
       "blue",
       "Empleado con permisos básicos de operación",
-      employeePerms,
+      [...employeePerms, "billing.create"],
     );
     ensureRole(
       "Cliente",
