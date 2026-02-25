@@ -11,7 +11,7 @@ const parseLocalDate = (dateStr) => {
 export const EmployeeCitas = () => {
   const [periodFilter, setPeriodFilter] = useState("dia"); // dia, semana, mes
 
-  // Obtener todas las citas y sus actualizaciones
+  // Obtener todas las citas y sus actualizaciones // 
   const [allAppointments, setAllAppointments] = useState(
     appointmentService.getAppointments(),
   );
