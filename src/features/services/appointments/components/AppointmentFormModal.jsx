@@ -355,7 +355,7 @@ const AppointmentFormModal = ({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         {/* Header */}
-        <div className="bg-emerald-600 px-6 py-4 flex justify-between items-center">
+        <div className="bg-blue-700 px-6 py-4 flex justify-between items-center">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Calendar size={20} />
             {appointment ? "Editar Cita Médica" : "Nueva Cita Médica"}
@@ -674,7 +674,7 @@ const AppointmentFormModal = ({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="px-5 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2"
+            className="px-5 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2"
           >
             {isSubmitting ? (
               <Loader2 size={16} className="animate-spin" />
