@@ -174,7 +174,7 @@ export const EmployeePedidos = () => {
         productosOriginales: [...order.productos], // Copia de productos originales para manejar stock
       }),
     );
-    navigate("/employee/pedidos/nuevo");
+    navigate("/employee/pedidos/crear");
   };
 
   const confirmStatusChange = (newStatus) => {
