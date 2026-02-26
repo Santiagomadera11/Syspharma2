@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
-import ClientSidebar from "./Sidebar/ClientSidebar";
+import { Outlet, useNavigate } from "react-router-dom";import { AlertCircle, X } from "lucide-react";import ClientSidebar from "./Sidebar/ClientSidebar";
 import { ClientHeader } from "./Header/ClientHeader";
 import { authService } from "../features/auth/authService";
 
@@ -51,29 +50,44 @@ const ClientLayout = () => {
 
       {/* Modal de Logout - Renderizado a nivel de Layout */}
       {showConfirmLogout && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-4"
-          >
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
-              ¿Cerrar sesión?
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              ¿Estás seguro de que quieres cerrar sesión? Serás redirigido a la
-              página principal.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            
+            {/* Header */}
+            <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <AlertCircle size={18} className="text-red-600" />
+                ¿Cerrar sesión?
+              </h3>
+              <button 
                 onClick={() => setShowConfirmLogout(false)}
-                className="px-3 py-1.5 bg-gray-100 rounded-md text-sm text-gray-700"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                ¿Estás seguro de que quieres cerrar sesión?
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Serás redirigido a la página principal.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
+              <button 
+                onClick={() => setShowConfirmLogout(false)}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
               >
                 Cancelar
               </button>
-              <button
+              <button 
                 onClick={handleConfirmLogout}
-                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm"
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors shadow-sm"
               >
                 Salir
               </button>

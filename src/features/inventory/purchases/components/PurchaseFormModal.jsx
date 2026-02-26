@@ -4,6 +4,15 @@ import { productService } from "../../products/services/productService";
 import { providerService } from "../../providers/services/providerService";
 
 const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave, onDelete }) => {
+  // Role-based color styling
+  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const isEmployee = currentUser.rol === "Empleado";
+  const headerBgColor = isEmployee ? "bg-blue-50" : "bg-green-50";
+  const headerBorderColor = isEmployee ? "border-blue-200" : "border-green-200";
+  const buttonBgColor = isEmployee ? "bg-blue-600 hover:bg-blue-700" : "bg-green-600 hover:bg-green-700";
+  const focusBorderColor = isEmployee ? "focus:border-blue-500" : "focus:border-emerald-500";
+  const confirmIconColor = isEmployee ? "text-blue-600" : "text-green-600";
+
   const [formData, setFormData] = useState({
     proveedor: "",
     fecha: new Date().toISOString().slice(0,10),
@@ -287,7 +296,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
         {/* smaller padding container */}
         
         {/* Header */}
-        <div className="bg-green-50 px-4 py-3 border-b border-green-200 flex justify-between items-center flex-shrink-0">
+        <div className={`${headerBgColor} px-4 py-3 border-b ${headerBorderColor} flex justify-between items-center flex-shrink-0`}>
           <h3 className="font-bold text-gray-900 text-lg">
             {title}
           </h3>
@@ -353,9 +362,9 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
 
               {/* Total */}
               <div className="flex justify-end mb-6">
-                <div className="bg-green-50 border-2 border-green-200 rounded-lg px-8 py-4">
+                <div className={`${headerBgColor} border-2 ${headerBorderColor} rounded-lg px-8 py-4`}>
                   <p className="text-xs text-gray-600 font-bold mb-1 uppercase">Total a Pagar</p>
-                  <p className="text-3xl font-bold text-green-600">
+                  <p className={`text-3xl font-bold ${confirmIconColor}`}>
                     ${Number(formData.total || 0).toLocaleString(undefined, {maximumFractionDigits: 2})}
                   </p>
                 </div>
@@ -379,7 +388,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
               <label className="block text-[10px] font-bold text-gray-700 mb-1">Proveedor</label>
               <select 
                 disabled={isView}
-                className="w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500 bg-white"
+                className={`w-full text-xs border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorderColor} bg-white`}
                 value={formData.proveedor}
                 onChange={(e) => setFormData({...formData, proveedor: e.target.value})}
               >
@@ -400,7 +409,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
               <input 
                 disabled={isView}
                 type="date" 
-                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500"
+                className={`w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none ${focusBorderColor}`}
                 value={formData.fecha}
                 onChange={(e) => setFormData({...formData, fecha: e.target.value})}
               />
@@ -410,7 +419,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
               <input 
                 disabled={isView}
                 type="text" 
-                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:border-emerald-500" 
+                className={`w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none ${focusBorderColor}`}
                 placeholder="FAC-0000"
                 value={formData.factura}
                 onChange={(e) => setFormData({...formData, factura: e.target.value})}
@@ -442,7 +451,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                       <div>
                         <select 
                           disabled={isView}
-                          className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500 bg-white"
+                          className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorderColor} bg-white`}
                           value={selectedProduct}
                           onChange={(e) => setSelectedProduct(e.target.value)}
                         >
@@ -469,7 +478,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                       <input 
                         disabled={isView}
                         type="number" 
-                        className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" 
+                        className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorderColor}`}
                         placeholder="0.00"
                         value={productCost}
                         onChange={(e) => setProductCost(e.target.value)}
@@ -480,7 +489,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                       <input 
                         disabled={isView}
                         type="number" 
-                        className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" 
+                        className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorderColor}`}
                         placeholder="1"
                         value={productQuantity}
                         onChange={(e) => setProductQuantity(e.target.value)}
@@ -493,7 +502,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                       <input 
                         disabled={isView}
                         type="text" 
-                        className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" 
+                        className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorderColor}`}
                         placeholder="Lote"
                         value={productLote}
                         onChange={(e) => setProductLote(e.target.value)}
@@ -504,7 +513,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                       <input 
                         disabled={isView}
                         type="date" 
-                        className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" 
+                        className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorderColor}`}
                         value={productVencimiento}
                         onChange={(e) => setProductVencimiento(e.target.value)}
                       />
@@ -514,7 +523,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                       <input 
                         disabled={isView}
                         type="number" 
-                        className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:border-emerald-500" 
+                        className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorderColor}`}
                         placeholder="0"
                         value={productIva}
                         onChange={(e) => setProductIva(e.target.value)}
@@ -580,7 +589,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
                <tfoot className="bg-gray-50 border-t border-gray-200">
                   <tr>
                     <td colSpan={5} className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total a Pagar:</td>
-                    <td className="px-4 py-3 text-right text-sm font-bold text-green-600">$ { (formData.total || 0).toLocaleString(undefined, {maximumFractionDigits: 2}) }</td>
+                    <td className={`px-4 py-3 text-right text-sm font-bold ${confirmIconColor}`}>$ { (formData.total || 0).toLocaleString(undefined, {maximumFractionDigits: 2}) }</td>
                     <td></td>
                   </tr>
                </tfoot>
@@ -591,11 +600,11 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
         </div>
 
         {/* Footer */}
-        <div className="bg-green-50 border-t border-green-200 p-4 flex-shrink-0 flex gap-3">
+        <div className={`${headerBgColor} border-t ${headerBorderColor} p-4 flex-shrink-0 flex gap-3`}>
           {isView ? (
             <button 
               onClick={onClose}
-              className="w-full px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded flex items-center justify-center gap-2 transition-colors shadow-sm"
+              className={`w-full px-4 py-2 text-sm font-bold text-white ${buttonBgColor} rounded flex items-center justify-center gap-2 transition-colors shadow-sm`}
             >
               <Printer size={16} /> Imprimir Comprobante
             </button>
@@ -603,7 +612,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
             <button 
               onClick={handleFinalizePurchase} 
               disabled={purchaseItems.length === 0}
-              className="w-full px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded flex items-center justify-center gap-2 shadow-sm transition-colors"
+              className={`w-full px-4 py-2 text-sm font-bold text-white ${buttonBgColor} disabled:bg-gray-400 disabled:cursor-not-allowed rounded flex items-center justify-center gap-2 shadow-sm transition-colors`}
             >
               <Save size={16} /> {mode === 'edit' ? 'Guardar' : 'Finalizar Compra'}
             </button>
@@ -618,7 +627,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
             
             {/* Header Verde */}
-            <div className="bg-green-50 px-6 py-4 border-b border-green-200 flex justify-between items-center">
+            <div className={`${headerBgColor} px-6 py-4 border-b ${headerBorderColor} flex justify-between items-center`}>
               <h3 className="font-bold text-gray-900 text-lg">
                 Compra Registrada
               </h3>
@@ -632,7 +641,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
 
             {/* Body */}
             <div className="p-6 flex flex-col items-center text-center">
-              <CheckCircle size={48} className="text-green-600 mb-4" />
+              <CheckCircle size={48} className={`${confirmIconColor} mb-4`} />
               <p className="text-gray-700 font-medium text-sm mb-2">
                 {confirmationMessage}
               </p>
@@ -642,10 +651,10 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = 'create', o
             </div>
 
             {/* Footer Verde */}
-            <div className="bg-green-50 border-t border-green-200 p-4">
+            <div className={`${headerBgColor} border-t ${headerBorderColor} p-4`}>
               <button 
                 onClick={() => setIsConfirmationOpen(false)}
-                className="w-full px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded transition-colors shadow-sm"
+                className={`w-full px-4 py-2 text-sm font-bold text-white ${buttonBgColor} rounded transition-colors shadow-sm`}
               >
                 Aceptar
               </button>

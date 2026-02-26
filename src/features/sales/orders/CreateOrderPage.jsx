@@ -17,6 +17,15 @@ export const CreateOrderPage = () => {
     location.pathname === "/admin/ventas/nueva" ||
     location.pathname === "/employee/ventas/nueva";
   const isEmployee = location.pathname.startsWith("/employee");
+  
+  // Obtener el rol actual para cambiar colores
+  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const currentUserRole = currentUser.rol || "Administrador";
+  const isEmployeeRole = currentUserRole === "Empleado";
+  
+  // Colores dinámicos basados en el rol
+  const buttonBgColor = isEmployeeRole ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700";
+  
   const [products, setProducts] = useState(productService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -507,7 +516,7 @@ export const CreateOrderPage = () => {
                         className={`ml-3 flex-shrink-0 px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all ${
                           product.stock === 0
                             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                            : buttonBgColor + " text-white"
                         }`}
                       >
                         <Plus size={14} />
@@ -673,7 +682,7 @@ export const CreateOrderPage = () => {
                   !clientInfo.documento ||
                   !clientInfo.nombre
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                    : buttonBgColor + " text-white shadow-sm"
                 }`}
               >
                 {isSale ? "Finalizar Venta / Cobrar" : "Confirmar Pedido"}

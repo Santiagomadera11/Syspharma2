@@ -1,95 +1,182 @@
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { X, ShoppingCart } from "lucide-react";
 import useCart from "../context/CartContext";
+import QuickPurchaseModal from "./QuickPurchaseModal";
 
 const ProductDetailModal = ({ product, onClose }) => {
-  const [added, setAdded] = useState(false);
   if (!product) return null;
+
+  const [added, setAdded] = useState(false);
+  const [showQuickPurchase, setShowQuickPurchase] = useState(false);
+
+  // Detectar rol para colores dinámicos
+  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const isEmployee = currentUser.rol === "Empleado";
+  const headerBgColor = isEmployee ? "from-blue-50 to-blue-50" : "from-green-50 to-emerald-50";
+  const buttonBgColor = isEmployee ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700";
+  const badgeBgColor = isEmployee ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700";
 
   const title = product.nombre || product.name || "Producto";
   const price = Number(product.precio ?? product.price ?? 0);
+  const isActive = product.estado !== false;
 
   const cart = useCart();
   const addToCart = () => {
     try {
       cart.addToCart(product);
-      try { onClose && onClose(); } catch (e) {}
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
     } catch (err) {
       console.error("Error agregando al carrito", err);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[90vw] sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-4xl overflow-hidden relative max-h-[90vh]">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        
+        {/* Header */}
+        <div className={`flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r ${headerBgColor} flex-shrink-0`}>
+          <h2 className="text-lg font-bold text-gray-900">Detalle del Producto</h2>
+          <button 
+            onClick={onClose} 
+            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-white/50 transition-all"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 p-2 bg-white/80 hover:bg-gray-100 rounded-full text-gray-500 hover:text-red-500 transition-colors">
-          <X size={24} />
-        </button>
-
-        <div className="p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-            {/* Left: Imagen */}
-            <div className="flex items-center justify-center bg-gray-50 rounded-xl p-6 border border-gray-100 h-full min-h-[300px]">
-              {(product.imagen || product.image) ? (
-                <img src={product.imagen || product.image} alt={title} className="max-h-[300px] w-auto object-contain mix-blend-multiply hover:scale-105 transition-transform duration-300" />
-              ) : (
-                <div className="flex flex-col items-center text-gray-300">
-                  <svg className="w-16 h-16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 16V8a2 2 0 0 0-2-2h-3l-2-2H10L8 6H5a2 2 0 0 0-2 2v8" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  <span className="text-sm mt-2">Sin imagen</span>
-                </div>
-              )}
+        {/* Content */}
+        <div className="overflow-y-auto flex-1 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Left: Imagen Thumbnail */}
+            <div className="md:col-span-1">
+              <div className="rounded-lg border border-gray-200 aspect-square flex items-center justify-center bg-white">
+                {(product.imagen || product.image) ? (
+                  <img 
+                    src={product.imagen || product.image} 
+                    alt={title} 
+                    className="max-h-full w-auto object-contain mix-blend-multiply" 
+                  />
+                ) : (
+                  <div className="flex flex-col items-center text-gray-300 text-center">
+                    <svg className="w-12 h-12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 16V8a2 2 0 0 0-2-2h-3l-2-2H10L8 6H5a2 2 0 0 0-2 2v8" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="text-xs mt-2">Sin imagen</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Right: Información */}
-            <div className="flex flex-col justify-center space-y-6">
+            {/* Right: Información en Grid */}
+            <div className="md:col-span-2 space-y-4">
+              
+              {/* Título y Categoría */}
               <div>
-                <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full mb-2 uppercase tracking-wide">{product.categoria || "Medicamento"}</span>
-                <h2 className="text-3xl font-extrabold text-gray-800 leading-tight">{product.nombre || product.name}</h2>
-              </div>
-
-              <div className="border-t border-b border-gray-100 py-4">
-                <p className="text-sm text-gray-500 mb-1">Precio de venta</p>
-                <h3 className="text-4xl font-bold text-emerald-600">${Number(product.precio ?? product.price ?? 0).toLocaleString()}</h3>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Proveedor</p>
-                  <p className="font-semibold text-gray-800 text-sm">{product.proveedor || product.laboratorio || product.marca || "Farmacéutica Global"}</p>
-                </div>
-
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Stock Disponible</p>
-                  <p className={`font-semibold text-sm ${Number(product.stock) > 0 ? 'text-gray-800' : 'text-red-500'}`}>{product.stock ?? 0} unidades</p>
+                <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+                <div className="flex gap-2 mt-2">
+                  <span className={`inline-block px-2 py-1 text-xs font-bold rounded-full uppercase ${badgeBgColor}`}>
+                    {product.categoria || "Medicamento"}
+                  </span>
+                  <span className={`inline-block px-2 py-1 text-xs font-bold rounded-full ${
+                    isActive 
+                      ? "bg-green-100 text-green-700" 
+                      : "bg-red-100 text-red-700"
+                  }`}>
+                    {isActive ? "Activo" : "Inactivo"}
+                  </span>
                 </div>
               </div>
 
+              {/* Datos en Grid 2x2 */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg border border-gray-200 bg-white">
+                  <p className="text-xs text-gray-500 font-bold uppercase mb-1">ID</p>
+                  <p className="text-sm font-semibold text-gray-900">{product.id || "N/A"}</p>
+                </div>
+
+                <div className="p-3 rounded-lg border border-gray-200 bg-white">
+                  <p className="text-xs text-gray-500 font-bold uppercase mb-1">Stock</p>
+                  <p className={`text-sm font-semibold ${Number(product.stock) > 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                    {product.stock ?? 0}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg border border-gray-200 bg-white">
+                  <p className="text-xs text-gray-500 font-bold uppercase mb-1">Precio</p>
+                  <p className={`text-sm font-semibold ${isEmployee ? 'text-blue-600' : 'text-emerald-600'}`}>${price.toLocaleString()}</p>
+                </div>
+
+                <div className="p-3 rounded-lg border border-gray-200 bg-white">
+                  <p className="text-xs text-gray-500 font-bold uppercase mb-1">Proveedor</p>
+                  <p className="text-sm font-semibold text-gray-900">{product.proveedor || product.laboratorio || product.marca || "N/A"}</p>
+                </div>
+              </div>
+
+              {/* Información del Medicamento */}
               {product.tipoProducto === "Medicamento" && (
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold text-gray-800">Información del Medicamento</h3>
-                  <div className="mt-2 space-y-2 text-sm text-gray-700">
-                    {product.presentacion && <div><strong>Presentación: </strong>{product.presentacion}</div>}
-                    {product.viaAdministracion && <div><strong>Vía: </strong>{product.viaAdministracion}</div>}
-                    {product.concentracion && <div><strong>Concentración: </strong>{product.concentracion}</div>}
-                    {product.composicion && <div><strong>Composición: </strong>{product.composicion}</div>}
+                <div className="border-t pt-3 mt-3">
+                  <p className="text-xs text-gray-500 font-bold uppercase mb-2">Información del Medicamento</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {product.presentacion && (
+                      <div><span className="text-gray-600">Presentación:</span> <span className="font-semibold">{product.presentacion}</span></div>
+                    )}
+                    {product.viaAdministracion && (
+                      <div><span className="text-gray-600">Vía:</span> <span className="font-semibold">{product.viaAdministracion}</span></div>
+                    )}
+                    {product.concentracion && (
+                      <div className="col-span-2"><span className="text-gray-600">Concentración:</span> <span className="font-semibold">{product.concentracion}</span></div>
+                    )}
+                    {product.composicion && (
+                      <div className="col-span-2"><span className="text-gray-600">Composición:</span> <span className="font-semibold">{product.composicion}</span></div>
+                    )}
                   </div>
                 </div>
               )}
-
-              <div className="pt-4 flex items-center justify-end gap-3">
-                <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border hover:bg-gray-50">Cerrar</button>
-                <button onClick={() => { addToCart(); }} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-2">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6h15l-1.5 9h-13L4 2H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  Agregar al carrito
-                </button>
-                {added && <span className="text-sm text-emerald-700 font-semibold">Agregado ✓</span>}
-              </div>
             </div>
-
           </div>
         </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-white flex items-center justify-between gap-2 flex-shrink-0">
+          <button 
+            onClick={addToCart} 
+            className={`px-4 py-2 text-sm font-medium text-white ${buttonBgColor} rounded-lg flex items-center gap-2 transition-all`}
+          >
+            <ShoppingCart size={16} />
+            Agregar
+          </button>
+          <div className="flex items-center gap-2">
+            {added && <span className={`text-xs font-semibold ${isEmployee ? 'text-blue-600' : 'text-emerald-600'}`}>✓ Agregado</span>}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowQuickPurchase(true);
+              }} 
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-2 transition-all"
+            >
+              <ShoppingCart size={16} />
+              Comprar Ahora
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Purchase Modal - Renderizado con Portal para evitar contexto de apilamiento */}
+        {showQuickPurchase &&
+          createPortal(
+            <QuickPurchaseModal 
+              product={product} 
+              onClose={() => setShowQuickPurchase(false)}
+              onSuccess={() => {
+                setShowQuickPurchase(false);
+                onClose();
+              }}
+            />,
+            document.body
+          )}
 
       </div>
     </div>

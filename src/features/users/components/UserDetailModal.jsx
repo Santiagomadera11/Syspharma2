@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { X, Save } from "lucide-react";
+import { X, Save, Phone } from "lucide-react";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 import { rolesService } from "../../settings/rolesService";
 
@@ -48,97 +48,141 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
       display.nombre || display.email || Date.now(),
     )}`;
 
+  const isActivo = display.estado;
+  const getRolBadgeColor = (rol) => {
+    switch (rol?.toLowerCase()) {
+      case "admin":
+        return "bg-purple-100 text-purple-700";
+      case "empleado":
+        return "bg-blue-100 text-blue-700";
+      case "cliente":
+        return "bg-emerald-100 text-emerald-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 border">
-              <img
-                src={avatar}
-                alt="avatar"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <div className="font-bold">{display.nombre}</div>
-              <div className="text-xs text-gray-500">{display.email}</div>
-            </div>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-full sm:max-w-md md:max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
+        
+        {/* Hero Section - Cabecera de Perfil */}
+        <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 pb-8 pt-4 px-6 text-center">
+          {/* Badge de Estado en la esquina superior izquierda */}
+          <div className="absolute top-4 left-4">
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                isActivo
+                  ? "bg-green-500 text-white"
+                  : "bg-red-500 text-white"
+              }`}
+            >
+              {isActivo ? "Activo" : "Inactivo"}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Botón X en la esquina superior derecha */}
+          <div className="absolute top-4 right-4">
             <button
               onClick={onClose}
-              className="text-gray-500 p-1 rounded-full"
+              className="text-gray-600 hover:text-gray-800 p-1 rounded-full hover:bg-white/50 transition-all"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
+          </div>
+
+          {/* Foto de Perfil centrada */}
+          <div className="w-24 h-24 mx-auto mb-3 rounded-full overflow-hidden bg-white border-4 border-white shadow-lg">
+            <img
+              src={avatar}
+              alt="avatar"
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Nombre y Email */}
+          <div className="mt-2">
+            <h2 className="text-xl font-bold text-gray-900">{display.nombre}</h2>
+            <p className="text-xs text-gray-600 mt-1">{display.email}</p>
           </div>
         </div>
 
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="p-3 border rounded-md">
-            <div className="text-[11px] text-gray-500 mb-1">Tipo Documento</div>
-            {editing ? (
-              <select
-                name="tipoDocumento"
-                value={display.tipoDocumento || ""}
-                onChange={handleChange}
-                className="w-full px-2 py-1 border rounded text-sm"
-              >
-                <option value="">--</option>
-                <option value="CC">CC</option>
-                <option value="TI">TI</option>
-                <option value="CE">CE</option>
-              </select>
-            ) : (
-              <div className="font-medium">
-                {display.tipoDocumento || "No registrado"}
-              </div>
-            )}
-          </div>
-
-          <div className="p-3 border rounded-md">
-            <div className="text-[11px] text-gray-500 mb-1">
-              Número Documento
+        {/* Contenido Principal */}
+        <div className="px-6 py-4 space-y-4">
+          
+          {/* Sección: Identificación */}
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+              Identificación
+            </p>
+            <div className="bg-gray-50 rounded-lg p-4">
+              {editing ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-1">
+                    <select
+                      name="tipoDocumento"
+                      value={display.tipoDocumento || ""}
+                      onChange={handleChange}
+                      className="w-full px-2 py-2 border rounded text-sm font-medium"
+                    >
+                      <option value="">--</option>
+                      <option value="CC">CC</option>
+                      <option value="TI">TI</option>
+                      <option value="CE">CE</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <input
+                      name="documento"
+                      value={display.documento || ""}
+                      onChange={handleChange}
+                      placeholder="Número"
+                      className="w-full px-2 py-2 border rounded text-sm font-medium"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-900 font-semibold text-base">
+                  {display.tipoDocumento || "--"} - {display.documento || "No registrado"}
+                </p>
+              )}
             </div>
-            {editing ? (
-              <input
-                name="documento"
-                value={display.documento || ""}
-                onChange={handleChange}
-                className="w-full px-2 py-1 border rounded text-sm"
-              />
-            ) : (
-              <div className="font-medium">
-                {display.documento || "No registrado"}
-              </div>
-            )}
           </div>
 
-          <div className="p-3 border rounded-md">
-            <div className="text-[11px] text-gray-500 mb-1">Celular</div>
-            {editing ? (
-              <input
-                name="telefono"
-                value={display.telefono || ""}
-                onChange={handleChange}
-                className="w-full px-2 py-1 border rounded text-sm"
-              />
-            ) : (
-              <div className="font-medium">
-                {display.telefono || "Número no registrado"}
-              </div>
-            )}
+          {/* Sección: Contacto */}
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+              Contacto
+            </p>
+            <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3">
+              <Phone size={18} className="text-gray-600 flex-shrink-0" />
+              {editing ? (
+                <input
+                  name="telefono"
+                  value={display.telefono || ""}
+                  onChange={handleChange}
+                  placeholder="Número de celular"
+                  className="flex-1 px-2 py-2 border rounded text-sm font-medium"
+                />
+              ) : (
+                <p className="text-gray-900 font-semibold">
+                  {display.telefono || "No registrado"}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="p-3 border rounded-md">
-            <div className="text-[11px] text-gray-500 mb-1">Rol</div>
+          {/* Sección: Rol del Sistema */}
+          <div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+              Rol del Sistema
+            </p>
             {editing ? (
               <select
                 name="rol"
                 value={display.rol || ""}
                 onChange={handleChange}
-                className="w-full px-2 py-1 border rounded text-sm"
+                className="w-full px-4 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:border-emerald-500"
               >
                 <option value="">Seleccionar</option>
                 {roles.map((r) => (
@@ -148,33 +192,19 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
                 ))}
               </select>
             ) : (
-              <div className="font-medium">{display.rol}</div>
-            )}
-          </div>
-
-          <div className="p-3 border rounded-md">
-            <div className="text-[11px] text-gray-500 mb-1">Estado</div>
-            {editing ? (
-              <label className="inline-flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="estado"
-                  checked={!!display.estado}
-                  onChange={handleChange}
-                />
-                <span className="text-sm">
-                  {display.estado ? "Activo" : "Inactivo"}
-                </span>
-              </label>
-            ) : (
-              <div className="font-medium">
-                {display.estado ? "Activo" : "Inactivo"}
-              </div>
+              <span
+                className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${getRolBadgeColor(
+                  display.rol
+                )}`}
+              >
+                {display.rol || "No asignado"}
+              </span>
             )}
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 p-3 border-t bg-gray-50">
+        {/* Footer */}
+        <div className={`flex justify-end gap-2 p-4 border-t ${editing ? "bg-gray-50" : ""}`}>
           {editing && (
             <>
               <button
@@ -182,22 +212,17 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
                   setEditing(false);
                   setLocal({ ...user });
                 }}
-                className="px-3 py-1 border rounded"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
-                className="px-3 py-1 bg-primary-600 text-white rounded flex items-center gap-2"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center gap-2 font-medium transition-all"
               >
-                <Save size={14} /> Guardar
+                <Save size={16} /> Guardar
               </button>
             </>
-          )}
-          {!editing && (
-            <button onClick={onClose} className="px-3 py-1 border rounded">
-              Cerrar
-            </button>
           )}
         </div>
 
