@@ -20,6 +20,15 @@ const ServiceFormModal = ({
   initialData,
   isViewMode,
 }) => {
+  // Obtener el rol actual para cambiar colores
+  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const currentUserRole = currentUser.rol || "Administrador";
+  const isEmployee = currentUserRole === "Empleado";
+  
+  // Colores dinámicos basados en el rol
+  const headerBgColor = isEmployee ? "bg-blue-600" : "bg-emerald-600";
+  const buttonBgColor = isEmployee ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700";
+  
   const [formData, setFormData] = useState({
     nombre: "",
     categoria: "",
@@ -125,18 +134,18 @@ const ServiceFormModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden">
-        <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+        <div className={`${headerBgColor} px-5 py-3 border-b flex justify-between items-center`}>
+          <h3 className="font-bold text-white text-sm flex items-center gap-2">
             {isViewMode ? (
-              <Eye size={16} className="text-blue-600" />
+              <Eye size={16} />
             ) : (
-              <Stethoscope size={16} className="text-emerald-600" />
+              <Stethoscope size={16} />
             )}
             {getTitle()}
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-red-500 transition-colors"
+            className="text-white/70 hover:text-white transition-colors"
           >
             <X size={18} />
           </button>
@@ -277,7 +286,7 @@ const ServiceFormModal = ({
           {!isViewMode && (
             <button
               onClick={handleSubmit}
-              className="px-4 py-2 text-xs font-bold text-white bg-[#34D399] hover:bg-emerald-500 rounded-md flex items-center gap-1 shadow-sm transition-colors"
+              className={`px-4 py-2 text-xs font-bold text-white ${buttonBgColor} rounded-md flex items-center gap-1 shadow-sm transition-colors`}
             >
               <Save size={16} /> Guardar
             </button>

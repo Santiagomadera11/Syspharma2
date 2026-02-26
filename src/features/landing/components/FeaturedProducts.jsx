@@ -23,10 +23,10 @@ export const FeaturedProducts = () => {
 
   const { items: productos } = useCrud("syspharma_products", []);
 
-  // Preferir productos marcados como destacados si existen
+  // Mostrar únicamente los productos que el administrador marcó como
+  // destacados. Si no hay ninguno, la sección se ocultará en el render.
   const destacados = (productos || []).filter((p) => p.esDestacado === true);
-  const lista =
-    destacados && destacados.length > 0 ? destacados : productos || [];
+  const lista = destacados;  // ya es el arreglo filtrado
 
   const inicio = paginaActual * productosPorPagina;
   const fin = inicio + productosPorPagina;
@@ -39,15 +39,17 @@ export const FeaturedProducts = () => {
   return (
     <section className="py-8 bg-white">
       <div className="max-w-6xl mx-auto px-4">
-        <div className="flex justify-between items-end mb-4">
-          <div>
-            <span className="text-primary-400 font-bold uppercase tracking-wider text-[10px]">
-              Farmacia Online
-            </span>
-            <h2 className="text-xl font-bold text-primary-900">Destacados</h2>
-          </div>
+        {lista.length > 0 && (
+          <>
+            <div className="flex justify-between items-end mb-4">
+              <div>
+                <span className="text-primary-400 font-bold uppercase tracking-wider text-[10px]">
+                  Farmacia Online
+                </span>
+                <h2 className="text-xl font-bold text-primary-900">Destacados</h2>
+              </div>
 
-          <div className="flex gap-1">
+              <div className="flex gap-1">
             <button
               onClick={() => paginaActual > 0 && setPaginaActual((p) => p - 1)}
               className="p-1.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50"
@@ -119,6 +121,8 @@ export const FeaturedProducts = () => {
             }}
             product={guestProduct}
           />
+        )}
+          </>
         )}
       </div>
     </section>
