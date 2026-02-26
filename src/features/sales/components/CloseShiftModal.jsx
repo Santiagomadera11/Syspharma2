@@ -101,7 +101,7 @@ export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
       {/* Overlay */}
       <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
         {/* Modal */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-2xl p-4 max-w-md w-full mx-2 border border-gray-200 max-h-[80vh] overflow-auto no-scrollbar">
           {/* Header with Close Button */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
