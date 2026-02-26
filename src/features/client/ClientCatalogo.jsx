@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Heart, Search } from "lucide-react";
-import ProductCardGrid, { fmt as cardFmt } from "./components/ProductCard";
-import FilterSidebar from "./components/FilterSidebar";
-import useCart from "../../shared/context/CartContext";
+import { LS, read, write } from "../../shared/services/lsService";
+import { ToastNotification } from "../../shared/ui/ToastNotification";
+import ProductCardGrid, {
+  ProductRowList,
+} from "./components/ProductCard";
 
 
 
@@ -33,167 +35,257 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
   );
 };
 
-export const ClientCatalogo = () => {
-  const [selectedCategory, setSelectedCategory] = useState(null);
+const ClientCatalogo = () => {
+  const [products, setProducts] = useState([]);
   const [favorites, setFavorites] = useState([]);
-  const [searchValue, setSearchValue] = useState("");
-  const [allProducts, setAllProducts] = useState([]);
-  const [priceRange, setPriceRange] = useState([0, 500000]);
-  const cart = useCart();
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  // no view mode toggle on home, always grid view
+  const [toast, setToast] = useState(null);
+  const [userName, setUserName] = useState("");
+  const listRef = React.useRef(null);
 
+  // scroll to product list whenever a category filter is applied
   useEffect(() => {
-    // Cargar favoritos
-    try {
-      const fav = JSON.parse(
-        localStorage.getItem("syspharma_favorites") || "[]",
-      );
-      setFavorites(Array.isArray(fav) ? fav : []);
-    } catch {
-      setFavorites([]);
+    if (categoryFilter && listRef.current) {
+      listRef.current.scrollIntoView({ behavior: "smooth" });
     }
+  }, [categoryFilter]);
 
-    // Cargar productos desde localStorage
+  // load user from localStorage for greeting
+  useEffect(() => {
     try {
-      const products = JSON.parse(
-        localStorage.getItem("syspharma_products") || "[]",
-      );
-      setAllProducts(Array.isArray(products) ? products : []);
+      const u = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      if (u && u.nombre) setUserName(u.nombre);
     } catch {
-      setAllProducts([]);
+      // ignore parse errors
     }
+  }, []);
 
-    // Escuchar actualizaciones de productos
-    const handleProductsUpdate = () => {
+  // load products & favorites
+  useEffect(() => {
+    const load = () => {
       try {
-        const products = JSON.parse(
+        const storedProducts = JSON.parse(
           localStorage.getItem("syspharma_products") || "[]",
         );
-        setAllProducts(Array.isArray(products) ? products : []);
+        const mappedProducts = Array.isArray(storedProducts)
+          ? storedProducts.map((p) => ({
+              id: p.id,
+              nombre: p.nombre,
+              precio: p.precio,
+              imagen: p.imagen || "",
+              categoria: p.categoria || "Otros",
+              laboratorio: p.laboratorio || "Genérico",
+              stock: p.stock ?? p.existencia ?? 0,
+            }))
+          : [];
+        setProducts(mappedProducts);
       } catch {
-        setAllProducts([]);
+        setProducts([]);
+      }
+
+      try {
+        const fav = read(LS.FAVORITES) || [];
+        setFavorites(Array.isArray(fav) ? fav : []);
+      } catch {
+        setFavorites([]);
       }
     };
 
-    window.addEventListener("syspharma_products_updated", handleProductsUpdate);
-    return () => {
+    load();
+
+    const handleProductsUpdate = () => load();
+    window.addEventListener(`${LS.PRODUCTS}_updated`, handleProductsUpdate);
+    return () =>
       window.removeEventListener(
-        "syspharma_products_updated",
+        `${LS.PRODUCTS}_updated`,
         handleProductsUpdate,
       );
-    };
   }, []);
 
-  const toggleFavorite = (id) => {
-    const next = favorites.includes(id)
-      ? favorites.filter((f) => f !== id)
-      : [...favorites, id];
-    setFavorites(next);
-    localStorage.setItem("syspharma_favorites", JSON.stringify(next));
-    window.dispatchEvent(new Event("syspharma_favorites_updated"));
-  };
 
   const saveCartAndNotify = (id) => {
-    try {
-      // find product object in allProducts
-      const prod = allProducts.find((p) => String(p.id) === String(id)) || {};
-      cart.addToCart(prod);
-      try {
-        window.dispatchEvent(new Event("syspharma_cart_updated"));
-      } catch (e) {}
-    } catch (e) {
-      console.error("Error adding to cart", e);
-    }
-  };
+    const raw = read(LS.CART) || [];
+    const prods = products || [];
+    const prod = prods.find((p) => p.id === id || p.id === Number(id));
+    const stock = prod ? (prod.stock ?? 0) : 0;
 
-  const filterBySearchAndCategory = (productList) => {
-    return productList.filter((p) => {
-      const matchesCategory =
-        !selectedCategory || p.categoria === selectedCategory;
-      const matchesSearch =
-        !searchValue ||
-        p.nombre.toLowerCase().includes(searchValue.toLowerCase());
-      const matchesPrice = p.precio >= priceRange[0] && p.precio <= priceRange[1];
-      return matchesCategory && matchesSearch && matchesPrice;
+    const arr = (raw || []).map((it) =>
+      it && typeof it === "object" ? it : { id: it, cantidad: 1 },
+    );
+    const existing = arr.find((it) => it.id === id);
+    const currentQty = existing ? existing.cantidad : 0;
+    if (currentQty >= stock) {
+      setToast({ message: "Stock máximo alcanzado", type: "error", zIndex: 70 });
+      return;
+    }
+
+    if (existing) {
+      existing.cantidad = Math.min(stock, existing.cantidad + 1);
+      existing.precio =
+        Number(
+          prod
+            ? (prod.price ?? prod.precio ?? existing.precio)
+            : existing.precio,
+        ) || 0;
+    } else {
+      arr.push({
+        id,
+        cantidad: 1,
+        precio: Number(prod ? (prod.price ?? prod.precio ?? 0) : 0) || 0,
+      });
+    }
+
+    write(LS.CART, arr);
+    setToast({
+      message: "Producto añadido al carrito",
+      type: "success",
+      zIndex: 70,
     });
   };
 
-  // Filtros dinámicos basados en los switches del admin
-  // Ya no necesitamos estas variables porque se calculan inline en el render
+  const toggleFavorite = (id) => {
+    try {
+      const raw = read(LS.FAVORITES) || [];
+      const arr = Array.isArray(raw) ? raw : [];
+      const exists = arr.find((it) =>
+        it && typeof it === "object" ? it.id === id : it === id,
+      );
+      let next;
+      if (exists)
+        next = arr.filter((it) =>
+          it && typeof it === "object" ? it.id !== id : it !== id,
+        );
+      else next = [...arr, id];
+      write(LS.FAVORITES, next);
+    } catch {
+      write(LS.FAVORITES, [id]);
+    }
+  };
+
+  const categories = Array.from(new Set(products.map((p) => p.categoria))).filter(Boolean);
+
+  // choose featured products: highest stock, take up to 8
+  const featured = [...products]
+    .sort((a, b) => (b.stock || 0) - (a.stock || 0))
+    .slice(0, 8);
+
+  const filtered = products.filter((p) => {
+    const matchName =
+      search === "" ||
+      (p.nombre && p.nombre.toLowerCase().includes(search.toLowerCase()));
+    const matchCat = categoryFilter ? p.categoria === categoryFilter : true;
+    return matchName && matchCat;
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Catálogo</h1>
-        <p className="text-sm text-gray-500">Todos los productos</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* --- Hero */}
+      <div className="bg-white py-16 px-8 text-center">
+        <h2 className="text-3xl font-bold">
+          ¡Bienvenido{userName ? `, ${userName}` : ""}!
+        </h2>
+        <p className="text-gray-600 mt-2">
+          Explora nuestras ofertas y encuentra lo que necesitas
+        </p>
+        {/* search inside hero */}
+        <div className="mt-6 flex justify-center">
+          <div className="relative w-full max-w-xl">
+            <Search
+              size={20}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o marca..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Main Layout: Sidebar + Content */}
-      <div className="flex flex-1">
-        {/* Sidebar Filtros */}
-        <FilterSidebar
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          priceRange={priceRange}
-          onPriceChange={setPriceRange}
-        />
+      {/* --- Categories row */}
+      <div className="px-8 py-6">
+        <h3 className="text-xl font-semibold mb-4">Categorías</h3>
+        <div className="flex space-x-4 overflow-x-auto pb-2">
+          <button
+            onClick={() => setCategoryFilter("")}
+            className={`flex-none px-4 py-2 rounded-lg border text-sm ${
+              categoryFilter === "" ? "border-emerald-600 text-emerald-600" :
+              "border-gray-200 text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            Todas
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              className={`flex-none px-4 py-2 rounded-lg border text-sm ${
+                categoryFilter === cat
+                  ? "border-emerald-600 text-emerald-600"
+                  : "border-gray-200 text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* Main Content Area */}
-        <main className="flex-1 bg-gray-50">
-          <div className="px-8 py-8">
-            {/* Search Bar */}
-            <div className="mb-8">
-              <div className="relative">
-                <Search
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <input
-                  type="text"
-                  placeholder="Busca por nombre, laboratorio, marca..."
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-sm"
+      {/* --- Featured carousel */}
+      <div className="px-8 py-6">
+        <h3 className="text-xl font-semibold mb-4">Ofertas del Día</h3>
+        <div className="relative">
+          <div className="flex space-x-4 overflow-x-auto pb-4">
+            {featured.map((p) => (
+              <div key={p.id} className="flex-none w-60">
+                <ProductCardGrid
+                  product={p}
+                  isFav={favorites.includes(p.id)}
+                  onToggleFav={toggleFavorite}
+                  onAdd={saveCartAndNotify}
+                  disabled={(p.stock || 0) <= 0}
                 />
               </div>
-            </div>
-
-            {/* Todos los Productos */}
-            {(() => {
-              const filtered = filterBySearchAndCategory(allProducts);
-              return filtered.length > 0 ? (
-                <div className="mb-12">
-                  <div className="flex items-baseline justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      Todos los Productos
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      Mostrando {filtered.length} de {allProducts.length} productos
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filtered.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        isFav={favorites.includes(product.id)}
-                        onToggleFav={toggleFavorite}
-                        onAdd={saveCartAndNotify}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="mb-12 bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                  <p className="text-blue-800 text-sm">
-                    ℹ️ No hay productos que coincidan con los filtros. Agrega productos desde el administrador.
-                  </p>
-                </div>
-              );
-            })()}
+            ))}
           </div>
-        </main>
+        </div>
       </div>
+
+      {/* --- Product list (same as before) */}
+      <div className="px-8 py-6" ref={listRef}>
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-lg p-8 text-center border border-gray-100">
+            <p className="text-gray-500">No hay productos que coincidan</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filtered.map((p) => (
+              <ProductCardGrid
+                key={p.id}
+                product={p}
+                isFav={favorites.includes(p.id)}
+                onToggleFav={toggleFavorite}
+                onAdd={saveCartAndNotify}
+                disabled={(p.stock || 0) <= 0}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          zIndex={toast.zIndex}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

@@ -14,35 +14,13 @@ export const LandingPage = () => {
   const cart = useCart();
   // Productos dinámicos: se sincronizan con el storage principal `syspharma_products`
   const { items: products } = useCrud("syspharma_products", []);
-  const featuredProducts =
-    products && products.length > 0
-      ? products.slice(0, 4)
-      : [
-          {
-            id: 1,
-            nombre: "Paracetamol 500mg",
-            precio: 12000,
-            proveedor: "Tafirol",
-          },
-          {
-            id: 2,
-            nombre: "Ibupirac 400mg",
-            precio: 15000,
-            proveedor: "Actron",
-          },
-          {
-            id: 3,
-            nombre: "Vitamina C 100 cáps",
-            precio: 45000,
-            proveedor: "Natura",
-          },
-          {
-            id: 4,
-            nombre: "Suero Fisiológico 500ml",
-            precio: 8000,
-            proveedor: "Baxter",
-          },
-        ];
+  // Sólo mostrar productos que el administrador haya marcado como "destacado".
+  // Eliminamos los datos simulados que se usaban como fallback para evitar
+  // que aparezcan en producción; ahora el carrusel dependerá únicamente de
+  // los productos reales que existan y de su visibilidad.
+  const featuredProducts = (products || [])
+    .filter((p) => p.esDestacado === true)
+    .slice(0, 4);
 
   const testimonials = [
     { name: "Pfizer", logo: "💊" },
@@ -161,19 +139,20 @@ export const LandingPage = () => {
       </section>
 
       {/* CATÁLOGO PREVIEW */}
-      <section id="catalogo" className="py-20 px-4 md:px-6 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Productos Destacados
-            </h2>
-            <p className="text-lg text-gray-600">
-              Conoce algunos de nuestros artículos más vendidos
-            </p>
-          </div>
+      {featuredProducts.length > 0 && (
+        <section id="catalogo" className="py-20 px-4 md:px-6 bg-gray-50">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Productos Destacados
+              </h2>
+              <p className="text-lg text-gray-600">
+                Conoce algunos de nuestros artículos más vendidos
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProducts.map((product) => {
               const mapped = {
                 id: product.id,
                 name: product.nombre || product.name,
@@ -205,6 +184,7 @@ export const LandingPage = () => {
           </div>
         </div>
       </section>
+      )}
 
       {selectedProduct && (
         <ProductDetailModal
