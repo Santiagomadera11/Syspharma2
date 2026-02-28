@@ -681,7 +681,7 @@ const AppointmentFormModal = ({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-        <div className={`${headerBgColor} px-6 py-4 flex justify-between items-center`}>
+            className={`${headerBgColor} px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-2`}
           >
             {isSubmitting ? (
               <Loader2 size={16} className="animate-spin" />
