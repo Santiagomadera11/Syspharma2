@@ -10,17 +10,14 @@ import useCart from "../../shared/context/CartContext";
 import { toast } from "../../shared/utils/toast";
 
 export const LandingPage = () => {
+    // Servicios sincronizados con el storage principal `sys_services`
+    const { items: services } = useCrud("sys_services", []);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const cart = useCart();
-  // Productos dinámicos: se sincronizan con el storage principal `syspharma_products`
+  // Productos sincronizados con el storage principal `syspharma_products`
   const { items: products } = useCrud("syspharma_products", []);
-  // Sólo mostrar productos que el administrador haya marcado como "destacado".
-  // Eliminamos los datos simulados que se usaban como fallback para evitar
-  // que aparezcan en producción; ahora el carrusel dependerá únicamente de
-  // los productos reales que existan y de su visibilidad.
-  const featuredProducts = (products || [])
-    .filter((p) => p.esDestacado === true)
-    .slice(0, 4);
+  // Mostrar todos los productos disponibles
+  const allProducts = products || [];
 
   const testimonials = [
     { name: "Pfizer", logo: "💊" },
@@ -138,52 +135,80 @@ export const LandingPage = () => {
         </div>
       </section>
 
-      {/* CATÁLOGO PREVIEW */}
-      {featuredProducts.length > 0 && (
+      {/* CATÁLOGO COMPLETO */}
+      {allProducts.length > 0 && (
         <section id="catalogo" className="py-20 px-4 md:px-6 bg-gray-50">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Productos Destacados
+                Catálogo de Productos
               </h2>
               <p className="text-lg text-gray-600">
-                Conoce algunos de nuestros artículos más vendidos
+                Todos los productos disponibles
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredProducts.map((product) => {
-              const mapped = {
-                id: product.id,
-                name: product.nombre || product.name,
-                marca: product.proveedor || product.marca,
-                image: product.imagen || product.image || null,
-                price: Number(product.precio ?? product.price ?? 0),
-                stock: product.stock ?? product.existencia ?? 0,
-              };
-
-              const cart = useCart();
-              return (
-                <ProductCardGrid
-                  key={product.id}
-                  product={mapped}
-                  onOpenDetail={() => setSelectedProduct(product)}
-                  onAdd={() => {
-                    try {
-                      cart.addToCart(product);
-                      toast.success(`¡${product.nombre} agregado al carrito!`);
-                    } catch (e) {
-                      console.error(e);
-                      toast.error("Error al agregar al carrito");
-                    }
-                  }}
-                  onQuickBuy={() => setSelectedProduct(product)}
-                />
-              );
-            })}
+              {allProducts.map((product) => {
+                const mapped = {
+                  id: product.id,
+                  name: product.nombre || product.name,
+                  marca: product.proveedor || product.marca,
+                  image: product.imagen || product.image || null,
+                  price: Number(product.precio ?? product.price ?? 0),
+                  stock: product.stock ?? product.existencia ?? 0,
+                };
+                return (
+                  <ProductCardGrid
+                    key={product.id}
+                    product={mapped}
+                    onOpenDetail={() => setSelectedProduct(product)}
+                    onAdd={() => {
+                      try {
+                        cart.addToCart(product);
+                        toast.success(`¡${product.nombre} agregado al carrito!`);
+                      } catch (e) {
+                        console.error(e);
+                        toast.error("Error al agregar al carrito");
+                      }
+                    }}
+                    onQuickBuy={() => setSelectedProduct(product)}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* SERVICIOS COMPLETOS */}
+      {services.length > 0 && (
+        <section id="servicios" className="py-20 px-4 md:px-6 bg-white">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Servicios Disponibles
+              </h2>
+              <p className="text-lg text-gray-600">
+                Todos los servicios ofrecidos por SysPharma
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {services.map((service) => (
+                <div key={service.id} className="p-6 rounded-xl bg-gray-50 border border-gray-200 shadow-sm hover:shadow-lg transition-all">
+                  <h3 className="text-xl font-bold text-emerald-700 mb-2">{service.nombre}</h3>
+                  <p className="text-gray-700 mb-2">{service.descripcion}</p>
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-lg font-semibold text-gray-900">${service.precio}</span>
+                    <span className="text-sm text-gray-500">{service.categoria}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-400">Duración: {service.duracion} min</div>
+                  <div className="mt-2 text-xs text-gray-400">Estado: {service.estado}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {selectedProduct && (

@@ -273,7 +273,7 @@ export const UsersPage = () => {
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
         <div className="overflow-auto custom-scrollbar no-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-[#5D9C96] text-white text-xs uppercase tracking-wider sticky top-0 z-10">
+            <thead className="bg-primary-700 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
               <tr>
                 <th className="px-3 py-3 font-semibold">ID</th>
                 <th className="px-3 py-3 font-semibold">Usuario</th>

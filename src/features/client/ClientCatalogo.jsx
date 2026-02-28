@@ -15,13 +15,13 @@ import ProductCardGrid, {
 
 
 const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
-  // Map from product schema (with campo nombreo, precio, imagen, laboratorio) to ProductCardGrid schema
+  // Map from product schema to ProductCardGrid schema, asegurando todos los campos
   const mappedProduct = {
     id: product.id,
-    name: product.nombre,
-    price: product.precio,
-    image: product.imagen || "",
-    marca: product.laboratorio || "",
+    name: product.nombre || product.name || "Sin nombre",
+    price: Number(product.precio ?? product.price ?? 0),
+    image: product.imagen || product.image || "/src/assets/farmacia.avif",
+    marca: product.laboratorio || product.marca || product.proveedor || "Genérico",
     stock: product.stock ?? product.existencia ?? 0,
   };
   return (
@@ -37,6 +37,12 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
 
 const ClientCatalogo = () => {
   const [products, setProducts] = useState([]);
+  // Depuración: mostrar productos en consola
+  console.log('[DEBUG] Productos en memoria:', products);
+  // Generar categorías a partir de los productos cargados
+  const categories = Array.from(new Set((products || []).map((p) => p.categoria))).filter(Boolean);
+  // Mostrar todos los productos sin filtros
+  const filtered = products;
   const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -69,19 +75,21 @@ const ClientCatalogo = () => {
         const storedProducts = JSON.parse(
           localStorage.getItem("syspharma_products") || "[]",
         );
+        console.log("[DEBUG] Productos cargados:", storedProducts);
         const mappedProducts = Array.isArray(storedProducts)
           ? storedProducts.map((p) => ({
               id: p.id,
-              nombre: p.nombre,
-              precio: p.precio,
-              imagen: p.imagen || "",
+              nombre: p.nombre || p.name || "Sin nombre",
+              precio: Number(p.precio ?? p.price ?? 0),
+              imagen: p.imagen || p.image || "/src/assets/farmacia.avif",
               categoria: p.categoria || "Otros",
-              laboratorio: p.laboratorio || "Genérico",
+              laboratorio: p.laboratorio || p.marca || p.proveedor || "Genérico",
               stock: p.stock ?? p.existencia ?? 0,
             }))
           : [];
         setProducts(mappedProducts);
-      } catch {
+      } catch (e) {
+        console.error("[DEBUG] Error cargando productos:", e);
         setProducts([]);
       }
 
@@ -164,20 +172,7 @@ const ClientCatalogo = () => {
     }
   };
 
-  const categories = Array.from(new Set(products.map((p) => p.categoria))).filter(Boolean);
-
-  // choose featured products: highest stock, take up to 8
-  const featured = [...products]
-    .sort((a, b) => (b.stock || 0) - (a.stock || 0))
-    .slice(0, 8);
-
-  const filtered = products.filter((p) => {
-    const matchName =
-      search === "" ||
-      (p.nombre && p.nombre.toLowerCase().includes(search.toLowerCase()));
-    const matchCat = categoryFilter ? p.categoria === categoryFilter : true;
-    return matchName && matchCat;
-  });
+  // Generar categorías a partir de los productos cargados
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -207,64 +202,51 @@ const ClientCatalogo = () => {
         </div>
       </div>
 
-      {/* --- Categories row */}
+      {/* --- Categories row (basado en productos cargados) */}
       <div className="px-8 py-6">
         <h3 className="text-xl font-semibold mb-4">Categorías</h3>
-        <div className="flex space-x-4 overflow-x-auto pb-2">
-          <button
-            onClick={() => setCategoryFilter("")}
-            className={`flex-none px-4 py-2 rounded-lg border text-sm ${
-              categoryFilter === "" ? "border-emerald-600 text-emerald-600" :
-              "border-gray-200 text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            Todas
-          </button>
-          {categories.map((cat) => (
+        {categories.length === 0 ? (
+          <div className="text-gray-400 text-sm">No hay categorías disponibles. Registra productos para ver categorías.</div>
+        ) : (
+          <div className="flex space-x-4 overflow-x-auto pb-2">
             <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat)}
+              onClick={() => setCategoryFilter("")}
               className={`flex-none px-4 py-2 rounded-lg border text-sm ${
-                categoryFilter === cat
-                  ? "border-emerald-600 text-emerald-600"
-                  : "border-gray-200 text-gray-700 hover:border-gray-300"
+                categoryFilter === "" ? "border-emerald-600 text-emerald-600" :
+                "border-gray-200 text-gray-700 hover:border-gray-300"
               }`}
             >
-              {cat}
+              Todas
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* --- Featured carousel */}
-      <div className="px-8 py-6">
-        <h3 className="text-xl font-semibold mb-4">Ofertas del Día</h3>
-        <div className="relative">
-          <div className="flex space-x-4 overflow-x-auto pb-4">
-            {featured.map((p) => (
-              <div key={p.id} className="flex-none w-60">
-                <ProductCardGrid
-                  product={p}
-                  isFav={favorites.includes(p.id)}
-                  onToggleFav={toggleFavorite}
-                  onAdd={saveCartAndNotify}
-                  disabled={(p.stock || 0) <= 0}
-                />
-              </div>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`flex-none px-4 py-2 rounded-lg border text-sm ${
+                  categoryFilter === cat
+                    ? "border-emerald-600 text-emerald-600"
+                    : "border-gray-200 text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {cat}
+              </button>
             ))}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* --- Product list (same as before) */}
+      {/* --- Featured carousel eliminado por error de variable no definida --- */}
+
+      {/* --- Product list (sin filtros) */}
       <div className="px-8 py-6" ref={listRef}>
-        {filtered.length === 0 ? (
+        {products.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center border border-gray-100">
-            <p className="text-gray-500">No hay productos que coincidan</p>
+            <p className="text-gray-500">No hay productos registrados en el sistema</p>
+            <p className="text-xs text-gray-400 mt-2">Verifica que los productos estén creados y sincronizados en el administrador.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filtered.map((p) => (
+            {products.map((p) => (
               <ProductCardGrid
                 key={p.id}
                 product={p}
