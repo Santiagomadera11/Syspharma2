@@ -31,7 +31,11 @@ export const CartDrawer = () => {
     direccion: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState({ show: false, itemId: null, itemName: "" });
+  const [confirmDelete, setConfirmDelete] = useState({
+    show: false,
+    itemId: null,
+    itemName: "",
+  });
 
   if (!isCartOpen) return null;
 
@@ -229,7 +233,13 @@ export const CartDrawer = () => {
                         </button>
                       </div>
                       <button
-                        onClick={() => setConfirmDelete({ show: true, itemId: item.id, itemName: item.nombre })}
+                        onClick={() =>
+                          setConfirmDelete({
+                            show: true,
+                            itemId: item.id,
+                            itemName: item.nombre,
+                          })
+                        }
                         className="text-gray-400 hover:text-red-500"
                       >
                         <Trash2 size={16} />
@@ -291,15 +301,16 @@ export const CartDrawer = () => {
       {confirmDelete.show && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
-            
             {/* Header */}
             <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
               <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
                 <AlertCircle size={18} className="text-red-600" />
                 Eliminar del carrito
               </h3>
-              <button 
-                onClick={() => setConfirmDelete({ show: false, itemId: null, itemName: "" })}
+              <button
+                onClick={() =>
+                  setConfirmDelete({ show: false, itemId: null, itemName: "" })
+                }
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X size={18} />
@@ -309,7 +320,8 @@ export const CartDrawer = () => {
             {/* Body */}
             <div className="p-5">
               <p className="text-sm text-gray-700">
-                ¿Deseas eliminar <strong>{confirmDelete.itemName}</strong> del carrito?
+                ¿Deseas eliminar <strong>{confirmDelete.itemName}</strong> del
+                carrito?
               </p>
               <p className="text-xs text-gray-500 mt-2">
                 Esta acción no se puede deshacer.
@@ -318,13 +330,15 @@ export const CartDrawer = () => {
 
             {/* Footer */}
             <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
-              <button 
-                onClick={() => setConfirmDelete({ show: false, itemId: null, itemName: "" })}
+              <button
+                onClick={() =>
+                  setConfirmDelete({ show: false, itemId: null, itemName: "" })
+                }
                 className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={() => {
                   removeFromCart(confirmDelete.itemId, 1);
                   setConfirmDelete({ show: false, itemId: null, itemName: "" });

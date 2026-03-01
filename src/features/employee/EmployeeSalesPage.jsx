@@ -381,7 +381,7 @@ export const EmployeeSalesPage = () => {
       <CloseShiftModal
         isOpen={showCloseShiftModal}
         onShiftClosed={handleShiftClosed}
-        onClose={() => setShowCloseShiftModal(false)}
+        onCancel={() => setShowCloseShiftModal(false)}
         user={user}
       />
 

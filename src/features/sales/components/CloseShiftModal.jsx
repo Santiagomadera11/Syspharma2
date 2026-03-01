@@ -12,8 +12,23 @@ import { turnService } from "../services/turnService";
  * Modal de Liquidación de Turno
  * Calcula ventas, gastos y diferencia
  * Guarda el cierre en historial
+ * @param isOpen - Modal visible?
+ * @param onShiftClosed - Callback cuando se cierra el turno
+ * @param onCancel - Callback para cerrar sin guardar
+ * @param user - Usuario actual (empleado)
+ * @param userData - Datos del empleado (para cierre forzado por admin)
+ * @param turnData - Datos del turno (para cierre forzado por admin)
+ * @param isAdminForcedClose - ¿Es un cierre forzado por admin?
  */
-export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
+export const CloseShiftModal = ({
+  isOpen,
+  onShiftClosed,
+  onCancel,
+  user,
+  userData,
+  turnData,
+  isAdminForcedClose = false,
+}) => {
   const [efectivoFisico, setEfectivoFisico] = useState("");
   const [notas, setNotas] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,13 +45,31 @@ export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
   // Al abrir el modal, calcula los montos
   useEffect(() => {
     if (isOpen) {
-      const calculatedBalance = turnService.calculateExpectedBalance();
-      setBalance(calculatedBalance);
+      if (isAdminForcedClose && turnData) {
+        // Cierre forzado: usar datos del turno que se está cerrando
+        setBalance({
+          montoBase: turnData.montoBase || 0,
+          totalVentas: turnData.totalVentas || 0,
+          totalGastos: turnData.totalGastos || 0,
+          saldoEsperado:
+            (turnData.montoBase || 0) +
+            (turnData.totalVentas || 0) -
+            (turnData.totalGastos || 0),
+        });
+        // Precargar nota de admin
+        setNotas(
+          "Cerrado por el Administrador",
+        );
+      } else {
+        // Cierre normal: calcular desde el turno activo
+        const calculatedBalance = turnService.calculateExpectedBalance();
+        setBalance(calculatedBalance);
+        setNotas("");
+      }
       setEfectivoFisico("");
-      setNotas("");
       setError("");
     }
-  }, [isOpen]);
+  }, [isOpen, isAdminForcedClose, turnData]);
 
   const handleCloseTurn = async (e) => {
     e.preventDefault();
@@ -60,13 +93,22 @@ export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
       // Calcula diferencia
       const diferencia = amount - balance.saldoEsperado;
 
+      // Preparar notas con auditoría si es cierre forzado
+      let finalNotas = notas || "";
+      if (isAdminForcedClose) {
+        // Asegurar que lleve la nota de admin
+        if (!finalNotas.includes("Cerrado por el Administrador")) {
+          finalNotas = "Cerrado por el Administrador";
+        }
+      }
+
       // Cierra el turno y guarda en historial
       const closedTurn = turnService.closeTurn({
         montoFinal: amount,
         totalVentas: balance.totalVentas,
         totalGastos: balance.totalGastos,
         diferencia: diferencia,
-        notas: notas,
+        notas: finalNotas,
       });
 
       // Reset form
@@ -105,14 +147,27 @@ export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
           {/* Header with Close Button */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="bg-red-100 p-3 rounded-lg">
-                <DollarSign className="text-red-600" size={24} />
+              <div
+                className={`${
+                  isAdminForcedClose ? "bg-orange-100" : "bg-red-100"
+                } p-3 rounded-lg`}
+              >
+                <DollarSign
+                  className={`${
+                    isAdminForcedClose ? "text-orange-600" : "text-red-600"
+                  }`}
+                  size={24}
+                />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  Cerrar Turno
+                  {isAdminForcedClose ? "Cierre Forzado" : "Cerrar Turno"}
                 </h2>
-                <p className="text-xs text-gray-500">Liquidación de caja</p>
+                <p className="text-xs text-gray-500">
+                  {isAdminForcedClose
+                    ? "Cierre por Administrador"
+                    : "Liquidación de caja"}
+                </p>
               </div>
             </div>
             <button
@@ -120,7 +175,7 @@ export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
                 setEfectivoFisico("");
                 setNotas("");
                 setError("");
-                if (onClose) onClose();
+                if (onCancel) onCancel();
               }}
               className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
               title="Cerrar modal"
@@ -130,10 +185,16 @@ export const CloseShiftModal = ({ isOpen, onShiftClosed, onClose, user }) => {
           </div>
 
           {/* Información del usuario */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-100">
-            <p className="text-xs text-gray-600 font-medium mb-1">Usuario</p>
+          <div
+            className={`${
+              isAdminForcedClose ? "bg-orange-50 border-orange-200" : "bg-gray-50"
+            } p-4 rounded-lg mb-6 border border-gray-100`}
+          >
+            <p className="text-xs text-gray-600 font-medium mb-1">
+              {isAdminForcedClose ? "Cerrando caja de" : "Usuario"}
+            </p>
             <p className="text-sm font-bold text-gray-800">
-              {user?.nombre || "Usuario"}
+              {userData?.userName || user?.nombre || "Usuario"}
             </p>
             <p className="text-xs text-gray-500">
               Hora: {new Date().toLocaleTimeString()}

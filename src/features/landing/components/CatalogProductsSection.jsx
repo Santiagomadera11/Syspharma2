@@ -28,7 +28,7 @@ export const CatalogProductsSection = () => {
   useEffect(() => {
     cargarDatos();
     window.addEventListener("syspharma_products_updated", cargarDatos);
-    
+
     return () => {
       window.removeEventListener("syspharma_products_updated", cargarDatos);
     };
@@ -38,31 +38,30 @@ export const CatalogProductsSection = () => {
     try {
       // Obtener productos del localStorage
       const products = JSON.parse(
-        localStorage.getItem("syspharma_products") || "[]"
+        localStorage.getItem("syspharma_products") || "[]",
       );
-      
+
       console.log("📦 Datos RAW de localStorage:", products);
-      
+
       // Filtrar solo productos activos (estado === true)
       const activeProducts = products.filter((p) => p.estado === true);
-      
+
       console.log("✅ Productos activos:", activeProducts.length);
       if (activeProducts.length > 0) {
         console.log("📋 Primer producto:", activeProducts[0]);
       }
-      
+
       // Guardar en estado original
       setProductosOriginales(activeProducts);
-      
+
       // Extraer categorías únicas de los productos activos
       const uniqueCategories = [
         ...new Set(activeProducts.map((p) => p.categoria).filter(Boolean)),
       ].sort();
-      
+
       setCategorias(uniqueCategories);
-      
+
       console.log("📂 Categorías encontradas:", uniqueCategories);
-      
     } catch (error) {
       console.error("❌ Error loading products:", error);
       setProductosOriginales([]);
@@ -72,7 +71,7 @@ export const CatalogProductsSection = () => {
     // Cargar favoritos
     try {
       const fav = JSON.parse(
-        localStorage.getItem("syspharma_favorites") || "[]"
+        localStorage.getItem("syspharma_favorites") || "[]",
       );
       setFavorites(Array.isArray(fav) ? fav : []);
     } catch {
@@ -116,8 +115,12 @@ export const CatalogProductsSection = () => {
   // Función para aplicar el filtro de precio - convierte números y valida
   const applyPriceFilter = () => {
     // Quitar $ y espacios si existen y convertir a números
-    const minStr = minPriceInput ? String(minPriceInput).replace(/[$\s,]/g, "") : "0";
-    const maxStr = maxPriceInput ? String(maxPriceInput).replace(/[$\s,]/g, "") : "500000";
+    const minStr = minPriceInput
+      ? String(minPriceInput).replace(/[$\s,]/g, "")
+      : "0";
+    const maxStr = maxPriceInput
+      ? String(maxPriceInput).replace(/[$\s,]/g, "")
+      : "500000";
 
     const min = parseInt(minStr) || 0;
     const max = parseInt(maxStr) || 500000;
@@ -195,7 +198,9 @@ export const CatalogProductsSection = () => {
 
             {/* Laboratorio/Marca */}
             {product.laboratorio && (
-              <p className="text-xs text-gray-500 mt-1">{product.laboratorio}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {product.laboratorio}
+              </p>
             )}
 
             {/* Stock Status */}
@@ -393,8 +398,15 @@ export const CatalogProductsSection = () => {
           {filteredProducts.length > 0 && (
             <div className="mb-6">
               <p className="text-sm text-gray-600">
-                Mostrando <span className="font-semibold text-gray-900">{filteredProducts.length}</span> de{" "}
-                <span className="font-semibold text-gray-900">{productosOriginales.length}</span> productos
+                Mostrando{" "}
+                <span className="font-semibold text-gray-900">
+                  {filteredProducts.length}
+                </span>{" "}
+                de{" "}
+                <span className="font-semibold text-gray-900">
+                  {productosOriginales.length}
+                </span>{" "}
+                productos
               </p>
             </div>
           )}

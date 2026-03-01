@@ -22,8 +22,8 @@ const ProtectedRoute = ({ children, requiredRole, requiredPerm }) => {
       const defaultPath = {
         Administrador: "/admin/dashboard",
         Empleado: "/employee/inicio",
-        Cliente: "/client/catalogo",
-      }[user.rol] || "/";
+        Cliente: "/client/inicio",
+      }[user.rol] || "/"
       return <Navigate to={defaultPath} replace />;
     }
   }

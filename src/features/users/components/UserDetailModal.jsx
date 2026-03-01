@@ -65,16 +65,13 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-full sm:max-w-md md:max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
-        
         {/* Hero Section - Cabecera de Perfil */}
         <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 pb-8 pt-4 px-6 text-center">
           {/* Badge de Estado en la esquina superior izquierda */}
           <div className="absolute top-4 left-4">
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                isActivo
-                  ? "bg-green-500 text-white"
-                  : "bg-red-500 text-white"
+                isActivo ? "bg-green-500 text-white" : "bg-red-500 text-white"
               }`}
             >
               {isActivo ? "Activo" : "Inactivo"}
@@ -102,14 +99,15 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
 
           {/* Nombre y Email */}
           <div className="mt-2">
-            <h2 className="text-xl font-bold text-gray-900">{display.nombre}</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {display.nombre}
+            </h2>
             <p className="text-xs text-gray-600 mt-1">{display.email}</p>
           </div>
         </div>
 
         {/* Contenido Principal */}
         <div className="px-6 py-4 space-y-4">
-          
           {/* Sección: Identificación */}
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
@@ -143,7 +141,8 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
                 </div>
               ) : (
                 <p className="text-gray-900 font-semibold text-base">
-                  {display.tipoDocumento || "--"} - {display.documento || "No registrado"}
+                  {display.tipoDocumento || "--"} -{" "}
+                  {display.documento || "No registrado"}
                 </p>
               )}
             </div>
@@ -194,7 +193,7 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
             ) : (
               <span
                 className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${getRolBadgeColor(
-                  display.rol
+                  display.rol,
                 )}`}
               >
                 {display.rol || "No asignado"}
@@ -204,7 +203,9 @@ export const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
         </div>
 
         {/* Footer */}
-        <div className={`flex justify-end gap-2 p-4 border-t ${editing ? "bg-gray-50" : ""}`}>
+        <div
+          className={`flex justify-end gap-2 p-4 border-t ${editing ? "bg-gray-50" : ""}`}
+        >
           {editing && (
             <>
               <button

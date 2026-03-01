@@ -14,7 +14,7 @@ export const FilterSidebar = ({
     // Cargar categorías del localStorage
     try {
       const products = JSON.parse(
-        localStorage.getItem("syspharma_products") || "[]"
+        localStorage.getItem("syspharma_products") || "[]",
       );
       const uniqueCategories = [
         ...new Set(products.map((p) => p.categoria).filter(Boolean)),

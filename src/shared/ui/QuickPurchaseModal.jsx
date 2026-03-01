@@ -141,7 +141,6 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        
         {/* Header */}
         <div className="sticky top-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-50">
           <h2 className="text-lg font-bold text-gray-900">Comprar Ahora</h2>
@@ -155,7 +154,6 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
 
         {/* Content */}
         <form onSubmit={handleFinalizeOrder} className="p-6 space-y-6">
-          
           {/* Resumen del Producto */}
           <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
             <div className="flex gap-4">
@@ -167,7 +165,9 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
                 />
               )}
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">{product.nombre}</h3>
+                <h3 className="font-semibold text-gray-900">
+                  {product.nombre}
+                </h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {product.categoria && `Categoría: ${product.categoria}`}
                 </p>
@@ -218,7 +218,6 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
           <div className="border-t pt-4">
             <h3 className="font-semibold text-gray-900 mb-4">Datos de Envío</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
               <div>
                 <label className="text-sm font-semibold text-gray-700 block mb-2">
                   Nombre Completo
@@ -281,8 +280,12 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
           <div className="border-t pt-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Subtotal ({quantity} x ${precio.toLocaleString()})</span>
-                <span className="font-semibold text-gray-900">${total.toLocaleString()}</span>
+                <span className="text-gray-600">
+                  Subtotal ({quantity} x ${precio.toLocaleString()})
+                </span>
+                <span className="font-semibold text-gray-900">
+                  ${total.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between text-sm text-gray-600">
                 <span>Impuestos</span>
@@ -290,7 +293,9 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
               </div>
               <div className="border-t pt-2 flex justify-between">
                 <span className="font-bold text-gray-900">Total a pagar</span>
-                <span className="text-2xl font-bold text-blue-600">${total.toLocaleString()}</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  ${total.toLocaleString()}
+                </span>
               </div>
             </div>
           </div>

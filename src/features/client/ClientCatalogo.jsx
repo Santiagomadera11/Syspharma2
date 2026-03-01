@@ -2,17 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Heart, Search } from "lucide-react";
 import { LS, read, write } from "../../shared/services/lsService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
-import ProductCardGrid, {
-  ProductRowList,
-} from "./components/ProductCard";
-
-
-
-
-
-
-
-
+import ProductCardGrid, { ProductRowList } from "./components/ProductCard";
 
 const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
   // Map from product schema to ProductCardGrid schema, asegurando todos los campos
@@ -21,7 +11,8 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
     name: product.nombre || product.name || "Sin nombre",
     price: Number(product.precio ?? product.price ?? 0),
     image: product.imagen || product.image || "/src/assets/farmacia.avif",
-    marca: product.laboratorio || product.marca || product.proveedor || "Genérico",
+    marca:
+      product.laboratorio || product.marca || product.proveedor || "Genérico",
     stock: product.stock ?? product.existencia ?? 0,
   };
   return (
@@ -38,9 +29,11 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
 const ClientCatalogo = () => {
   const [products, setProducts] = useState([]);
   // Depuración: mostrar productos en consola
-  console.log('[DEBUG] Productos en memoria:', products);
+  console.log("[DEBUG] Productos en memoria:", products);
   // Generar categorías a partir de los productos cargados
-  const categories = Array.from(new Set((products || []).map((p) => p.categoria))).filter(Boolean);
+  const categories = Array.from(
+    new Set((products || []).map((p) => p.categoria)),
+  ).filter(Boolean);
   // Mostrar todos los productos sin filtros
   const filtered = products;
   const [favorites, setFavorites] = useState([]);
@@ -83,7 +76,8 @@ const ClientCatalogo = () => {
               precio: Number(p.precio ?? p.price ?? 0),
               imagen: p.imagen || p.image || "/src/assets/farmacia.avif",
               categoria: p.categoria || "Otros",
-              laboratorio: p.laboratorio || p.marca || p.proveedor || "Genérico",
+              laboratorio:
+                p.laboratorio || p.marca || p.proveedor || "Genérico",
               stock: p.stock ?? p.existencia ?? 0,
             }))
           : [];
@@ -112,7 +106,6 @@ const ClientCatalogo = () => {
       );
   }, []);
 
-
   const saveCartAndNotify = (id) => {
     const raw = read(LS.CART) || [];
     const prods = products || [];
@@ -125,7 +118,11 @@ const ClientCatalogo = () => {
     const existing = arr.find((it) => it.id === id);
     const currentQty = existing ? existing.cantidad : 0;
     if (currentQty >= stock) {
-      setToast({ message: "Stock máximo alcanzado", type: "error", zIndex: 70 });
+      setToast({
+        message: "Stock máximo alcanzado",
+        type: "error",
+        zIndex: 70,
+      });
       return;
     }
 
@@ -206,14 +203,18 @@ const ClientCatalogo = () => {
       <div className="px-8 py-6">
         <h3 className="text-xl font-semibold mb-4">Categorías</h3>
         {categories.length === 0 ? (
-          <div className="text-gray-400 text-sm">No hay categorías disponibles. Registra productos para ver categorías.</div>
+          <div className="text-gray-400 text-sm">
+            No hay categorías disponibles. Registra productos para ver
+            categorías.
+          </div>
         ) : (
           <div className="flex space-x-4 overflow-x-auto pb-2">
             <button
               onClick={() => setCategoryFilter("")}
               className={`flex-none px-4 py-2 rounded-lg border text-sm ${
-                categoryFilter === "" ? "border-emerald-600 text-emerald-600" :
-                "border-gray-200 text-gray-700 hover:border-gray-300"
+                categoryFilter === ""
+                  ? "border-emerald-600 text-emerald-600"
+                  : "border-gray-200 text-gray-700 hover:border-gray-300"
               }`}
             >
               Todas
@@ -241,8 +242,13 @@ const ClientCatalogo = () => {
       <div className="px-8 py-6" ref={listRef}>
         {products.length === 0 ? (
           <div className="bg-white rounded-lg p-8 text-center border border-gray-100">
-            <p className="text-gray-500">No hay productos registrados en el sistema</p>
-            <p className="text-xs text-gray-400 mt-2">Verifica que los productos estén creados y sincronizados en el administrador.</p>
+            <p className="text-gray-500">
+              No hay productos registrados en el sistema
+            </p>
+            <p className="text-xs text-gray-400 mt-2">
+              Verifica que los productos estén creados y sincronizados en el
+              administrador.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

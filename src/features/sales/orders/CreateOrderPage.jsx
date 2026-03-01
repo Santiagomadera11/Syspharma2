@@ -1,5 +1,13 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Plus, Trash2, ArrowLeft, Package, AlertCircle, X } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  Package,
+  AlertCircle,
+  X,
+} from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { productService } from "../../inventory/products/services/productService";
 import { inventoryService } from "../../inventory/services/inventoryService";
@@ -17,15 +25,19 @@ export const CreateOrderPage = () => {
     location.pathname === "/admin/ventas/nueva" ||
     location.pathname === "/employee/ventas/nueva";
   const isEmployee = location.pathname.startsWith("/employee");
-  
+
   // Obtener el rol actual para cambiar colores
-  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const currentUser = JSON.parse(
+    localStorage.getItem("syspharma_user") || "{}",
+  );
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployeeRole = currentUserRole === "Empleado";
-  
+
   // Colores dinámicos basados en el rol
-  const buttonBgColor = isEmployeeRole ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700";
-  
+  const buttonBgColor = isEmployeeRole
+    ? "bg-blue-600 hover:bg-blue-700"
+    : "bg-emerald-600 hover:bg-emerald-700";
+
   const [products, setProducts] = useState(productService.getAll());
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -291,13 +303,14 @@ export const CreateOrderPage = () => {
     }
 
     // 🔴 VALIDACIÓN DE STOCK: Verificar disponibilidad ANTES de procesar
-    const itemsParaValidar = cart.map(item => ({
+    const itemsParaValidar = cart.map((item) => ({
       productId: item.id,
-      cantidad: item.cantidad
+      cantidad: item.cantidad,
     }));
-    
-    const validationResult = inventoryService.validateStockAvailable(itemsParaValidar);
-    
+
+    const validationResult =
+      inventoryService.validateStockAvailable(itemsParaValidar);
+
     if (!validationResult.isValid) {
       setStockIssues(validationResult.unavailable);
       setIsStockModalOpen(true);
@@ -352,22 +365,29 @@ export const CreateOrderPage = () => {
         userId: isEmployee ? currentUser?.id : null,
         userName: isEmployee ? currentUser?.nombre : null,
       });
-      
+
       if (isSale && !isEmployee) {
         try {
           salesService.create({
             cliente: clientInfo.nombre,
             documento: clientInfo.documento,
-            productos: cart.map((p) => ({ nombre: p.nombre, cantidad: p.cantidad, precio: p.precio, id: p.id })),
+            productos: cart.map((p) => ({
+              nombre: p.nombre,
+              cantidad: p.cantidad,
+              precio: p.precio,
+              id: p.id,
+            })),
             cantidadProductos: cart.reduce((sum, p) => sum + p.cantidad, 0),
             total: cartTotal,
             metodoPago: clientInfo.metodoPago,
-            notas: `Venta registrada desde ${isEmployee ? 'Empleado' : 'Admin'} | ${clientInfo.telefono || ''}`,
-            estado: 'completada',
+            notas: `Venta registrada desde ${isEmployee ? "Empleado" : "Admin"} | ${clientInfo.telefono || ""}`,
+            estado: "completada",
           });
-          try { window.dispatchEvent(new Event('sales:changed')); } catch(e){}
+          try {
+            window.dispatchEvent(new Event("sales:changed"));
+          } catch (e) {}
         } catch (e) {
-          console.warn('No se pudo registrar la venta en salesService:', e);
+          console.warn("No se pudo registrar la venta en salesService:", e);
         }
       }
     }
@@ -375,8 +395,9 @@ export const CreateOrderPage = () => {
     // 🔴 DESCUENTO DE STOCK: SOLO PARA VENTAS (isSale), NO PARA PEDIDOS
     if (isSale) {
       // Para ventas: descontar stock inmediatamente usando FEFO
-      const descuentoResult = inventoryService.deductMultipleProductsFEFO(itemsParaValidar);
-      
+      const descuentoResult =
+        inventoryService.deductMultipleProductsFEFO(itemsParaValidar);
+
       if (!descuentoResult.success) {
         setNotification({
           message: "Error al descontar stock: " + descuentoResult.message,
@@ -705,15 +726,14 @@ export const CreateOrderPage = () => {
       {isStockModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-            
             {/* Header Rojo */}
             <div className="bg-red-50 px-6 py-4 border-b border-red-200 flex justify-between items-center">
               <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
                 <AlertCircle size={20} className="text-red-600" />
                 Stock Insuficiente
               </h3>
-              <button 
-                onClick={() => setIsStockModalOpen(false)} 
+              <button
+                onClick={() => setIsStockModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700 transition-colors"
               >
                 <X size={20} />
@@ -723,15 +743,25 @@ export const CreateOrderPage = () => {
             {/* Body */}
             <div className="p-6 flex-1 overflow-y-auto">
               <p className="text-gray-700 text-sm font-medium mb-4">
-                No hay suficiente stock disponible para completar esta operación:
+                No hay suficiente stock disponible para completar esta
+                operación:
               </p>
               <div className="space-y-2">
                 {stockIssues.map((issue, idx) => (
-                  <div key={idx} className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm font-bold text-gray-800">{issue.nombre}</p>
+                  <div
+                    key={idx}
+                    className="p-3 bg-red-50 border border-red-200 rounded-lg"
+                  >
+                    <p className="text-sm font-bold text-gray-800">
+                      {issue.nombre}
+                    </p>
                     <p className="text-xs text-gray-600 mt-1">
-                      Requerido: <span className="font-bold">{issue.requerido}</span> | 
-                      Disponible: <span className="font-bold text-red-600">{issue.disponible}</span>
+                      Requerido:{" "}
+                      <span className="font-bold">{issue.requerido}</span> |
+                      Disponible:{" "}
+                      <span className="font-bold text-red-600">
+                        {issue.disponible}
+                      </span>
                     </p>
                   </div>
                 ))}
@@ -740,14 +770,13 @@ export const CreateOrderPage = () => {
 
             {/* Footer Rojo */}
             <div className="bg-red-50 border-t border-red-200 p-4">
-              <button 
+              <button
                 onClick={() => setIsStockModalOpen(false)}
                 className="w-full px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded transition-colors shadow-sm"
               >
                 Entendido
               </button>
             </div>
-
           </div>
         </div>
       )}
