@@ -98,10 +98,12 @@ const EmployeeLayout = () => {
                 ¿Estás seguro de que quieres cerrar sesión?
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Tu turno permanecerá abierto. Al volver a entrar, podrás continuar donde lo dejaste.
+                Tu turno permanecerá abierto. Al volver a entrar, podrás
+                continuar donde lo dejaste.
               </p>
               <p className="text-xs text-amber-600 mt-2 font-medium">
-                💡 Para cerrar la caja, usa el botón de 'Cerrar Caja' en tu panel.
+                💡 Para cerrar la caja, usa el botón de 'Cerrar Caja' en tu
+                panel.
               </p>
             </div>
 

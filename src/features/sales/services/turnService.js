@@ -22,7 +22,9 @@ export const turnService = {
     if (existingTurn) {
       // Distancia si es del mismo usuario o de otro (detalle de seguridad)
       if (existingTurn.userId === userData.userId) {
-        throw new Error("Ya tienes un turno abierto. No puedes abrir otro hasta cerrarlo.");
+        throw new Error(
+          "Ya tienes un turno abierto. No puedes abrir otro hasta cerrarlo.",
+        );
       } else {
         throw new Error(
           `Hay un turno abierto por ${existingTurn.userName}. Debes esperar a que cierre o llamar al Administrador.`,
@@ -83,6 +85,19 @@ export const turnService = {
     const userSales = turnService.getUserSales(turn.userId);
     const userExpenses = turnService.getUserExpenses(turn.userId);
 
+    // Contar servicios (ventas con categoría 'servicio')
+    const cantidadServicios = userSales.filter(
+      (s) => s.categoria === "servicio",
+    ).length;
+
+    // Calcular resumen para dashboard
+    const resumen = {
+      ventas: closureData.totalVentas || 0,
+      servicios: cantidadServicios,
+      erroresCaja:
+        closureData.diferencia !== 0 ? Math.abs(closureData.diferencia) : 0,
+    };
+
     const closedTurn = {
       ...turn,
       estado: "cerrado",
@@ -94,6 +109,7 @@ export const turnService = {
       userExpensesCount: userExpenses.length,
       diferencia: closureData.diferencia || 0,
       notas: closureData.notas || "",
+      resumen: resumen, // Nuevo: resumen para dashboard
     };
 
     // Guardar en historial
@@ -297,6 +313,106 @@ export const turnService = {
     expenses.push(newExpense);
     localStorage.setItem("syspharma_expenses", JSON.stringify(expenses));
     return newExpense;
+  },
+
+  /**
+   * Obtiene todas las citas/servicios registrados
+   * @returns {Array}
+   */
+  getAllServices: () => {
+    const services = JSON.parse(
+      localStorage.getItem("syspharma_services") || "[]",
+    );
+    return services;
+  },
+
+  /**
+   * Registra un servicio médico (cita completada)
+   * @param {Object} serviceData - { medicoId, nombreMedico, paciente, monto, estado, fecha, etc }
+   * @returns {Object}
+   */
+  recordMedicalService: (serviceData) => {
+    const services = turnService.getAllServices();
+    const newService = {
+      ...serviceData,
+      serviceId: Date.now(),
+      fecha: new Date().toISOString(),
+      tipo: "servicio_medico",
+    };
+    services.push(newService);
+    localStorage.setItem("syspharma_services", JSON.stringify(services));
+    return newService;
+  },
+
+  /**
+   * Obtiene servicios por médico
+   * @param {string} medicoId
+   * @returns {Array}
+   */
+  getServicesByMedico: (medicoId) => {
+    const services = turnService.getAllServices();
+    return services.filter((s) => s.medicoId === medicoId);
+  },
+
+  /**
+   * Obtiene resumen de empleados para dashboard de rendimiento
+   * Summa ventas y servicios de cada empleado
+   * @returns {Array} Array de empleados con resumen
+   */
+  getEmployeesSummary: () => {
+    const history = turnService.getTurnsHistory();
+    const employeesMap = new Map();
+
+    history.forEach((turn) => {
+      if (!employeesMap.has(turn.userId)) {
+        employeesMap.set(turn.userId, {
+          userId: turn.userId,
+          userName: turn.userName,
+          totalVentas: 0,
+          totalServicios: 0,
+          totalTurnos: 0,
+          turnos: [],
+        });
+      }
+
+      const employee = employeesMap.get(turn.userId);
+      employee.totalVentas += turn.resumen?.ventas || turn.totalVentas || 0;
+      employee.totalServicios += turn.resumen?.servicios || 0;
+      employee.totalTurnos += 1;
+      employee.turnos.push(turn);
+    });
+
+    return Array.from(employeesMap.values());
+  },
+
+  /**
+   * Obtiene resumen de médicos para dashboard
+   * @returns {Array} Array de médicos con cantidad de servicios e ingresos
+   */
+  getMedicosSummary: () => {
+    const services = turnService.getAllServices();
+    const medicosMap = new Map();
+
+    services.forEach((service) => {
+      if (!service.medicoId) return; // Saltar si no tiene medicoId
+
+      if (!medicosMap.has(service.medicoId)) {
+        medicosMap.set(service.medicoId, {
+          medicoId: service.medicoId,
+          nombreMedico: service.nombreMedico || "Sin nombre",
+          totalServicios: 0,
+          totalIngresos: 0,
+        });
+      }
+
+      const medico = medicosMap.get(service.medicoId);
+      medico.totalServicios += 1;
+      medico.totalIngresos += service.monto || service.costo || 0;
+    });
+
+    return Array.from(medicosMap.values()).sort(
+      (a, b) => b.totalServicios - a.totalServicios,
+    );
   },
 
   /**

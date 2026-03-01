@@ -1,118 +1,100 @@
 import React, { useState, useMemo } from "react";
 import {
-  User,
-  TrendingUp,
-  Award,
-  Target,
   Calendar,
-  Download,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Package,
   Eye,
-  Star,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  Lock,
+  Award,
+  Stethoscope,
+  AlertCircle,
 } from "lucide-react";
-import { ordersService } from "../../sales/orders/services/ordersService";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { turnService } from "../../sales/services/turnService";
+import { CloseShiftModal } from "../../sales/components/CloseShiftModal";
+
+const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444"];
 
 export const SalesPerformanceReportsPage = () => {
-  const [timeRange, setTimeRange] = useState("all");
-  const [sortBy, setSortBy] = useState("revenue");
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [activeTab, setActiveTab] = useState("empleados");
+  const [selectedShift, setSelectedShift] = useState(null);
+  const [forceCloseShift, setForceCloseShift] = useState(null);
 
-  const orders = useMemo(() => ordersService.getAll(), []);
+  const currentUser = JSON.parse(
+    localStorage.getItem("syspharma_user") || '{"rol": ""}',
+  );
+  const isAdmin = currentUser?.rol === "Administrador";
 
-  // Filtrar por rango de tiempo
-  const filteredOrders = useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+  // ============ DATOS DE EMPLEADOS ============
+  const employeesSummary = useMemo(() => {
+    return turnService.getEmployeesSummary();
+  }, []);
 
-    return orders.filter((order) => {
-      if (order.origin !== "empleado") return false;
-
-      const orderDate = new Date(order.fecha);
-
-      if (timeRange === "week") return orderDate >= startOfWeek;
-      if (timeRange === "month") return orderDate >= startOfMonth;
-      return true;
-    });
-  }, [orders, timeRange]);
-
-  // Agrupar por empleado
-  const employeeStats = useMemo(() => {
-    const stats = {};
-
-    filteredOrders.forEach((order) => {
-      const name = order.userName || "Desconocido";
-      const userId = order.userId;
-
-      if (!stats[userId]) {
-        stats[userId] = {
-          userId,
-          name,
-          totalOrders: 0,
-          totalRevenue: 0,
-          totalProductos: 0,
-          totalServicios: 0,
-          averageOrderValue: 0,
-          orders: [],
-        };
-      }
-
-      stats[userId].totalOrders++;
-      stats[userId].totalRevenue += order.total || 0;
-      stats[userId].orders.push(order);
-
-      // Contar productos
-      if (order.productos) {
-        stats[userId].totalProductos += order.productos.length;
-      }
-      if (order.servicios) {
-        stats[userId].totalServicios += order.servicios.length;
-      }
-    });
-
-    // Calcular promedio
-    Object.keys(stats).forEach((key) => {
-      if (stats[key].totalOrders > 0) {
-        stats[key].averageOrderValue =
-          stats[key].totalRevenue / stats[key].totalOrders;
-      }
-    });
-
-    // Convertir a array y ordenar
-    let sorted = Object.values(stats);
-
-    if (sortBy === "revenue") {
-      sorted.sort((a, b) => b.totalRevenue - a.totalRevenue);
-    } else if (sortBy === "orders") {
-      sorted.sort((a, b) => b.totalOrders - a.totalOrders);
-    } else if (sortBy === "average") {
-      sorted.sort((a, b) => b.averageOrderValue - a.averageOrderValue);
-    }
-
-    return sorted;
-  }, [filteredOrders, sortBy]);
-
-  // Estadísticas generales
-  const generalStats = useMemo(() => {
-    const totalRevenue = filteredOrders.reduce(
-      (sum, o) => sum + (o.total || 0),
-      0,
+  // KPI: Empleado Estrella (más ventas)
+  const topSeller = useMemo(() => {
+    if (employeesSummary.length === 0) return null;
+    return employeesSummary.reduce((prev, current) =>
+      current.totalVentas > prev.totalVentas ? current : prev,
     );
-    const totalOrders = filteredOrders.length;
-    const totalItems = filteredOrders.reduce(
-      (sum, o) => sum + (o.productos?.length || 0) + (o.servicios?.length || 0),
-      0,
+  }, [employeesSummary]);
+
+  // KPI: Rey del Servicio (más servicios)
+  const topServiceProvider = useMemo(() => {
+    if (employeesSummary.length === 0) return null;
+    return employeesSummary.reduce((prev, current) =>
+      current.totalServicios > prev.totalServicios ? current : prev,
     );
+  }, [employeesSummary]);
 
-    return {
-      totalRevenue,
-      totalOrders,
-      totalItems,
-      averageOrder: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-      totalEmployees: employeeStats.length,
-    };
-  }, [filteredOrders, employeeStats]);
+  // KPI: Meta Grupal (suponer 5M de meta)
+  const META_VENTAS = 5000000;
+  const totalVentasGrupo = useMemo(() => {
+    return employeesSummary.reduce((sum, emp) => sum + emp.totalVentas, 0);
+  }, [employeesSummary]);
+  const metaGroupal = (totalVentasGrupo / META_VENTAS) * 100;
 
+  // Datos para gráfico de barras
+  const chartData = useMemo(() => {
+    return employeesSummary.map((emp) => ({
+      nombre: emp.userName,
+      ventas: emp.totalVentas,
+      servicios: emp.totalServicios * 10000,
+      userId: emp.userId,
+    }));
+  }, [employeesSummary]);
+
+  // ============ DATOS DE MÉDICOS ============
+  const medicosSummary = useMemo(() => {
+    return turnService.getMedicosSummary();
+  }, []);
+
+  // Datos para gráfica de torta (médicos)
+  const medicosPieData = useMemo(() => {
+    return medicosSummary.map((medico) => ({
+      name: medico.nombreMedico,
+      value: medico.totalServicios,
+      ingresos: medico.totalIngresos,
+    }));
+  }, [medicosSummary]);
+
+  // Formatear moneda
   const formatCurrency = (val) =>
     new Intl.NumberFormat("es-CO", {
       style: "currency",
@@ -120,8 +102,13 @@ export const SalesPerformanceReportsPage = () => {
       maximumFractionDigits: 0,
     }).format(val || 0);
 
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString("es-CO");
+  // Determinar medalla según posición
+  const getMedal = (index, total) => {
+    if (total < 3) return null;
+    if (index === 0) return { tipo: "oro", label: "🥇" };
+    if (index === 1) return { tipo: "plata", label: "🥈" };
+    if (index === 2) return { tipo: "bronce", label: "🥉" };
+    return null;
   };
 
   return (
@@ -129,11 +116,11 @@ export const SalesPerformanceReportsPage = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">
-            Desempeño de Ventas
+          <h1 className="text-3xl font-bold text-gray-800">
+            Dashboard de Rendimiento
           </h1>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Análisis individual de vendedores y empleados
+          <p className="text-sm text-gray-500 mt-1">
+            Análisis de desempeño de empleados y médicos
           </p>
         </div>
         <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
@@ -142,329 +129,363 @@ export const SalesPerformanceReportsPage = () => {
         </button>
       </div>
 
-      {/* ESTADÍSTICAS GENERALES */}
-      <div className="grid grid-cols-5 gap-3">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-xs text-gray-500 mb-1">Total Ventas</p>
-          <p className="text-2xl font-bold text-gray-800">
-            {formatCurrency(generalStats.totalRevenue)}
-          </p>
-          <p className="text-xs text-gray-500 mt-2">
-            {generalStats.totalOrders} pedidos
-          </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-200 bg-gradient-to-br from-blue-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-blue-600 font-semibold mb-1">
-                Promedio por Pedido
-              </p>
-              <p className="text-2xl font-bold text-blue-700">
-                {formatCurrency(generalStats.averageOrder)}
-              </p>
-            </div>
-            <TrendingUp className="text-blue-400" size={32} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-purple-200 bg-gradient-to-br from-purple-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-purple-600 font-semibold mb-1">
-                Total Empleados
-              </p>
-              <p className="text-2xl font-bold text-purple-700">
-                {generalStats.totalEmployees}
-              </p>
-            </div>
-            <User className="text-purple-400" size={32} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-green-200 bg-gradient-to-br from-green-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-green-600 font-semibold mb-1">
-                Total Artículos
-              </p>
-              <p className="text-2xl font-bold text-green-700">
-                {generalStats.totalItems}
-              </p>
-            </div>
-            <Target className="text-green-400" size={32} />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-orange-200 bg-gradient-to-br from-orange-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-orange-600 font-semibold mb-1">
-                Ticket Promedio
-              </p>
-              <p className="text-2xl font-bold text-orange-700">
-                {generalStats.totalOrders > 0
-                  ? generalStats.totalItems / generalStats.totalOrders
-                  : 0}{" "}
-                items
-              </p>
-            </div>
-            <Award className="text-orange-400" size={32} />
-          </div>
-        </div>
-      </div>
-
-      {/* FILTROS */}
-      <div className="flex gap-3 flex-shrink-0 bg-white p-4 rounded-lg border border-gray-200">
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center gap-2"
+      {/* TABS */}
+      <div className="flex gap-2 bg-white p-2 rounded-lg shadow-sm border border-gray-200">
+        <button
+          onClick={() => setActiveTab("empleados")}
+          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+            activeTab === "empleados"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
         >
-          <option value="all">Todos los Períodos</option>
-          <option value="week">Esta Semana</option>
-          <option value="month">Este Mes</option>
-        </select>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+          Desempeño de Empleados
+        </button>
+        <button
+          onClick={() => setActiveTab("medicos")}
+          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+            activeTab === "medicos"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
         >
-          <option value="revenue">Ordenar por Ingresos</option>
-          <option value="orders">Ordenar por Cantidad de Pedidos</option>
-          <option value="average">Ordenar por Ticket Promedio</option>
-        </select>
+          <Stethoscope size={16} className="inline mr-2" />
+          Productividad Médica
+        </button>
       </div>
 
-      {/* TABLA DE EMPLEADOS */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 sticky top-0 z-10 border-b border-gray-200">
-              <tr>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
-                  Empleado
-                </th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
-                  Ingresos
-                </th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
-                  Pedidos
-                </th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
-                  Ticket Promedio
-                </th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
-                  Productos
-                </th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase text-right">
-                  Servicios
-                </th>
-                <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {employeeStats.length > 0 ? (
-                employeeStats.map((emp, idx) => {
-                  const revenuePercent =
-                    (emp.totalRevenue / generalStats.totalRevenue) * 100;
-                  return (
-                    <tr
-                      key={emp.userId}
-                      className="border-b border-gray-200 hover:bg-gray-50"
-                    >
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-800">
-                              {emp.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {emp.userId}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="text-sm font-bold text-gray-800">
-                          {formatCurrency(emp.totalRevenue)}
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full"
-                            style={{ width: `${revenuePercent}%` }}
-                          />
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold text-gray-800">
-                        {emp.totalOrders}
-                      </td>
-                      <td className="py-3 px-4 text-right text-sm font-semibold text-purple-700">
-                        {formatCurrency(emp.averageOrderValue)}
-                      </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold text-green-700">
-                        {emp.totalProductos}
-                      </td>
-                      <td className="py-3 px-4 text-right text-sm font-bold text-orange-700">
-                        {emp.totalServicios}
-                      </td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() => setSelectedEmployee(emp)}
-                          className="flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded text-xs font-semibold"
-                        >
-                          <Eye size={14} />
-                          Ver
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td
-                    colSpan="7"
-                    className="py-6 text-center text-gray-500 text-sm"
-                  >
-                    No hay datos de ventas para el período seleccionado
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* MODAL DE DETALLE DEL EMPLEADO */}
-      {selectedEmployee && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-6 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-lg font-bold text-blue-700">
-                  {selectedEmployee.name[0]}
-                </div>
+      {/* ============ TAB: EMPLEADOS ============ */}
+      {activeTab === "empleados" && (
+        <>
+          {/* KPI CARDS */}
+          <div className="grid grid-cols-3 gap-4">
+            {/* Empleado Estrella */}
+            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-lg shadow-sm border border-yellow-200">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">
-                    {selectedEmployee.name}
-                  </h2>
-                  <p className="text-xs text-gray-500">
-                    {selectedEmployee.userId}
+                  <p className="text-xs text-yellow-700 font-semibold mb-1">
+                    ⭐ Empleado Estrella
+                  </p>
+                  <p className="text-lg font-bold text-yellow-900">
+                    {topSeller?.userName || "—"}
+                  </p>
+                  <p className="text-sm text-yellow-700 font-semibold mt-2">
+                    {formatCurrency(topSeller?.totalVentas || 0)}
+                  </p>
+                  <p className="text-xs text-yellow-600">en ventas</p>
+                </div>
+                <Award className="text-yellow-600" size={40} />
+              </div>
+            </div>
+
+            {/* Rey del Servicio */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg shadow-sm border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-blue-700 font-semibold mb-1">
+                    👑 Rey del Servicio
+                  </p>
+                  <p className="text-lg font-bold text-blue-900">
+                    {topServiceProvider?.userName || "—"}
+                  </p>
+                  <p className="text-sm text-blue-700 font-semibold mt-2">
+                    {topServiceProvider?.totalServicios || 0}
+                  </p>
+                  <p className="text-xs text-blue-600">servicios</p>
+                </div>
+                <Stethoscope className="text-blue-600" size={40} />
+              </div>
+            </div>
+
+            {/* Meta Grupal */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg shadow-sm border border-green-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-green-700 font-semibold mb-1">
+                    📊 Meta Grupal
+                  </p>
+                  <p className="text-lg font-bold text-green-900">
+                    {metaGroupal.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-green-600 mt-2">
+                    {formatCurrency(totalVentasGrupo)} /{" "}
+                    {formatCurrency(META_VENTAS)}
                   </p>
                 </div>
-              </div>
-              <button
-                onClick={() => setSelectedEmployee(null)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            {/* Resumen del Empleado */}
-            <div className="grid grid-cols-4 gap-3 mb-4">
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-600 font-semibold">
-                  Total Ingresos
-                </p>
-                <p className="text-lg font-bold text-blue-700 mt-1">
-                  {formatCurrency(selectedEmployee.totalRevenue)}
-                </p>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                <p className="text-xs text-purple-600 font-semibold">
-                  Pedidos Realizados
-                </p>
-                <p className="text-lg font-bold text-purple-700 mt-1">
-                  {selectedEmployee.totalOrders}
-                </p>
-              </div>
-              <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                <p className="text-xs text-orange-600 font-semibold">
-                  Ticket Promedio
-                </p>
-                <p className="text-lg font-bold text-orange-700 mt-1">
-                  {formatCurrency(selectedEmployee.averageOrderValue)}
-                </p>
-              </div>
-              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                <p className="text-xs text-green-600 font-semibold">
-                  Promedio Artículos
-                </p>
-                <p className="text-lg font-bold text-green-700 mt-1">
-                  {(selectedEmployee.totalProductos +
-                    selectedEmployee.totalServicios) /
-                    selectedEmployee.totalOrders || 0}
-                </p>
+                <TrendingUp className="text-green-600" size={40} />
               </div>
             </div>
+          </div>
 
-            {/* Desglose de Productos vs Servicios */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
-                <h3 className="font-bold text-emerald-800 mb-2">
-                  Productos Vendidos
-                </h3>
-                <p className="text-3xl font-bold text-emerald-700">
-                  {selectedEmployee.totalProductos}
-                </p>
-              </div>
-              <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                <h3 className="font-bold text-orange-800 mb-2">
-                  Servicios Realizados
-                </h3>
-                <p className="text-3xl font-bold text-orange-700">
-                  {selectedEmployee.totalServicios}
-                </p>
-              </div>
+          {/* GRÁFICO DE DESEMPEÑO */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">
+              Ventas vs Servicios por Empleado
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="nombre" />
+                <YAxis />
+                <Tooltip
+                  formatter={(value) => formatCurrency(value)}
+                  contentStyle={{
+                    backgroundColor: "#f9fafb",
+                    border: "1px solid #e5e7eb",
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="ventas" fill="#10b981" name="Ventas (COP)" />
+                <Bar
+                  dataKey="servicios"
+                  fill="#3b82f6"
+                  name="Servicios (escalado)"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* TABLA DE EMPLEADOS CON PRODUCTIVIDAD */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr className="border-b border-gray-200">
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Productividad
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Empleado
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Turnos Cerrados
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Total Ventas
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Servicios
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Promedio Venta
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employeesSummary.length > 0 ? (
+                    employeesSummary
+                      .sort((a, b) => b.totalVentas - a.totalVentas)
+                      .map((emp, index) => {
+                        const medal = getMedal(index, employeesSummary.length);
+                        const promedio =
+                          emp.totalTurnos > 0
+                            ? emp.totalVentas / emp.totalTurnos
+                            : 0;
+
+                        return (
+                          <tr
+                            key={emp.userId}
+                            className="border-b border-gray-200 hover:bg-gray-50"
+                          >
+                            <td className="py-3 px-4 text-center">
+                              {medal && (
+                                <span className="text-2xl" title={medal.tipo}>
+                                  {medal.label}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-sm font-semibold text-gray-700">
+                              {emp.userName}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {emp.totalTurnos}
+                            </td>
+                            <td className="py-3 px-4 text-sm font-bold text-green-600">
+                              {formatCurrency(emp.totalVentas)}
+                            </td>
+                            <td className="py-3 px-4 text-sm font-semibold text-blue-600">
+                              {emp.totalServicios}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-gray-600">
+                              {formatCurrency(promedio)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="6"
+                        className="py-6 text-center text-gray-500 text-sm"
+                      >
+                        No hay datos de empleados
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
+          </div>
+        </>
+      )}
 
-            {/* Últimos Pedidos */}
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h3 className="font-bold text-gray-800 mb-3">
-                Últimos Pedidos ({Math.min(5, selectedEmployee.orders.length)})
+      {/* ============ TAB: MÉDICOS ============ */}
+      {activeTab === "medicos" && (
+        <>
+          {/* GRÁFICA DE TORTA */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">
+                📊 Distribución de Servicios por Médico
               </h3>
-              <div className="space-y-2">
-                {selectedEmployee.orders.slice(0, 5).map((order) => (
+              {medicosPieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={medicosPieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => `${entry.name}: ${entry.value}`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {medicosPieData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-64 flex items-center justify-center text-gray-500">
+                  Sin datos de médicos
+                </div>
+              )}
+            </div>
+
+            {/* TARJETA RESUMEN MÉDICOS */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-gray-800">
+                📋 Ranking de Médicos
+              </h3>
+              {medicosSummary.length > 0 ? (
+                medicosSummary.map((medico, index) => (
                   <div
-                    key={order.id}
-                    className="bg-white p-3 rounded border border-gray-200 flex justify-between items-center"
+                    key={medico.medicoId}
+                    className="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
                   >
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">
-                        {order.cliente}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatDate(order.fecha)}
-                      </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-gray-800">
+                          {index + 1}. {medico.nombreMedico}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {medico.totalServicios} servicios
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-green-600">
+                          {formatCurrency(medico.totalIngresos)}
+                        </p>
+                        <p className="text-xs text-gray-500">ingresos</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-gray-800">
-                        {formatCurrency(order.total)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {order.productos?.length || 0} productos
-                      </p>
+                    {/* Barra de progreso */}
+                    <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 transition-all"
+                        style={{
+                          width: `${
+                            (medico.totalServicios /
+                              (medicosSummary[0]?.totalServicios || 1)) *
+                            100
+                          }%`,
+                        }}
+                      />
                     </div>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="text-gray-500 text-sm">
+                  <AlertCircle size={16} className="inline mr-2" />
+                  Sin datos de médicos registrados
+                </div>
+              )}
             </div>
-
-            <button
-              onClick={() => setSelectedEmployee(null)}
-              className="w-full mt-4 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold"
-            >
-              Cerrar
-            </button>
           </div>
-        </div>
+
+          {/* TABLA DETALLADA DE MÉDICOS */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr className="border-b border-gray-200">
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Posición
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Médico
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Citas Realizadas
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Ingresos Generados
+                    </th>
+                    <th className="py-3 px-4 text-xs font-bold text-gray-700 uppercase">
+                      Ingreso Promedio
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {medicosSummary.length > 0 ? (
+                    medicosSummary.map((medico, index) => (
+                      <tr
+                        key={medico.medicoId}
+                        className="border-b border-gray-200 hover:bg-gray-50"
+                      >
+                        <td className="py-3 px-4 text-center font-bold text-gray-700">
+                          {index + 1}
+                        </td>
+                        <td className="py-3 px-4 text-sm font-semibold text-gray-700">
+                          {medico.nombreMedico}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          {medico.totalServicios}
+                        </td>
+                        <td className="py-3 px-4 text-sm font-bold text-green-600">
+                          {formatCurrency(medico.totalIngresos)}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600">
+                          {formatCurrency(
+                            medico.totalIngresos / medico.totalServicios,
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="5"
+                        className="py-6 text-center text-gray-500 text-sm"
+                      >
+                        No hay datos de médicos
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
 };
+
+export default SalesPerformanceReportsPage;

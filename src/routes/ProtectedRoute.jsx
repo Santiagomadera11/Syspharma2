@@ -19,11 +19,12 @@ const ProtectedRoute = ({ children, requiredRole, requiredPerm }) => {
     if (!has) {
       alert("Acceso denegado: no tienes permiso para ver esta sección.");
       // redirige al dashboard adecuado según el rol
-      const defaultPath = {
-        Administrador: "/admin/dashboard",
-        Empleado: "/employee/inicio",
-        Cliente: "/client/inicio",
-      }[user.rol] || "/"
+      const defaultPath =
+        {
+          Administrador: "/admin/dashboard",
+          Empleado: "/employee/inicio",
+          Cliente: "/client/inicio",
+        }[user.rol] || "/";
       return <Navigate to={defaultPath} replace />;
     }
   }
