@@ -70,6 +70,7 @@ import { SalesPerformanceReportsPage } from "../features/admin/reports/SalesPerf
 /*                         SISTEMA DE CLIENTE                                 */
 /* -------------------------------------------------------------------------- */
 import ClientCatalogo from "../features/client/ClientCatalogo";
+import ClientInicio from "../features/client/ClientInicio";
 import ClientProductos from "../features/client/ClientProductos";
 import ClientMisPedidos from "../features/client/ClientMisPedidos";
 import ClientMisCitas from "../features/client/ClientMisCitas";
@@ -276,8 +277,16 @@ export const AppRouter = () => {
           <Route path="inicio" element={<EmployeeInicio />} />
 
           {/* Operaciones */}
-          <Route path="compras" element={<EmployeeCompras />} requiredPerm="inven.view" />
-          <Route path="ventas" element={<EmployeeSalesPage />} requiredPerm="billing.view" />
+          <Route
+            path="compras"
+            element={<EmployeeCompras />}
+            requiredPerm="inven.view"
+          />
+          <Route
+            path="ventas"
+            element={<EmployeeSalesPage />}
+            requiredPerm="billing.view"
+          />
           <Route
             path="ventas/nueva"
             element={
@@ -294,8 +303,16 @@ export const AppRouter = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="productos" element={<EmployeeProductos />} requiredPerm="inven.view" />
-          <Route path="pedidos" element={<EmployeePedidos />} requiredPerm="billing.view" />
+          <Route
+            path="productos"
+            element={<EmployeeProductos />}
+            requiredPerm="inven.view"
+          />
+          <Route
+            path="pedidos"
+            element={<EmployeePedidos />}
+            requiredPerm="billing.view"
+          />
           <Route
             path="pedidos/crear"
             element={
@@ -324,7 +341,8 @@ export const AppRouter = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="catalogo" replace />} />
+          <Route index element={<Navigate to="inicio" replace />} />
+          <Route path="inicio" element={<ClientInicio />} />
           <Route path="catalogo" element={<ClientCatalogo />} />
           <Route path="productos" element={<ClientProductos />} />
           <Route path="favoritos" element={<FavoritosPage />} />

@@ -21,14 +21,18 @@ const ServiceFormModal = ({
   isViewMode,
 }) => {
   // Obtener el rol actual para cambiar colores
-  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const currentUser = JSON.parse(
+    localStorage.getItem("syspharma_user") || "{}",
+  );
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployee = currentUserRole === "Empleado";
-  
+
   // Colores dinámicos basados en el rol
   const headerBgColor = isEmployee ? "bg-blue-600" : "bg-emerald-600";
-  const buttonBgColor = isEmployee ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700";
-  
+  const buttonBgColor = isEmployee
+    ? "bg-blue-600 hover:bg-blue-700"
+    : "bg-emerald-600 hover:bg-emerald-700";
+
   const [formData, setFormData] = useState({
     nombre: "",
     categoria: "",
@@ -109,9 +113,9 @@ const ServiceFormModal = ({
       precio: Number(formData.precio),
       duracion: Number(formData.duracion),
     };
-    
+
     onSave(dataToSave);
-    
+
     // Mostrar toast de éxito
     const action = initialData ? "actualizado" : "creado";
     setToast({
@@ -119,7 +123,7 @@ const ServiceFormModal = ({
       type: "success",
       zIndex: 60,
     });
-    
+
     // Cerrar modal después de mostrar el toast
     setTimeout(() => {
       onClose();
@@ -134,13 +138,11 @@ const ServiceFormModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden">
-        <div className={`${headerBgColor} px-5 py-3 border-b flex justify-between items-center`}>
+        <div
+          className={`${headerBgColor} px-5 py-3 border-b flex justify-between items-center`}
+        >
           <h3 className="font-bold text-white text-sm flex items-center gap-2">
-            {isViewMode ? (
-              <Eye size={16} />
-            ) : (
-              <Stethoscope size={16} />
-            )}
+            {isViewMode ? <Eye size={16} /> : <Stethoscope size={16} />}
             {getTitle()}
           </h3>
           <button

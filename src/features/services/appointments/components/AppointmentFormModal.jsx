@@ -63,16 +63,20 @@ const AppointmentFormModal = ({
     notas: "",
     userId: "", // Agregamos userId al estado
   };
-  
+
   // Obtener el rol actual para cambiar colores
-  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const currentUser = JSON.parse(
+    localStorage.getItem("syspharma_user") || "{}",
+  );
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployee = currentUserRole === "Empleado";
-  
+
   // Colores dinámicos basados en el rol
   const headerBgColor = isEmployee ? "bg-blue-600" : "bg-emerald-600";
-  const buttonBgColor = isEmployee ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700";
-  
+  const buttonBgColor = isEmployee
+    ? "bg-blue-600 hover:bg-blue-700"
+    : "bg-emerald-600 hover:bg-emerald-700";
+
   const [formData, setFormData] = useState(initialFormState);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [servicesList, setServicesList] = useState([]);
@@ -291,8 +295,8 @@ const AppointmentFormModal = ({
     const isValid = validateForm();
     if (!isValid) return;
 
-    // Validar turno activo
-    const turnValidation = turnService.validateOperationAllowed();
+    // Validar turno activo - Clientes no necesitan turno
+    const turnValidation = turnService.validateOperationAllowed(currentUser);
     if (!turnValidation.valid) {
       alert(turnValidation.message);
       return;
@@ -362,7 +366,9 @@ const AppointmentFormModal = ({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         {/* Header */}
-        <div className={`${headerBgColor} px-6 py-4 flex justify-between items-center`}>
+        <div
+          className={`${headerBgColor} px-6 py-4 flex justify-between items-center`}
+        >
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Calendar size={20} />
             {appointment ? "Editar Cita Médica" : "Nueva Cita Médica"}

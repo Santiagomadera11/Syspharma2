@@ -32,8 +32,8 @@ const EmployeeLayout = () => {
   }, []);
 
   const handleConfirmLogout = () => {
-    // Cerrar turno y sesión en un proceso atómico de seguridad
-    turnService.closeTurnAndLogout();
+    // Logout simple: solo elimina al usuario, el turno persiste en localStorage
+    authService.logout();
     setShowConfirmLogout(false);
     navigate("/");
   };
@@ -78,14 +78,13 @@ const EmployeeLayout = () => {
       {showConfirmLogout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
-            
             {/* Header */}
             <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
               <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
                 <AlertCircle size={18} className="text-red-600" />
                 ¿Cerrar sesión?
               </h3>
-              <button 
+              <button
                 onClick={() => setShowConfirmLogout(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -99,19 +98,22 @@ const EmployeeLayout = () => {
                 ¿Estás seguro de que quieres cerrar sesión?
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Serás redirigido a la página principal.
+                Tu turno permanecerá abierto. Al volver a entrar, podrás continuar donde lo dejaste.
+              </p>
+              <p className="text-xs text-amber-600 mt-2 font-medium">
+                💡 Para cerrar la caja, usa el botón de 'Cerrar Caja' en tu panel.
               </p>
             </div>
 
             {/* Footer */}
             <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
-              <button 
+              <button
                 onClick={() => setShowConfirmLogout(false)}
                 className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={handleConfirmLogout}
                 className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors shadow-sm"
               >

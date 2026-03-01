@@ -56,10 +56,10 @@ const ClientSidebar = ({ isOpen, onClose, onShowLogoutModal }) => {
         {/* Navegación */}
         <nav className="flex-1 overflow-y-auto py-4 space-y-0.5 px-2 custom-scrollbar">
           <MenuItem
-            to="/client/catalogo"
+            to="/client/inicio"
             icon={LayoutGrid}
-            label="Catálogo"
-            active={isActive("/client/catalogo")}
+            label="Inicio"
+            active={isActive("/client/inicio")}
           />
 
           <MenuItem

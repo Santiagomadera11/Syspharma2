@@ -201,7 +201,7 @@ export const LoginPage = () => {
     } else if (user.rol === "Empleado") {
       navigate("/employee/inicio");
     } else if (user.rol === "Cliente") {
-      navigate("/client/catalogo");
+      navigate("/client/inicio");
     } else {
       navigate("/");
     }

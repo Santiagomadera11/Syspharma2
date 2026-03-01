@@ -20,7 +20,14 @@ export const turnService = {
     // Verificar que no exista un turno activo
     const existingTurn = turnService.getActiveTurn();
     if (existingTurn) {
-      throw new Error("Ya existe un turno activo. Ciérralo primero.");
+      // Distancia si es del mismo usuario o de otro (detalle de seguridad)
+      if (existingTurn.userId === userData.userId) {
+        throw new Error("Ya tienes un turno abierto. No puedes abrir otro hasta cerrarlo.");
+      } else {
+        throw new Error(
+          `Hay un turno abierto por ${existingTurn.userName}. Debes esperar a que cierre o llamar al Administrador.`,
+        );
+      }
     }
 
     const newTurn = {
@@ -122,6 +129,30 @@ export const turnService = {
   },
 
   /**
+   * Obtiene TODOS los turnos (activos + cerrados) para Admin
+   * @returns {Array} Lista combinada de turnos
+   */
+  getAllTurnsForAdmin: () => {
+    const allTurns = [];
+
+    // Agregar turno activo si existe
+    const activeTurn = turnService.getActiveTurn();
+    if (activeTurn) {
+      allTurns.push({
+        ...activeTurn,
+        estado: "activo",
+        horaCierre: null, // No tiene fecha de cierre aún
+      });
+    }
+
+    // Agregar todos los turnos cerrados
+    const closedTurns = turnService.getTurnsHistory();
+    allTurns.push(...closedTurns);
+
+    return allTurns;
+  },
+
+  /**
    * Limpia el turno actual (para resetear en desarrollo)
    */
   clearActiveTurn: () => {
@@ -137,9 +168,18 @@ export const turnService = {
 
   /**
    * Valida si se puede realizar una operación (venta, gasto)
+   * Si el usuario es Cliente, SIEMPRE permite (no necesita turno)
+   * Si es Empleado/Admin, requiere turno activo
+   * @param {Object} user - Usuario actual { rol, email, id }
    * @returns {Object} { valid: boolean, message: string }
    */
-  validateOperationAllowed: () => {
+  validateOperationAllowed: (user) => {
+    // Si es Cliente, no necesita validación de turno
+    if (user?.rol === "Cliente") {
+      return { valid: true, message: "" };
+    }
+
+    // Para Empleado/Admin, validar turno activo
     const turn = turnService.getActiveTurn();
     if (!turn) {
       return {

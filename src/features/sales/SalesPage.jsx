@@ -183,17 +183,15 @@ export const SalesPage = () => {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              // Solo empleados deben validar turno
-              if (user.rol !== "Administrador") {
-                const validation = turnService.validateOperationAllowed();
-                if (!validation.valid) {
-                  setToast({
-                    message: validation.message,
-                    type: "error",
-                    zIndex: 70,
-                  });
-                  return;
-                }
+              // Solo empleados/admin deben validar turno (no clientes)
+              const validation = turnService.validateOperationAllowed(user);
+              if (!validation.valid) {
+                setToast({
+                  message: validation.message,
+                  type: "error",
+                  zIndex: 70,
+                });
+                return;
               }
               setIsRegisterExpenseModalOpen(true);
             }}
@@ -433,7 +431,7 @@ export const SalesPage = () => {
       <CloseShiftModal
         isOpen={showCloseShiftModal}
         onShiftClosed={handleShiftClosed}
-        onClose={() => setShowCloseShiftModal(false)}
+        onCancel={() => setShowCloseShiftModal(false)}
         user={user}
       />
 
