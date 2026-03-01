@@ -5,6 +5,7 @@
 El sistema de validación de turnos estaba siendo demasiado restrictivo para **Clientes**, bloqueando operaciones que NO deberían requerir turno activo. Por ejemplo, un Cliente no podía agendar o editar citas médicas porque el sistema validaba `!hasActiveTurn`.
 
 **La regla correcta es:**
+
 - ✅ **Clientes**: NO necesitan turno activo para sus operaciones
 - ✅ **Empleados/Admin**: REQUIEREN turno activo para vender o crear servicios
 
@@ -15,6 +16,7 @@ El sistema de validación de turnos estaba siendo demasiado restrictivo para **C
 ### 1. **turnService.js** - Modificar `validateOperationAllowed()`
 
 **ANTES:**
+
 ```javascript
 validateOperationAllowed: () => {
   const turn = turnService.getActiveTurn();
@@ -22,10 +24,11 @@ validateOperationAllowed: () => {
     return { valid: false, message: "No hay turno activo..." };
   }
   return { valid: true, message: "" };
-}
+};
 ```
 
 **AHORA:**
+
 ```javascript
 validateOperationAllowed: (user) => {
   // Si es Cliente, SIEMPRE permite (no necesita turno)
@@ -38,11 +41,12 @@ validateOperationAllowed: (user) => {
   if (!turn) {
     return {
       valid: false,
-      message: "No hay turno activo. Debes abrir caja primero para realizar operaciones.",
+      message:
+        "No hay turno activo. Debes abrir caja primero para realizar operaciones.",
     };
   }
   return { valid: true, message: "" };
-}
+};
 ```
 
 **Impacto**: Ahora el servicio es **rol-aware** y permite operaciones de Clientes sin turno.
@@ -52,6 +56,7 @@ validateOperationAllowed: (user) => {
 ### 2. **AppointmentFormModal.jsx** - Pasar usuario a validación
 
 **ANTES (línea 299):**
+
 ```javascript
 const turnValidation = turnService.validateOperationAllowed();
 if (!turnValidation.valid) {
@@ -61,6 +66,7 @@ if (!turnValidation.valid) {
 ```
 
 **AHORA:**
+
 ```javascript
 // Validar turno activo - Clientes no necesitan turno
 const turnValidation = turnService.validateOperationAllowed(currentUser);
@@ -77,6 +83,7 @@ if (!turnValidation.valid) {
 ### 3. **SalesPage.jsx** - Simplificar lógica y pasar usuario
 
 **ANTES (línea 188):**
+
 ```javascript
 if (user.rol !== "Administrador") {
   const validation = turnService.validateOperationAllowed();
@@ -87,6 +94,7 @@ if (user.rol !== "Administrador") {
 ```
 
 **AHORA:**
+
 ```javascript
 // Solo empleados/admin deben validar turno (no clientes)
 const validation = turnService.validateOperationAllowed(user);
@@ -102,6 +110,7 @@ if (!validation.valid) {
 ### 4. **EmployeeServicesPage.jsx** ✅ (Sin cambios necesarios)
 
 Ya está correcto:
+
 ```javascript
 if (user.rol !== "Administrador" && !turnService.hasActiveTurn()) {
   setShowOpenShiftModal(true);
@@ -116,6 +125,7 @@ Solo Empleados (no Admin) necesitan abrir caja. Los Clientes **no pueden acceder
 ### 5. **OrdersPage.jsx** ✅ (Sin cambios necesarios)
 
 Ya está correcto:
+
 ```javascript
 disabled={isEmployee && !hasActiveTurn}
 ```
@@ -127,6 +137,7 @@ Solo Empleados ven este botón y solo se bloquea si NO tienen turno. Los Cliente
 ## Flujo de Operaciones (CORRECTO)
 
 ### Cliente - Agendar Cita
+
 ```
 Cliente → AppointmentFormModal
         → handleSubmit()
@@ -136,6 +147,7 @@ Cliente → AppointmentFormModal
 ```
 
 ### Empleado - Crear Servicio
+
 ```
 Empleado → EmployeeServicesPage
         → handleCreate()
@@ -146,6 +158,7 @@ Empleado → EmployeeServicesPage
 ```
 
 ### Empleado - Registrar Gasto
+
 ```
 Empleado → SalesPage
         → Click "Registrar Gasto"
@@ -159,41 +172,44 @@ Empleado → SalesPage
 
 ## Regla de Oro (ACTUALIZADA)
 
-| Rol | Necesita Turno | Operaciones | Bloqueo Visual |
-|-----|---|---|---|
-| **Cliente** | ❌ NO | Agendar citas, Comprar productos | No se bloquea nada |
-| **Empleado** | ✅ SÍ | Crear servicios, Registrar gastos, Ventas | Botones grises si no hay turno |
-| **Admin** | ❌ NO | Acceso a todo | No validar turno |
+| Rol          | Necesita Turno | Operaciones                               | Bloqueo Visual                 |
+| ------------ | -------------- | ----------------------------------------- | ------------------------------ |
+| **Cliente**  | ❌ NO          | Agendar citas, Comprar productos          | No se bloquea nada             |
+| **Empleado** | ✅ SÍ          | Crear servicios, Registrar gastos, Ventas | Botones grises si no hay turno |
+| **Admin**    | ❌ NO          | Acceso a todo                             | No validar turno               |
 
 ---
 
 ## Archivos Modificados
 
-| Archivo | Cambios |
-|---------|---------|
-| `turnService.js` | ✅ `validateOperationAllowed()` ahora acepta `user` como parámetro |
-| `AppointmentFormModal.jsx` | ✅ Pasar `currentUser` a `validateOperationAllowed()` |
-| `SalesPage.jsx` | ✅ Simplificar lógica, pasar `user` a validación |
-| `EmployeeServicesPage.jsx` | ✅ Sin cambios (ya correcto) |
-| `OrdersPage.jsx` | ✅ Sin cambios (ya correcto) |
+| Archivo                    | Cambios                                                            |
+| -------------------------- | ------------------------------------------------------------------ |
+| `turnService.js`           | ✅ `validateOperationAllowed()` ahora acepta `user` como parámetro |
+| `AppointmentFormModal.jsx` | ✅ Pasar `currentUser` a `validateOperationAllowed()`              |
+| `SalesPage.jsx`            | ✅ Simplificar lógica, pasar `user` a validación                   |
+| `EmployeeServicesPage.jsx` | ✅ Sin cambios (ya correcto)                                       |
+| `OrdersPage.jsx`           | ✅ Sin cambios (ya correcto)                                       |
 
 ---
 
 ## Pruebas Recomendadas
 
 ### Test 1: Cliente Agendando Cita
+
 1. Login como **Cliente** (cliente@syspharma.com / cliente123)
 2. Ir a **Mis Citas**
 3. Click **"Agendar Cita"**
 4. _Esperado_: ✅ Se abre modal sin errores, sin validar turno
 
 ### Test 2: Empleado Creando Servicio SIN Turno
+
 1. Login como **Empleado** (empleado@syspharma.com / empleado123)
 2. Ir a **Servicios**
 3. Click **"Nuevo Servicio"**
 4. _Esperado_: ❌ Se muestra modal "Debes abrir caja primero"
 
 ### Test 3: Empleado Creando Servicio CON Turno
+
 1. Con turno activo (desde **Ventas**)
 2. Ir a **Servicios**
 3. Click **"Nuevo Servicio"**
@@ -204,6 +220,7 @@ Empleado → SalesPage
 ## Conclusión
 
 El sistema ahora respeta correctamente los roles:
+
 - **Clientes**: Operan sin dependencia de turno
 - **Empleados**: Requieren turno para operaciones de venta/servicio
 - **Admin**: Acceso total sin restricciones

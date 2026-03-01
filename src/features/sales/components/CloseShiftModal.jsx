@@ -57,9 +57,7 @@ export const CloseShiftModal = ({
             (turnData.totalGastos || 0),
         });
         // Precargar nota de admin
-        setNotas(
-          "Cerrado por el Administrador",
-        );
+        setNotas("Cerrado por el Administrador");
       } else {
         // Cierre normal: calcular desde el turno activo
         const calculatedBalance = turnService.calculateExpectedBalance();
@@ -187,7 +185,9 @@ export const CloseShiftModal = ({
           {/* Información del usuario */}
           <div
             className={`${
-              isAdminForcedClose ? "bg-orange-50 border-orange-200" : "bg-gray-50"
+              isAdminForcedClose
+                ? "bg-orange-50 border-orange-200"
+                : "bg-gray-50"
             } p-4 rounded-lg mb-6 border border-gray-100`}
           >
             <p className="text-xs text-gray-600 font-medium mb-1">
