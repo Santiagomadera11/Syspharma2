@@ -2,64 +2,7 @@ const DB_AVAILABILITY = "syspharma_availability";
 const DB_UNAVAILABLE_DAYS = "syspharma_unavailable_days";
 
 // Datos iniciales de disponibilidad por médico
-const initialAvailability = [
-  {
-    doctorId: 1,
-    doctorName: "Dr. Andrés López",
-    schedule: {
-      monday: {
-        morning: { start: "08:00", end: "12:00" },
-        afternoon: { start: "14:00", end: "18:00" },
-      },
-      tuesday: {
-        morning: { start: "08:00", end: "12:00" },
-        afternoon: { start: "14:00", end: "18:00" },
-      },
-      wednesday: {
-        morning: { start: "08:00", end: "12:00" },
-        afternoon: { start: "14:00", end: "18:00" },
-      },
-      thursday: {
-        morning: { start: "08:00", end: "12:00" },
-        afternoon: { start: "14:00", end: "18:00" },
-      },
-      friday: {
-        morning: { start: "08:00", end: "12:00" },
-        afternoon: { start: "14:00", end: "18:00" },
-      },
-      saturday: null,
-      sunday: null,
-    },
-  },
-  {
-    doctorId: 2,
-    doctorName: "Enf. María Ruiz",
-    schedule: {
-      monday: {
-        morning: { start: "07:00", end: "13:00" },
-        afternoon: { start: "15:00", end: "19:00" },
-      },
-      tuesday: {
-        morning: { start: "07:00", end: "13:00" },
-        afternoon: { start: "15:00", end: "19:00" },
-      },
-      wednesday: {
-        morning: { start: "07:00", end: "13:00" },
-        afternoon: { start: "15:00", end: "19:00" },
-      },
-      thursday: {
-        morning: { start: "07:00", end: "13:00" },
-        afternoon: { start: "15:00", end: "19:00" },
-      },
-      friday: {
-        morning: { start: "07:00", end: "13:00" },
-        afternoon: { start: "15:00", end: "19:00" },
-      },
-      saturday: { morning: { start: "08:00", end: "12:00" }, afternoon: null },
-      sunday: null,
-    },
-  },
-];
+const initialAvailability = [];
 
 const initialUnavailableDays = [
   // Ejemplo: { date: "2025-12-25", reason: "Navidad" }
