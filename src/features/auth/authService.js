@@ -1,96 +1,62 @@
-// Simple authentication service using localStorage
-const USERS_KEY = "syspharma_users";
+import axios from 'axios';
 
-const defaultAdmin = {
-  id: 1,
-  nombre: "Admin Syspharma",
-  email: "admin@syspharma.com",
-  rol: "Administrador",
-  password: "admin123",
-  estado: true,
-  avatar: null,
-};
-
-const defaultEmployee = {
-  id: 2,
-  nombre: "Empleado Demo",
-  email: "empleado@syspharma.com",
-  rol: "Empleado",
-  password: "empleado123",
-  estado: true,
-  avatar: null,
-};
-
-const defaultClient = {
-  id: 3,
-  nombre: "Cliente Demo",
-  email: "cliente@syspharma.com",
-  rol: "Cliente",
-  password: "cliente123",
-  estado: true,
-  avatar: null,
-};
-
-function ensureDefaultUsersExist() {
-  const data = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-  let updated = [...data];
-
-  // Verificar admin
-  if (!updated.some((u) => u.email === defaultAdmin.email)) {
-    updated = [defaultAdmin, ...updated];
-  }
-
-  // Verificar empleado
-  if (!updated.some((u) => u.email === defaultEmployee.email)) {
-    updated = [defaultEmployee, ...updated];
-  }
-
-  // Verificar cliente
-  if (!updated.some((u) => u.email === defaultClient.email)) {
-    updated = [defaultClient, ...updated];
-  }
-
-  if (updated.length !== data.length) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(updated));
-  }
-}
+const API_URL = 'http://localhost:5055/api/Auth';
 
 export const authService = {
-  init: () => ensureDefaultUsersExist(),
+  init: () => {},
 
-  login: (email, password) => {
-    ensureDefaultUsersExist();
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-    const found = users.find(
-      (u) => u.email === email && u.password === password,
-    );
-    if (!found) return null;
-
-    // Validar si el usuario está inactivo
-    if (found.estado === false || found.estado === "Inactivo") {
-      return {
-        error: true,
-        message: "Tu cuenta está inactiva. Contacta al administrador.",
+  login: async (email, password) => {
+    try {
+      const response = await axios.post(`${API_URL}/login`, { email, password });
+      const data = response.data;
+      const user = {
+        nombre: data.nombre,
+        email: data.email,
+        rol: data.rol,
+        token: data.token
       };
+      localStorage.setItem('syspharma_user', JSON.stringify(user));
+      localStorage.setItem('syspharma_token', data.token);
+      return user;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        return { error: true, message: 'Credenciales incorrectas' };
+      }
+      return { error: true, message: 'Error al conectar con el servidor' };
     }
+  },
 
-    const safe = {
-      id: found.id,
-      nombre: found.nombre,
-      email: found.email,
-      rol: found.rol,
-      avatar: found.avatar,
-    };
-    localStorage.setItem("syspharma_user", JSON.stringify(safe));
-    return safe;
+  register: async (data) => {
+    try {
+      await axios.post(`${API_URL}/register`, {
+        nombre: data.nombre,
+        email: data.email,
+        password: data.password,
+        roleId: data.roleId,
+        documento: data.documento,
+        tipoDocumento: data.tipoDocumento,
+        telefono: data.telefono
+      });
+      return { success: true };
+    } catch (error) {
+      if (error.response?.status === 400) {
+        return { error: true, message: error.response.data.message };
+      }
+      return { error: true, message: 'Error al conectar con el servidor' };
+    }
   },
 
   logout: () => {
-    localStorage.removeItem("syspharma_user");
+    localStorage.removeItem('syspharma_user');
+    localStorage.removeItem('syspharma_token');
   },
 
   getCurrentUser: () => {
-    const u = localStorage.getItem("syspharma_user");
+    const u = localStorage.getItem('syspharma_user');
     return u ? JSON.parse(u) : null;
   },
-};
+
+  getToken: () => {
+    return localStorage.getItem('syspharma_token');
+  }
+}
