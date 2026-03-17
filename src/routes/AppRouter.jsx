@@ -150,6 +150,7 @@ export const AppRouter = () => {
               </ProtectedRoute>
             }
           />
+          {/* Ruta productos/nuevo eliminada para evitar conflicto con NewProductPage */}
           <Route
             path="categorias"
             element={

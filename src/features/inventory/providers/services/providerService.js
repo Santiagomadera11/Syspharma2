@@ -1,35 +1,34 @@
-const DB_KEY = 'syspharma_providers';
+import axios from "axios";
 
-// No seed data: la lista de proveedores empieza vacía para que solo aparezcan
-// los proveedores que el usuario agregue mediante la UI (botón "Nuevo").
-// Añadimos notificación de cambios para que otras vistas (p. ej. formularios)
-// puedan actualizarse en tiempo real escuchando el evento 'providers:changed'.
-const notifyChange = () => {
-  window.dispatchEvent(new CustomEvent('providers:changed'));
+const API_URL = "http://localhost:5055/api/Proveedor";
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("syspharma_token");
+  return { Authorization: `Bearer ${token}` };
 };
 
 export const providerService = {
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-    return data ? JSON.parse(data) : [];
+  getAll: async () => {
+    const res = await axios.get(API_URL, { headers: getAuthHeaders() });
+    return res.data;
   },
-  create: (item) => {
-    const list = providerService.getAll();
-    const newList = [{ ...item, id: Date.now() }, ...list];
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    notifyChange();
-    return newList;
+  create: async (item) => {
+    const { id, ...payload } = item; // excluir id para POST
+    const res = await axios.post(API_URL, payload, { headers: getAuthHeaders() });
+    return res.data;
   },
-  update: (item) => {
-    const list = providerService.getAll().map(i => i.id === item.id ? item : i);
-    localStorage.setItem(DB_KEY, JSON.stringify(list));
-    notifyChange();
-    return list;
+  update: async (item) => {
+    const res = await axios.put(API_URL, item, { headers: getAuthHeaders() });
+    return res.data;
   },
-  delete: (id) => {
-    const list = providerService.getAll().filter(i => i.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(list));
-    notifyChange();
-    return list;
-  }
+  delete: async (id) => {
+    const res = await axios.delete(`${API_URL}/${id}`, { headers: getAuthHeaders() });
+    return res.data;
+  },
+  toggleStatus: async (id, estado) => {
+    const res = await axios.patch(`${API_URL}/${id}/estado`, estado, {
+      headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+    });
+    return res.data;
+  },
 };

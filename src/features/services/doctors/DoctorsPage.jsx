@@ -1,26 +1,19 @@
 import React, { useState, useEffect } from "react";
 import {
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  AlertCircle,
-  CheckCircle,
-  X,
+  Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight,
+  Eye, AlertCircle, CheckCircle, X,
 } from "lucide-react";
 import { doctorService } from "./services/doctorService";
 import DoctorFormModal from "./components/DoctorFormModal";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
 
+const DIAS_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
 export const DoctorsPage = () => {
   const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-
-  // Estados para modales
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -28,150 +21,105 @@ export const DoctorsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [doctorToToggle, setDoctorToToggle] = useState(null);
   const [isToggleConfirmOpen, setIsToggleConfirmOpen] = useState(false);
-
-  // Estado para notificaciones
   const [notification, setNotification] = useState(null);
-
-  // Paginación
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 5;
 
-  useEffect(() => {
-    loadDoctors();
-  }, []);
+  useEffect(() => { loadDoctors(); }, []);
 
-  // Auto-dismiss de notificaciones
   useEffect(() => {
     if (notification) {
-      const timer = setTimeout(() => {
-        setNotification(null);
-      }, 3000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setNotification(null), 3000);
+      return () => clearTimeout(t);
     }
   }, [notification]);
 
-  const loadDoctors = () => {
-    setDoctors(doctorService.getAll());
+  const loadDoctors = async () => {
+    try {
+      setLoading(true);
+      const data = await doctorService.getAll();
+      setDoctors(data);
+    } catch (error) {
+      console.error("Error cargando médicos:", error);
+      setNotification({ message: "Error al cargar médicos", type: "error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Abrir modal para crear
-  const handleOpenCreate = () => {
-    setEditingDoctor(null);
-    setIsModalOpen(true);
-  };
+  const handleOpenCreate = () => { setEditingDoctor(null); setIsModalOpen(true); };
+  const handleOpenEdit = (doctor) => { setEditingDoctor(doctor); setIsModalOpen(true); };
+  const handleViewDetail = (doctor) => { setSelectedDoctor(doctor); setIsDetailModalOpen(true); };
 
-  // Abrir modal para editar
-  const handleOpenEdit = (doctor) => {
-    setEditingDoctor(doctor);
-    setIsModalOpen(true);
-  };
-
-  // Abrir detalle del doctor
-  const handleViewDetail = (doctor) => {
-    setSelectedDoctor(doctor);
-    setIsDetailModalOpen(true);
-  };
-
-  // Guardar doctor (crear o actualizar)
-  const handleSaveDoctor = () => {
-    loadDoctors();
-    setNotification({
-      message: editingDoctor
-        ? "Doctor actualizado correctamente"
-        : "Doctor agregado correctamente",
-      type: "success",
-      duration: 3000,
-    });
+  const handleSaveDoctor = async (formData) => {
+    if (editingDoctor) {
+      await doctorService.update({ ...editingDoctor, ...formData });
+      setNotification({ message: "Médico actualizado correctamente", type: "success" });
+    } else {
+      await doctorService.create(formData);
+      setNotification({ message: "Médico creado correctamente", type: "success" });
+    }
+    await loadDoctors();
     setIsModalOpen(false);
     setEditingDoctor(null);
   };
 
-  // Iniciar proceso de cambio de estado
-  const handleToggleStatus = (doctor) => {
-    setDoctorToToggle(doctor);
-    setIsToggleConfirmOpen(true);
-  };
+  const handleToggleStatus = (doctor) => { setDoctorToToggle(doctor); setIsToggleConfirmOpen(true); };
 
-  // Confirmar cambio de estado
-  const confirmToggleStatus = () => {
-    if (doctorToToggle) {
-      doctorService.toggleStatus(doctorToToggle.id);
-      loadDoctors();
+  const confirmToggleStatus = async () => {
+    if (!doctorToToggle) return;
+    try {
+      await doctorService.toggleStatus(doctorToToggle.id, doctorToToggle.estado);
+      await loadDoctors();
       const newStatus = !doctorToToggle.estado;
       setNotification({
-        message: `Doctor ${doctorToToggle.nombre} ${newStatus ? "activado" : "desactivado"} correctamente`,
+        message: `Médico ${doctorToToggle.nombre} ${newStatus ? "activado" : "desactivado"}`,
         type: newStatus ? "success" : "warning",
-        duration: 3000,
       });
+    } catch {
+      setNotification({ message: "Error al cambiar estado", type: "error" });
+    } finally {
       setIsToggleConfirmOpen(false);
       setDoctorToToggle(null);
     }
   };
 
-  // Eliminar doctor
-  const handleDeleteDoctor = (doctor) => {
-    setShowDeleteConfirm(doctor);
-  };
+  const handleDeleteDoctor = (doctor) => setShowDeleteConfirm(doctor);
 
-  // Confirmar eliminación
-  const confirmDelete = () => {
-    if (showDeleteConfirm) {
-      doctorService.delete(showDeleteConfirm.id);
-      loadDoctors();
-      setNotification({
-        message: "Doctor eliminado correctamente",
-        type: "success",
-        duration: 3000,
-      });
+  const confirmDelete = async () => {
+    if (!showDeleteConfirm) return;
+    try {
+      await doctorService.delete(showDeleteConfirm.id);
+      await loadDoctors();
+      setNotification({ message: "Médico eliminado correctamente", type: "success" });
+    } catch {
+      setNotification({ message: "Error al eliminar médico", type: "error" });
+    } finally {
       setShowDeleteConfirm(null);
     }
   };
 
-  // Filtrar doctors
   const filteredDoctors = doctors.filter((doc) => {
     const matchesSearch =
-      doc.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.especialidad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.email.toLowerCase().includes(searchTerm.toLowerCase());
-
+      doc.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.especialidad?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "all" ||
       (filterStatus === "active" && doc.estado) ||
       (filterStatus === "inactive" && !doc.estado);
-
     return matchesSearch && matchesStatus;
   });
 
-  // Paginación
   const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
-  const paginatedDoctors = filteredDoctors.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
-  );
+  const paginatedDoctors = filteredDoctors.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
-  // Toggle Switch Component
-  const StatusToggle = ({ doctor }) => {
-    const isActive = doctor.estado;
-    return (
-      <button
-        onClick={() => handleToggleStatus(doctor)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
-          isActive
-            ? "bg-emerald-500 shadow-md shadow-emerald-200"
-            : "bg-gray-300 shadow-md shadow-gray-200"
-        }`}
-        role="switch"
-        aria-checked={isActive}
-      >
-        <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-            isActive ? "translate-x-6" : "translate-x-0.5"
-          }`}
-        />
-        <span className="sr-only">{isActive ? "Activo" : "Inactivo"}</span>
-      </button>
-    );
-  };
+  const StatusToggle = ({ doctor }) => (
+    <button onClick={() => handleToggleStatus(doctor)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${doctor.estado ? "bg-emerald-500 shadow-md shadow-emerald-200" : "bg-gray-300"}`}>
+      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${doctor.estado ? "translate-x-6" : "translate-x-0.5"}`} />
+    </button>
+  );
 
   return (
     <div className="h-full flex flex-col gap-6 font-sans overflow-hidden no-scrollbar">
@@ -179,428 +127,194 @@ export const DoctorsPage = () => {
       <div className="flex items-start justify-between flex-shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-emerald-700">Gestión de Médicos</h1>
-          <p className="text-gray-500 text-xs mt-0.5">
-            Administra el registro completo de profesionales médicos
-          </p>
+          <p className="text-gray-500 text-xs mt-0.5">Administra el registro completo de profesionales médicos</p>
         </div>
       </div>
 
-      {/* Búsqueda y Filtros */}
+      {/* Búsqueda y filtros */}
       <div className="flex gap-4 flex-shrink-0 flex-wrap">
         <div className="flex-1 min-w-[250px] relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={16}
-          />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, especialidad o email..."
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input type="text" placeholder="Buscar por nombre, especialidad o email..."
             className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(0);
-            }}
-          />
+            value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(0); }} />
         </div>
-
-        <select
-          value={filterStatus}
-          onChange={(e) => {
-            setFilterStatus(e.target.value);
-            setCurrentPage(0);
-          }}
-          className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
-        >
+        <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(0); }}
+          className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white">
           <option value="all">Todos</option>
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
         </select>
-
-        <button
-          onClick={handleOpenCreate}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 flex-shrink-0"
-        >
-          <Plus size={16} />
-          Nuevo Médico
+        <button onClick={handleOpenCreate}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2">
+          <Plus size={16} /> Nuevo Médico
         </button>
       </div>
 
-      {/* Tabla de Médicos */}
+      {/* Tabla */}
       <div className="flex-1 overflow-auto no-scrollbar bg-white rounded-xl shadow-sm border border-gray-100">
-        <table className="w-full">
-          <thead className="bg-emerald-600 text-white sticky top-0">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold">
-                Nombre
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold">
-                Especialidad
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold">
-                Email
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold">
-                Teléfono
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold">
-                Días Laborales
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold">
-                Estado
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {paginatedDoctors.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-48 text-gray-500">Cargando médicos...</div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-emerald-600 text-white sticky top-0">
               <tr>
-                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                  No se encontraron médicos
-                </td>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Nombre</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Especialidad</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Teléfono</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Días Laborales</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Estado</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Acciones</th>
               </tr>
-            ) : (
-              paginatedDoctors.map((doctor) => (
-                <tr key={doctor.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={doctor.avatar}
-                        alt={doctor.nombre}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {doctor.nombre}
-                        </div>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {paginatedDoctors.length === 0 ? (
+                <tr><td colSpan="7" className="px-4 py-8 text-center text-gray-500">No se encontraron médicos</td></tr>
+              ) : (
+                paginatedDoctors.map((doctor) => (
+                  <tr key={doctor.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <img src={doctor.avatar} alt={doctor.nombre} className="w-8 h-8 rounded-full" />
+                        <span className="font-medium text-gray-900">{doctor.nombre}</span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {doctor.especialidad}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {doctor.email}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {doctor.telefono}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <div className="flex flex-wrap gap-1">
-                      {doctor.diasLaborales &&
-                        doctor.diasLaborales.length > 0 && (
-                          <span className="inline-block bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs">
-                            {doctor.diasLaborales.length} días
-                          </span>
-                        )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusToggle doctor={doctor} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleViewDetail(doctor)}
-                        className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
-                        title="Ver detalles"
-                      >
-                        <Eye size={16} />
-                      </button>
-
-                      <button
-                        onClick={() => handleOpenEdit(doctor)}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="Editar"
-                      >
-                        <Edit size={16} />
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteDoctor(doctor)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{doctor.especialidad}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{doctor.email}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{doctor.telefono}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {doctor.diasLaborales?.length > 0 && (
+                        <span className="inline-block bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs">
+                          {doctor.diasLaborales.map(d => DIAS_LABELS[d]).join(", ")}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3"><StatusToggle doctor={doctor} /></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleViewDetail(doctor)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Ver detalles"><Eye size={16} /></button>
+                        <button onClick={() => handleOpenEdit(doctor)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Editar"><Edit size={16} /></button>
+                        <button onClick={() => handleDeleteDoctor(doctor)} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Eliminar"><Trash2 size={16} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Paginación */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between flex-shrink-0">
-          <div className="text-sm text-gray-600">
-            Mostrando {paginatedDoctors.length > 0 ? currentPage * itemsPerPage + 1 : 0}-
-            {Math.min((currentPage + 1) * itemsPerPage, filteredDoctors.length)} de{" "}
-            {filteredDoctors.length}
-          </div>
-
+          <span className="text-sm text-gray-600">
+            Mostrando {paginatedDoctors.length > 0 ? currentPage * itemsPerPage + 1 : 0}-{Math.min((currentPage + 1) * itemsPerPage, filteredDoctors.length)} de {filteredDoctors.length}
+          </span>
           <div className="flex gap-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-              disabled={currentPage === 0}
-              className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft size={20} />
-            </button>
-
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i)}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    currentPage === i
-                      ? "bg-emerald-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() =>
-                setCurrentPage(Math.min(totalPages - 1, currentPage + 1))
-              }
-              disabled={currentPage === totalPages - 1}
-              className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
+            <button onClick={() => setCurrentPage(Math.max(0, currentPage - 1))} disabled={currentPage === 0}
+              className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50"><ChevronLeft size={20} /></button>
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button key={i} onClick={() => setCurrentPage(i)}
+                className={`px-3 py-1 rounded text-sm font-medium ${currentPage === i ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
+                {i + 1}
+              </button>
+            ))}
+            <button onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))} disabled={currentPage === totalPages - 1}
+              className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50"><ChevronRight size={20} /></button>
           </div>
         </div>
       )}
 
-      {/* Modal de Formulario */}
-      <DoctorFormModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingDoctor(null);
-        }}
-        onSave={handleSaveDoctor}
-        doctor={editingDoctor}
-      />
+      {/* Modal Formulario */}
+      <DoctorFormModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingDoctor(null); }}
+        onSave={handleSaveDoctor} doctor={editingDoctor} />
 
       {/* Notificación */}
-      {notification && (
-        <StatusNotification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
-      )}
+      {notification && <StatusNotification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
 
-      {/* Modal de Detalle del Doctor */}
+      {/* Modal Detalle */}
       {isDetailModalOpen && selectedDoctor && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col animate-in fade-in duration-200">
-            {/* Header */}
-            <div className="px-6 py-4 flex items-center justify-between border-b border-emerald-100 bg-emerald-50 flex-shrink-0">
-              <div>
-                <h2 className="text-lg font-semibold text-emerald-900">
-                  {selectedDoctor.nombre}
-                </h2>
-              </div>
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="p-1 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-600"
-              >
-                <X size={20} />
-              </button>
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-emerald-100 bg-emerald-50">
+              <h2 className="text-lg font-semibold text-emerald-900">{selectedDoctor.nombre}</h2>
+              <button onClick={() => setIsDetailModalOpen(false)} className="p-1 hover:bg-emerald-100 rounded-lg text-emerald-600"><X size={20} /></button>
             </div>
-
-            {/* Content */}
-            <div className="flex-1 p-6 overflow-y-auto">
-              <div className="space-y-4">
-                {/* Especialidad */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">
-                    Especialidad
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {selectedDoctor.especialidad}
-                  </p>
+            <div className="p-6 space-y-4">
+              {[
+                { label: "Especialidad", value: selectedDoctor.especialidad },
+                { label: "Documento", value: selectedDoctor.documento },
+                { label: "Email", value: selectedDoctor.email },
+                { label: "Teléfono", value: selectedDoctor.telefono },
+                { label: "Horario", value: `${selectedDoctor.horaInicio} - ${selectedDoctor.horaFin} (cada ${selectedDoctor.intervalo} min)` },
+              ].map(({ label, value }) => value && (
+                <div key={label}>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">{label}</label>
+                  <p className="text-sm text-gray-900 font-medium">{value}</p>
                 </div>
-
-                {/* Email */}
+              ))}
+              {selectedDoctor.diasLaborales?.length > 0 && (
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">
-                    Email
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {selectedDoctor.email}
-                  </p>
+                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">Días Laborales</label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDoctor.diasLaborales.map((dia) => (
+                      <span key={dia} className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-md text-xs font-medium">{DIAS_LABELS[dia]}</span>
+                    ))}
+                  </div>
                 </div>
-
-                {/* Teléfono */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">
-                    Teléfono
-                  </label>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {selectedDoctor.telefono}
-                  </p>
-                </div>
-
-                {/* Días Laborales */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">
-                    Días Laborales
-                  </label>
-                  {selectedDoctor.diasLaborales && selectedDoctor.diasLaborales.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedDoctor.diasLaborales.map((dia, index) => (
-                        <span
-                          key={index}
-                          className="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-md text-xs font-medium"
-                        >
-                          {dia}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">No especificado</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0">
-              <button
-                onClick={() => setIsDetailModalOpen(false)}
-                className="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Confirmar Eliminación */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
-            {/* Header */}
-            <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
-              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                <AlertCircle size={18} className="text-red-600" />
-                Eliminar Médico
-              </h3>
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="p-5">
-              <p className="text-sm text-gray-700">
-                ¿Estás seguro de eliminar al médico <strong>"{showDeleteConfirm.nombre}"</strong>?
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                Esta acción no se puede deshacer.
-              </p>
-            </div>
-
-            {/* Footer */}
-            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors flex items-center gap-1 shadow-sm"
-              >
-                <Trash2 size={14} />
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Confirmar Cambio de Estado */}
-      {isToggleConfirmOpen && doctorToToggle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
-            {/* Header */}
-            <div
-              className={`px-5 py-3 border-b flex justify-between items-center ${
-                doctorToToggle.estado
-                  ? "bg-red-50 border-red-200"
-                  : "bg-green-50 border-green-200"
-              }`}
-            >
-              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                {doctorToToggle.estado ? (
-                  <AlertCircle size={18} className="text-red-600" />
-                ) : (
-                  <CheckCircle size={18} className="text-green-600" />
-                )}
-                {doctorToToggle.estado ? "Desactivar Médico" : "Activar Médico"}
-              </h3>
-              <button
-                onClick={() => setIsToggleConfirmOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="p-5">
-              <p className="text-sm text-gray-700">
-                {doctorToToggle.estado
-                  ? `¿Desactivar al médico "${doctorToToggle.nombre}"?`
-                  : `¿Activar al médico "${doctorToToggle.nombre}"?`}
-              </p>
-              {doctorToToggle.estado && (
-                <p className="text-xs text-gray-500 mt-2">
-                  El médico no podrá recibir citas.
-                </p>
               )}
             </div>
+            <div className="bg-gray-50 px-6 py-3 border-t flex justify-end">
+              <button onClick={() => setIsDetailModalOpen(false)} className="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Footer */}
-            <div
-              className={`px-5 py-3 border-t flex justify-end gap-2 ${
-                doctorToToggle.estado
-                  ? "bg-red-50 border-red-200"
-                  : "bg-green-50 border-green-200"
-              }`}
-            >
-              <button
-                onClick={() => setIsToggleConfirmOpen(false)}
-                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
-              >
-                Cancelar
+      {/* Modal Eliminar */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2"><AlertCircle size={18} className="text-red-600" />Eliminar Médico</h3>
+              <button onClick={() => setShowDeleteConfirm(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-gray-700">¿Eliminar al médico <strong>"{showDeleteConfirm.nombre}"</strong>?</p>
+              <p className="text-xs text-gray-500 mt-2">Esta acción no se puede deshacer.</p>
+            </div>
+            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
+              <button onClick={() => setShowDeleteConfirm(null)} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md">Cancelar</button>
+              <button onClick={confirmDelete} className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md flex items-center gap-1">
+                <Trash2 size={14} /> Eliminar
               </button>
-              <button
-                onClick={confirmToggleStatus}
-                className={`px-4 py-2 text-xs font-bold text-white rounded-md transition-colors flex items-center gap-1 shadow-sm ${
-                  doctorToToggle.estado
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-green-600 hover:bg-green-700"
-                }`}
-              >
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Toggle Estado */}
+      {isToggleConfirmOpen && doctorToToggle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            <div className={`px-5 py-3 border-b flex justify-between items-center ${doctorToToggle.estado ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                {doctorToToggle.estado ? <AlertCircle size={18} className="text-red-600" /> : <CheckCircle size={18} className="text-green-600" />}
+                {doctorToToggle.estado ? "Desactivar Médico" : "Activar Médico"}
+              </h3>
+              <button onClick={() => setIsToggleConfirmOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                {doctorToToggle.estado ? `¿Desactivar al médico "${doctorToToggle.nombre}"?` : `¿Activar al médico "${doctorToToggle.nombre}"?`}
+              </p>
+            </div>
+            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${doctorToToggle.estado ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+              <button onClick={() => setIsToggleConfirmOpen(false)} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md">Cancelar</button>
+              <button onClick={confirmToggleStatus}
+                className={`px-4 py-2 text-xs font-bold text-white rounded-md ${doctorToToggle.estado ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}>
                 {doctorToToggle.estado ? "Desactivar" : "Activar"}
               </button>
             </div>

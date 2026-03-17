@@ -1,53 +1,41 @@
-const DB_KEY = "syspharma_products";
+import axios from "axios";
 
-const initialData = [];
+const API_URL = "http://localhost:5055/api/Producto";
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("syspharma_token");
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+};
 
 export const productService = {
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-    if (!data) {
-      localStorage.setItem(DB_KEY, JSON.stringify(initialData));
-      return initialData;
-    }
-    return JSON.parse(data);
+  getAll: async () => {
+    const response = await axios.get(API_URL, getAuthHeaders());
+    return response.data;
   },
 
-  create: (product) => {
-    const products = productService.getAll();
-    const newProduct = { ...product, id: Date.now() };
-    const newList = [newProduct, ...products]; // Agregamos al principio
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    return newList;
+  create: async (product) => {
+    const response = await axios.post(API_URL, product, getAuthHeaders());
+    return response.data;
   },
 
-  update: (updatedProduct) => {
-    const products = productService.getAll();
-    const newList = products.map((p) =>
-      p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p,
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    return newList;
+  update: async (product) => {
+    const response = await axios.put(API_URL, product, getAuthHeaders());
+    return response.data;
   },
 
-  getById: (id) => {
-    const products = productService.getAll();
-    const found = products.find((p) => p.id == id); // Usar == en lugar de === para comparación flexible
-    return found;
+  delete: async (id) => {
+    const response = await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+    return response.data;
   },
 
-  toggleStatus: (id) => {
-    const products = productService.getAll();
-    const newList = products.map((p) =>
-      p.id === id ? { ...p, estado: !p.estado } : p,
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    return newList;
-  },
-
-  delete: (id) => {
-    const products = productService.getAll();
-    const newList = products.filter((p) => p.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    return newList;
+  toggleStatus: async (id, estadoActual) => {
+    const config = getAuthHeaders();
+    config.headers["Content-Type"] = "application/json";
+    const response = await axios.patch(`${API_URL}/${id}/estado`, !estadoActual, config);
+    return response.data;
   },
 };
