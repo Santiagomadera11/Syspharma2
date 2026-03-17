@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Save, Building2, User, Phone, Mail, MapPin, AlertCircle } from "lucide-react";
+import { X, Save, Building2, User, Phone, Mail, MapPin, AlertCircle, FileText } from "lucide-react";
+
+const TIPOS_DOCUMENTO = ["NIT", "Cédula", "Cédula Extranjería", "Pasaporte", "RUT"];
 
 const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "create", onDelete }) => {
   const [formData, setFormData] = useState({
@@ -8,6 +10,8 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
     telefono: "",
     email: "",
     direccion: "",
+    tipoDocumento: "",
+    documento: "",
     estado: true,
   });
 
@@ -22,6 +26,8 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
         telefono: initialData.telefono || "",
         email: initialData.email || "",
         direccion: initialData.direccion || "",
+        tipoDocumento: initialData.tipoDocumento || "",
+        documento: initialData.documento || "",
         estado: initialData.estado !== undefined ? initialData.estado : true,
       });
     } else {
@@ -31,6 +37,8 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
         telefono: "",
         email: "",
         direccion: "",
+        tipoDocumento: "",
+        documento: "",
         estado: true,
       });
     }
@@ -51,9 +59,8 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
     const newErrors = {};
     if (!formData.nombre?.trim()) newErrors.nombre = "El nombre es requerido";
     if (!formData.contacto?.trim()) newErrors.contacto = "El contacto es requerido";
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
       newErrors.email = "Correo inválido";
-    }
     return newErrors;
   };
 
@@ -64,10 +71,7 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
 
   const handleSubmit = () => {
     const newErrors = validate();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
     if (onSave) onSave(formData);
   };
 
@@ -104,11 +108,40 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
                 onChange={(e) => handleChange("nombre", e.target.value)}
               />
             </div>
-            {errors.nombre && (
-              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
-                <AlertCircle size={12} /> {errors.nombre}
-              </div>
-            )}
+            {errors.nombre && <div className="flex items-center gap-1 mt-1 text-red-500 text-xs"><AlertCircle size={12} /> {errors.nombre}</div>}
+          </div>
+
+          {/* Tipo Documento */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Documento</label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <select
+                disabled={isView}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 bg-white disabled:bg-gray-100 disabled:text-gray-500"
+                value={formData.tipoDocumento}
+                onChange={(e) => handleChange("tipoDocumento", e.target.value)}
+              >
+                <option value="">Seleccionar...</option>
+                {TIPOS_DOCUMENTO.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Documento */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Número de Documento</label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                disabled={isView}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 disabled:bg-gray-100 disabled:text-gray-500"
+                placeholder="Ej: 900123456-1"
+                value={formData.documento}
+                onChange={(e) => handleChange("documento", e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Contacto */}
@@ -127,11 +160,7 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
                 onChange={(e) => handleChange("contacto", e.target.value)}
               />
             </div>
-            {errors.contacto && (
-              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
-                <AlertCircle size={12} /> {errors.contacto}
-              </div>
-            )}
+            {errors.contacto && <div className="flex items-center gap-1 mt-1 text-red-500 text-xs"><AlertCircle size={12} /> {errors.contacto}</div>}
           </div>
 
           {/* Teléfono */}
@@ -166,11 +195,7 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
                 onChange={(e) => handleChange("email", e.target.value)}
               />
             </div>
-            {errors.email && (
-              <div className="flex items-center gap-1 mt-1 text-red-500 text-xs">
-                <AlertCircle size={12} /> {errors.email}
-              </div>
-            )}
+            {errors.email && <div className="flex items-center gap-1 mt-1 text-red-500 text-xs"><AlertCircle size={12} /> {errors.email}</div>}
           </div>
 
           {/* Estado */}
@@ -216,10 +241,7 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
             )}
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
-            >
+            <button onClick={onClose} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors">
               {isView ? "Cerrar" : "Cancelar"}
             </button>
             {!isView && (
