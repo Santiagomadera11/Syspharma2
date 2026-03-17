@@ -38,12 +38,15 @@ export const CreateOrderPage = () => {
     ? "bg-blue-600 hover:bg-blue-700"
     : "bg-emerald-600 hover:bg-emerald-700";
 
-  const [products, setProducts] = useState(productService.getAll());
+  const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Cargar productos y refrescar periódicamente
   useEffect(() => {
-    const loadProducts = () => setProducts(productService.getAll());
+    const loadProducts = async () => {
+      const data = await productService.getAll();
+      setProducts(data);
+    };
     loadProducts();
 
     // Refrescar productos cada 3 segundos para mantener stock actualizado

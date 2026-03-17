@@ -1,127 +1,78 @@
-const DB_KEY = "syspharma_doctors";
+import axios from "axios";
 
-// Datos iniciales: Médicos
-const initialDoctors = [
-  {
-    id: 1,
-    nombre: "Dr. Andrés López",
-    especialidad: "Medicina General",
-    diasLaborales: [1, 2, 3, 4, 5],
-    horaInicio: "08:00",
-    horaFin: "17:00",
-    intervalo: 30,
-    email: "andres.lopez@syspharma.com",
-    telefono: "3001234567",
-    estado: true,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=doctor1",
-  },
-  {
-    id: 2,
-    nombre: "Enf. María Ruiz",
-    especialidad: "Inyectología",
-    diasLaborales: [1, 2, 3, 4, 5, 6],
-    horaInicio: "07:00",
-    horaFin: "19:00",
-    intervalo: 15,
-    email: "maria.ruiz@syspharma.com",
-    telefono: "3019876543",
-    estado: true,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=doctor2",
-  },
-];
+const API_URL = "http://localhost:5055/api/Medico";
+
+const getAuthHeaders = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem("syspharma_token")}` },
+});
+
+const parseDias = (diasStr) => {
+  try { return diasStr ? JSON.parse(diasStr) : [1, 2, 3, 4, 5]; }
+  catch { return [1, 2, 3, 4, 5]; }
+};
+
+const mapDoctor = (m) => ({
+  ...m,
+  diasLaborales: parseDias(m.diasLaborales),
+  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(m.nombre || m.id)}`,
+});
 
 export const doctorService = {
-  // --- OBTENER TODOS LOS MÉDICOS ---
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-    if (!data) {
-      localStorage.setItem(DB_KEY, JSON.stringify(initialDoctors));
-      return initialDoctors;
-    }
-    try {
-      return JSON.parse(data);
-    } catch {
-      localStorage.setItem(DB_KEY, JSON.stringify(initialDoctors));
-      return initialDoctors;
-    }
+  getAll: async () => {
+    const res = await axios.get(API_URL, getAuthHeaders());
+    return res.data.map(mapDoctor);
   },
 
-  // --- CREAR NUEVO MÉDICO ---
-  create: (doctorData) => {
-    const doctors = doctorService.getAll();
-    const id = Math.max(...doctors.map((d) => d.id || 0), 0) + 1;
-    const newDoctor = {
-      id,
+  getById: async (id) => {
+    const res = await axios.get(`${API_URL}/${id}`, getAuthHeaders());
+    return mapDoctor(res.data);
+  },
+
+  create: async (doctorData) => {
+    const payload = {
       nombre: doctorData.nombre,
-      especialidad: doctorData.especialidad,
-      email: doctorData.email || "",
-      telefono: doctorData.telefono || "",
-      diasLaborales: doctorData.diasLaborales || [1, 2, 3, 4, 5],
+      especialidad: doctorData.especialidad || null,
+      documento: doctorData.documento || null,
+      email: doctorData.email || null,
+      telefono: doctorData.telefono || null,
+      diasLaborales: JSON.stringify(doctorData.diasLaborales || [1, 2, 3, 4, 5]),
       horaInicio: doctorData.horaInicio || "08:00",
       horaFin: doctorData.horaFin || "17:00",
       intervalo: doctorData.intervalo || 30,
-      estado: typeof doctorData.estado === "boolean" ? doctorData.estado : true,
-      avatar:
-        doctorData.avatar ||
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-          doctorData.nombre || id
-        )}`,
     };
-    const next = [newDoctor, ...doctors];
-    localStorage.setItem(DB_KEY, JSON.stringify(next));
-    return next;
+    const res = await axios.post(API_URL, payload, getAuthHeaders());
+    return mapDoctor(res.data);
   },
 
-  // --- ACTUALIZAR MÉDICO ---
-  update: (doctorData) => {
-    const doctors = doctorService.getAll();
-    const updated = doctors.map((d) =>
-      d.id === doctorData.id ? { ...d, ...doctorData } : d
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(updated));
-    return updated;
+  update: async (doctorData) => {
+    const payload = {
+      id: doctorData.id,
+      nombre: doctorData.nombre,
+      especialidad: doctorData.especialidad || null,
+      documento: doctorData.documento || null,
+      email: doctorData.email || null,
+      telefono: doctorData.telefono || null,
+      diasLaborales: JSON.stringify(doctorData.diasLaborales || [1, 2, 3, 4, 5]),
+      horaInicio: doctorData.horaInicio || "08:00",
+      horaFin: doctorData.horaFin || "17:00",
+      intervalo: doctorData.intervalo || 30,
+    };
+    const res = await axios.put(API_URL, payload, getAuthHeaders());
+    return mapDoctor(res.data);
   },
 
-  // --- OBTENER UN MÉDICO POR ID ---
-  getById: (id) => {
-    const doctors = doctorService.getAll();
-    return doctors.find((d) => d.id === id);
+  delete: async (id) => {
+    await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
   },
 
-  // --- ELIMINAR MÉDICO ---
-  delete: (id) => {
-    const doctors = doctorService.getAll();
-    const filtered = doctors.filter((d) => d.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(filtered));
-    return filtered;
+  toggleStatus: async (id, estadoActual) => {
+    const config = getAuthHeaders();
+    config.headers["Content-Type"] = "application/json";
+    await axios.patch(`${API_URL}/${id}/estado`, !estadoActual, config);
   },
 
-  // --- CAMBIAR ESTADO (Activo/Inactivo) ---
-  toggleStatus: (id) => {
-    const doctors = doctorService.getAll();
-    const updated = doctors.map((d) =>
-      d.id === id ? { ...d, estado: !d.estado } : d
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(updated));
-    return updated;
-  },
-
-  // --- GUARDAR TODOS (para bulk updates) ---
-  saveAll: (list) => {
-    const arr = Array.isArray(list) ? list : [];
-    localStorage.setItem(DB_KEY, JSON.stringify(arr));
-    return arr;
-  },
-
-  // --- OBTENER MÉDICOS ACTIVOS ---
-  getActive: () => {
-    return doctorService.getAll().filter((d) => d.estado);
-  },
-
-  // --- OBTENER MÉDICOS POR ESPECIALIDAD ---
-  getBySpecialty: (specialty) => {
-    return doctorService
-      .getAll()
-      .filter((d) => d.especialidad.toLowerCase() === specialty.toLowerCase());
+  getActive: async () => {
+    const all = await doctorService.getAll();
+    return all.filter((d) => d.estado);
   },
 };

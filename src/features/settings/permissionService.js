@@ -1,23 +1,34 @@
-const PERM_MAP_KEY = "syspharma_role_perms";
-import { rolesService } from "./rolesService";
+import axios from "axios";
 
+const API_URL = "http://localhost:5055/api/Permiso";
+const PERM_MAP_KEY = "syspharma_role_perms_local";
+
+const getAuthHeaders = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem("syspharma_token")}` },
+});
+
+// ─── Permisos del backend (catálogo) ─────────────────────────────────────────
 export const permissionService = {
-  init: () => {
-    // ensure storage exists and sync from roles
-    const raw = localStorage.getItem(PERM_MAP_KEY);
-    if (!raw) {
-      localStorage.setItem(PERM_MAP_KEY, JSON.stringify({}));
-    }
-    permissionService.syncFromRoles();
+  // Obtener catálogo de permisos desde el backend
+  getCatalog: async () => {
+    const res = await axios.get(API_URL, getAuthHeaders());
+    return res.data;
   },
 
+  createPermiso: async (data) => {
+    const res = await axios.post(API_URL, data, getAuthHeaders());
+    return res.data;
+  },
+
+  updatePermiso: async (data) => {
+    const res = await axios.put(API_URL, data, getAuthHeaders());
+    return res.data;
+  },
+
+  // ─── Mapa local de permisos por rol (frontend) ─────────────────────────────
   getAll: () => {
-    try {
-      const raw = localStorage.getItem(PERM_MAP_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem(PERM_MAP_KEY) || "{}"); }
+    catch { return {}; }
   },
 
   saveAll: (map) => {
@@ -25,16 +36,7 @@ export const permissionService = {
   },
 
   syncFromRoles: () => {
-    // rebuild the map using current roles array
-    const roles = rolesService.getAll();
-    const map = {};
-    (roles || []).forEach((r) => {
-      const perms = {};
-      (r.permissions || []).forEach((id) => (perms[id] = true));
-      map[r.name] = perms;
-    });
-    permissionService.saveAll(map);
-    return map;
+    // No-op: ahora la sincronización la maneja rolesService
   },
 
   updateRole: (roleName, permissionsArray) => {
@@ -46,10 +48,8 @@ export const permissionService = {
 
   removeRole: (roleName) => {
     const map = permissionService.getAll();
-    if (map[roleName]) {
-      delete map[roleName];
-      permissionService.saveAll(map);
-    }
+    delete map[roleName];
+    permissionService.saveAll(map);
   },
 
   getRolePerms: (roleName) => {
@@ -59,10 +59,14 @@ export const permissionService = {
 
   hasPerm: (roleName, permId) => {
     if (!roleName) return false;
+    if (roleName === "Administrador") return true;
     const perms = permissionService.getRolePerms(roleName);
     return !!perms[permId];
   },
+
+  init: () => {
+    // No-op: ya no usamos localStorage para inicializar roles
+  },
 };
 
-// ensure init when module is imported
 permissionService.init();

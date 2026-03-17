@@ -1,74 +1,75 @@
-const DB_KEY = "syspharma_users";
+import axios from "axios";
+
+const API_URL = "http://localhost:5055/api/Usuario";
+const ROLES_URL = "http://localhost:5055/api/RolMaestro";
+
+const getAuthHeaders = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem("syspharma_token")}` },
+});
+
+const mapUser = (u) => ({
+  ...u,
+  // compatibilidad con frontend que usa 'rol' y 'estado'
+  rol: u.rolNombre || u.rol || "",
+  estado: u.estado,
+  avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.nombre || u.id)}`,
+});
 
 export const userService = {
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-    if (!data) {
-      // no se inicializan usuarios por defecto: empezar con lista vacía
-      localStorage.setItem(DB_KEY, JSON.stringify([]));
-      return [];
-    }
-    try {
-      return JSON.parse(data);
-    } catch {
-      localStorage.setItem(DB_KEY, JSON.stringify([]));
-      return [];
-    }
+  getAll: async () => {
+    const res = await axios.get(API_URL, getAuthHeaders());
+    return res.data.map(mapUser);
   },
 
-  toggleStatus: (id) => {
-    const users = userService.getAll();
-    const updatedUsers = users.map((user) =>
-      user.id === id ? { ...user, estado: !user.estado } : user
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
-    return updatedUsers;
+  getById: async (id) => {
+    const res = await axios.get(`${API_URL}/${id}`, getAuthHeaders());
+    return mapUser(res.data);
   },
 
-  delete: (id) => {
-    const users = userService.getAll();
-    const filtered = users.filter((user) => user.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(filtered));
-    return filtered;
+  // Obtener roles para el select
+  getRoles: async () => {
+    const res = await axios.get(ROLES_URL, getAuthHeaders());
+    return res.data; // [{ id, nombre, ... }]
   },
-};
 
-// Additional helpers: create and update
-userService.create = (userData) => {
-  const users = userService.getAll();
-  const id = Date.now();
-  const newUser = {
-    id,
-    nombre: userData.nombre,
-    email: userData.email,
-    rol: userData.rol,
-    password: userData.password || "",
-    documento: userData.documento,
-    tipoDocumento: userData.tipoDocumento,
-    telefono: userData.telefono || "",
-    estado: typeof userData.estado === "boolean" ? userData.estado : true,
-    avatar:
-      userData.avatar ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-        userData.nombre || id
-      )}`,
-  };
-  const next = [newUser, ...users];
-  localStorage.setItem(DB_KEY, JSON.stringify(next));
-  return next;
-};
+  create: async (userData) => {
+    const payload = {
+      nombre: `${userData.nombres || ""} ${userData.apellidos || ""}`.trim() || userData.nombre,
+      email: userData.email,
+      tipoDocumento: userData.tipoDocumento || null,
+      documento: userData.documento || null,
+      telefono: userData.telefono || null,
+      rolId: Number(userData.rolId),
+      estado: typeof userData.estado === "boolean" ? userData.estado : true,
+      contrasena: userData.password,
+    };
+    const res = await axios.post(API_URL, payload, getAuthHeaders());
+    return mapUser(res.data);
+  },
 
-userService.update = (userData) => {
-  const users = userService.getAll();
-  const updated = users.map((u) =>
-    u.id === userData.id ? { ...u, ...userData } : u
-  );
-  localStorage.setItem(DB_KEY, JSON.stringify(updated));
-  return updated;
-};
+  update: async (userData) => {
+    const payload = {
+      id: userData.id,
+      nombre: `${userData.nombres || ""} ${userData.apellidos || ""}`.trim() || userData.nombre,
+      email: userData.email,
+      tipoDocumento: userData.tipoDocumento || null,
+      documento: userData.documento || null,
+      telefono: userData.telefono || null,
+      rolId: Number(userData.rolId),
+      estado: typeof userData.estado === "boolean" ? userData.estado : true,
+    };
+    const res = await axios.put(API_URL, payload, getAuthHeaders());
+    return mapUser(res.data);
+  },
 
-userService.saveAll = (list) => {
-  const arr = Array.isArray(list) ? list : [];
-  localStorage.setItem(DB_KEY, JSON.stringify(arr));
-  return arr;
+  toggleStatus: async (id, estadoActual) => {
+    const config = getAuthHeaders();
+    config.headers["Content-Type"] = "application/json";
+    const res = await axios.patch(`${API_URL}/${id}/estado`, !estadoActual, config);
+    return res.data;
+  },
+
+  delete: async (id) => {
+    await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+  },
 };

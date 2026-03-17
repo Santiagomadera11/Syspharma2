@@ -8,6 +8,11 @@ const ProtectedRoute = ({ children, requiredRole, requiredPerm }) => {
 
   if (!user) return <Navigate to="/login" replace />;
 
+  // Permitir acceso total al rol Administrador
+  if (user.rol === "Administrador") {
+    return children ? children : <Outlet />;
+  }
+
   // Si se especifica un rol requerido, verificar que coincida
   if (requiredRole && user.rol !== requiredRole) {
     return <Navigate to="/login" replace />;

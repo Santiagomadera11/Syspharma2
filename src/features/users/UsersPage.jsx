@@ -1,211 +1,143 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Search,
-  Plus,
-  Info,
-  Edit,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-  CheckCircle,
-  X,
+  Search, Plus, Info, Edit, Trash2,
+  ChevronLeft, ChevronRight, AlertCircle, CheckCircle, X,
 } from "lucide-react";
 import { permissionService } from "../settings/permissionService";
 import { userService } from "./services/userService";
-// IMPORTAMOS EL MODAL
 import { UserFormModal } from "./components/UserFormModal";
 import UserDetailModal from "./components/UserDetailModal";
-import { rolesService } from "../settings/rolesService";
-import { useMemo } from "react";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
-  const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-  const canCreateUser = permissionService.hasPerm(user.rol, "users.create");
-  const canEditUser = permissionService.hasPerm(user.rol, "users.edit");
-  const canDeleteUser = permissionService.hasPerm(user.rol, "users.delete");
+  const [loading, setLoading] = useState(true);
+  const [roleColorMap, setRoleColorMap] = useState({});
+  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const canCreateUser = permissionService.hasPerm(currentUser.rol, "users.create");
+  const canEditUser = permissionService.hasPerm(currentUser.rol, "users.edit");
+  const canDeleteUser = permissionService.hasPerm(currentUser.rol, "users.delete");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-
-  // --- ESTADOS PARA EL MODAL Y EDICIÓN ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null); // Guardará el usuario que vamos a editar
-  // detalle
+  const [editingUser, setEditingUser] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailUser, setDetailUser] = useState(null);
-
-  // --- ESTADO PARA NOTIFICACIONES ---
   const [notification, setNotification] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
   const [confirmStatus, setConfirmStatus] = useState({ show: false, user: null });
-
-  // Paginación
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 10;
-  const [rolesList, setRolesList] = useState(rolesService.getAll());
 
   useEffect(() => {
     loadUsers();
-    const onRolesChanged = () => {
-      setRolesList(rolesService.getAll());
-      loadUsers();
-    };
+    loadRoleColors();
+
+    const onRolesChanged = () => { loadUsers(); loadRoleColors(); };
     window.addEventListener("rolesChanged", onRolesChanged);
     return () => window.removeEventListener("rolesChanged", onRolesChanged);
   }, []);
 
-  const loadUsers = () => {
-    setUsers(userService.getAll());
-  };
-
-  // ABRIR MODAL PARA CREAR
-  const handleOpenCreate = () => {
-    setEditingUser(null); // Limpiamos edición
-    setIsModalOpen(true);
-  };
-
-  // ABRIR MODAL PARA EDITAR
-  const handleOpenEdit = (user) => {
-    setEditingUser(user); // Pasamos el usuario al modal
-    setIsModalOpen(true);
-  };
-
-  const handleOpenDetail = (user) => {
-    setDetailUser(user);
-    setIsDetailOpen(true);
-  };
-
-  // GUARDAR (Función que recibe el modal)
-  const handleSaveUser = (userData) => {
-    // Validar documento único
-    const allUsers = userService.getAll();
-    const docExists = allUsers.some(
-      (u) => u.documento === userData.documento && u.id !== editingUser?.id
-    );
-    
-    if (docExists) {
-      setNotification({
-        message: "Ya existe un usuario con este número de documento",
-        type: "error",
-        duration: 3000,
-      });
-      return false; // Retorna false para indicar error
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await userService.getAll();
+      setUsers(data);
+    } catch (error) {
+      console.error("Error cargando usuarios:", error);
+      setNotification({ message: "Error al cargar usuarios", type: "error" });
+    } finally {
+      setLoading(false);
     }
-    
+  };
+
+  const loadRoleColors = async () => {
+    try {
+      const roles = await userService.getRoles();
+      const colorMap = {};
+      const savedColors = JSON.parse(localStorage.getItem("syspharma_role_colors") || "{}");
+      const defaultColors = { "Administrador": "#4fd1c5", "Empleado": "#3b82f6", "Cliente": "#10b981" };
+      const palette = ["#4fd1c5", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#6b7280"];
+      roles.forEach((r, i) => {
+        const key = (r.nombre || "").toLowerCase();
+        colorMap[key] = savedColors[r.nombre] 
+          ? (["#4fd1c5","#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#6b7280"].includes(savedColors[r.nombre]) ? savedColors[r.nombre] : palette[i % palette.length])
+          : (defaultColors[r.nombre] || palette[i % palette.length]);
+      });
+      setRoleColorMap(colorMap);
+    } catch { /* silencioso */ }
+  };
+
+  const handleOpenCreate = () => { setEditingUser(null); setIsModalOpen(true); };
+  const handleOpenEdit = (user) => { setEditingUser(user); setIsModalOpen(true); };
+  const handleOpenDetail = (user) => { setDetailUser(user); setIsDetailOpen(true); };
+
+  const handleSaveUser = async (formData) => {
     if (editingUser) {
-      // Si estamos editando, llamamos a update
-      const newList = userService.update({ ...editingUser, ...userData });
-      setUsers(newList);
-      setNotification({
-        message: "Usuario editado correctamente",
-        type: "success",
-        duration: 3000,
-      });
+      await userService.update({ ...formData, id: editingUser.id });
+      setNotification({ message: "Usuario actualizado correctamente", type: "success" });
     } else {
-      // Si es nuevo, llamamos a create
-      const newList = userService.create(userData);
-      setUsers(newList);
-      setNotification({
-        message: "Usuario creado correctamente",
-        type: "success",
-        duration: 3000,
-      });
+      await userService.create(formData);
+      setNotification({ message: "Usuario creado correctamente", type: "success" });
     }
-    return true; // Retorna true si fue exitoso
+    await loadUsers();
   };
 
-  const handleToggleStatus = (id) => {
-    const user = users.find((u) => u.id === id);
-    setConfirmStatus({ show: true, user });
-  };
+  const handleToggleStatus = (user) => setConfirmStatus({ show: true, user });
 
-  const confirmToggleStatus = () => {
-    if (confirmStatus.user) {
-      const updatedList = userService.toggleStatus(confirmStatus.user.id);
-      setUsers(updatedList);
+  const confirmToggleStatus = async () => {
+    if (!confirmStatus.user) return;
+    try {
+      await userService.toggleStatus(confirmStatus.user.id, confirmStatus.user.estado);
+      await loadUsers();
       const newStatus = !confirmStatus.user.estado;
       setNotification({
         message: `${confirmStatus.user.nombre} ahora está ${newStatus ? "Activo" : "Inactivo"}`,
         type: newStatus ? "success" : "warning",
-        duration: 3000,
       });
+    } catch {
+      setNotification({ message: "Error al cambiar estado", type: "error" });
+    } finally {
+      setConfirmStatus({ show: false, user: null });
     }
-    setConfirmStatus({ show: false, user: null });
   };
 
-  const handleDelete = (id) => {
-    setConfirmDelete({ show: true, id });
+  const handleDelete = (id) => setConfirmDelete({ show: true, id });
+
+  const confirmDeleteUser = async () => {
+    try {
+      await userService.delete(confirmDelete.id);
+      await loadUsers();
+      setNotification({ message: "Usuario eliminado correctamente", type: "success" });
+    } catch {
+      setNotification({ message: "Error al eliminar usuario", type: "error" });
+    } finally {
+      setConfirmDelete({ show: false, id: null });
+    }
   };
 
-  const confirmDeleteUser = () => {
-    const id = confirmDelete.id;
-    const updatedList = userService.delete(id);
-    setUsers(updatedList);
-    setNotification({
-      message: "Usuario eliminado correctamente",
-      type: "success",
-      duration: 3000,
-    });
-    setConfirmDelete({ show: false, id: null });
-  };
-
-  const handleUpdateUser = (userData) => {
-    const updated = userService.update(userData);
-    setUsers(updated);
-    setDetailUser(userData);
+  const handleUpdateUser = async (userData) => {
+    await userService.update(userData);
+    await loadUsers();
     setIsDetailOpen(false);
   };
 
-  // ... (El resto de la lógica de filtros y paginación sigue igual) ...
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = users.filter(u => {
     const term = searchTerm.toLowerCase().trim();
-    const estadoTexto = user.estado ? "activo" : "inactivo";
-    // status filter
-    if (filterStatus === "active" && !user.estado) return false;
-    if (filterStatus === "inactive" && user.estado) return false;
-
+    if (filterStatus === "active" && !u.estado) return false;
+    if (filterStatus === "inactive" && u.estado) return false;
     if (!term) return true;
-
-    // split into words so "juan admin" matches a user named Juan with rol Administrador
-    const terms = term.split(/\s+/);
-
-    return terms.every((t) => {
-      return (
-        (user.nombre && user.nombre.toLowerCase().includes(t)) ||
-        (user.email && user.email.toLowerCase().includes(t)) ||
-        (user.rol && user.rol.toLowerCase().includes(t)) ||
-        (user.documento && user.documento.toLowerCase().includes(t)) ||
-        estadoTexto.includes(t)
-      );
-    });
+    return (
+      u.nombre?.toLowerCase().includes(term) ||
+      u.email?.toLowerCase().includes(term) ||
+      u.rol?.toLowerCase().includes(term) ||
+      u.documento?.toLowerCase().includes(term)
+    );
   });
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const displayedUsers = filteredUsers.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage,
-  );
-
-  // map role name -> color hex
-  const roleColorMap = useMemo(() => {
-    const map = {};
-    (rolesList || []).forEach((r) => {
-      if (r && r.name) map[(r.name || "").toLowerCase()] = r.color || r.color;
-    });
-    return map;
-  }, [rolesList]);
-
-  const getContrastColor = (hex) => {
-    if (!hex) return "#000";
-    const c = hex.replace("#", "");
-    const r = parseInt(c.substring(0, 2), 16);
-    const g = parseInt(c.substring(2, 4), 16);
-    const b = parseInt(c.substring(4, 6), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness > 128 ? "#000" : "#fff";
-  };
+  const displayedUsers = filteredUsers.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   const hexToRgba = (hex, alpha = 1) => {
     if (!hex) return `rgba(0,0,0,${alpha})`;
@@ -218,356 +150,165 @@ export const UsersPage = () => {
 
   return (
     <div className="h-full flex flex-col gap-3 font-sans">
-      {/* 1. Encabezado */}
+      {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-lg font-bold text-gray-800">Usuarios</h1>
-          <p className="text-gray-500 text-xs">
-            Gestión de personal y clientes
-          </p>
+          <p className="text-gray-500 text-xs">Gestión de personal y clientes</p>
         </div>
-
-        {/* BOTÓN NUEVO CONECTADO */}
         {canCreateUser && (
-          <button
-            onClick={handleOpenCreate}
-            className="bg-[#34D399] hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all"
-          >
-            <Plus size={16} />
-            Nuevo
+          <button onClick={handleOpenCreate}
+            className="bg-emerald-400 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5">
+            <Plus size={16} /> Nuevo
           </button>
         )}
       </div>
 
-      {/* 2. Buscador + filtro */}
+      {/* Buscador */}
       <div className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100 flex-shrink-0">
         <div className="flex gap-2 items-center">
           <div className="relative flex-1">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={16}
-            />
-            <input
-              type="text"
-              placeholder="Buscar..."
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-300 text-xs bg-gray-50 focus:bg-white"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input type="text" placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-300 text-xs bg-gray-50 focus:bg-white" />
           </div>
-          <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-xs"
-            >
-              <option value="all">Todos</option>
-              <option value="active">Activos</option>
-              <option value="inactive">Inactivos</option>
-            </select>
-          </div>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-xs">
+            <option value="all">Todos</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
         </div>
       </div>
 
-      {/* 3. Tabla */}
+      {/* Tabla */}
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
-        <div className="overflow-auto custom-scrollbar no-scrollbar">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-primary-700 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
-              <tr>
-                <th className="px-3 py-3 font-semibold">ID</th>
-                <th className="px-3 py-3 font-semibold">Usuario</th>
-                <th className="px-3 py-3 font-semibold">Email</th>
-                <th className="px-3 py-3 font-semibold">Rol</th>
-                <th className="px-3 py-3 font-semibold">Documento</th>
-                <th className="px-3 py-3 font-semibold text-center">Estado</th>
-                <th className="px-3 py-3 font-semibold text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-xs">
-              {displayedUsers.map((user) => (
-                <tr
-                  key={user.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-3 py-2.5 text-xs font-mono">{user.id}</td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0">
-                        <img
-                          src={user.avatar}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <span className="font-bold text-gray-700 truncate max-w-[140px]">
-                        {user.nombre}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 text-gray-500">{user.email}</td>
-                  <td className="px-3 py-2.5">
-                    {(() => {
-                      const col = roleColorMap[(user.rol || "").toLowerCase()];
-                      if (col) {
-                        const text = col; // use the chosen color for text
-                        const bg = hexToRgba(col, 0.12);
-                        const border = hexToRgba(col, 0.18);
-                        return (
-                          <span
-                            style={{
-                              backgroundColor: bg,
-                              color: text,
-                              border: `1px solid ${border}`,
-                            }}
-                            className="px-2 py-0.5 rounded-md text-[10px] font-bold"
-                          >
-                            {user.rol}
-                          </span>
-                        );
-                      }
-                      return (
-                        <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold border 
-                      ${
-                        user.rol === "Administrador"
-                          ? "bg-purple-50 text-purple-600 border-purple-100"
-                          : ""
-                      }
-                      ${
-                        user.rol === "Empleado"
-                          ? "bg-blue-50 text-blue-600 border-blue-100"
-                          : ""
-                      }
-                      ${
-                        user.rol === "Cliente"
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                          : ""
-                      }
-                    `}
-                        >
-                          {user.rol}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-3 py-2.5 text-gray-500 font-mono">
-                    {user.documento || "---"}
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
-                    <button
-                      onClick={() => handleToggleStatus(user.id)}
-                      className={`relative w-8 h-4 rounded-full transition-colors duration-200 focus:outline-none ${
-                        user.estado ? "bg-primary-500" : "bg-gray-300"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full shadow transition-transform duration-200 ${
-                          user.estado ? "translate-x-4" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </td>
-                  <td className="px-3 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => handleOpenDetail(user)}
-                        className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200"
-                      >
-                        <Info size={14} />
-                      </button>
-
-                      {/* BOTÓN EDITAR CONECTADO */}
-                      {canEditUser && (
-                        <button
-                          onClick={() => handleOpenEdit(user)}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"
-                        >
-                          <Edit size={14} />
-                        </button>
-                      )}
-
-                      {canDeleteUser && (
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+        <div className="overflow-auto no-scrollbar">
+          {loading ? (
+            <div className="flex items-center justify-center h-48 text-gray-400 text-sm">Cargando usuarios...</div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-primary-700 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
+                <tr>
+                  <th className="px-3 py-3 font-semibold">ID</th>
+                  <th className="px-3 py-3 font-semibold">Usuario</th>
+                  <th className="px-3 py-3 font-semibold">Email</th>
+                  <th className="px-3 py-3 font-semibold">Rol</th>
+                  <th className="px-3 py-3 font-semibold">Documento</th>
+                  <th className="px-3 py-3 font-semibold text-center">Estado</th>
+                  <th className="px-3 py-3 font-semibold text-right">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-xs">
+                {displayedUsers.length === 0 ? (
+                  <tr><td colSpan={7} className="px-3 py-8 text-center text-gray-400">No se encontraron usuarios</td></tr>
+                ) : (
+                  displayedUsers.map(user => {
+                    const col = roleColorMap[(user.rol || "").toLowerCase()];
+                    return (
+                      <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-2.5 font-mono">{user.id}</td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            <img src={user.avatar} alt="" className="w-8 h-8 rounded-full border border-gray-200 flex-shrink-0" />
+                            <span className="font-bold text-gray-700 truncate max-w-[140px]">{user.nombre}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-gray-500">{user.email}</td>
+                        <td className="px-3 py-2.5">
+                          {col ? (
+                            <span style={{ backgroundColor: hexToRgba(col, 0.12), color: col, border: `1px solid ${hexToRgba(col, 0.18)}` }}
+                              className="px-2 py-0.5 rounded-md text-[10px] font-bold">{user.rol}</span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200">{user.rol}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-gray-500 font-mono">{user.documento || "---"}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          <button onClick={() => handleToggleStatus(user)}
+                            className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${user.estado ? "bg-primary-500" : "bg-gray-300"}`}>
+                            <span className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full shadow transition-transform duration-200 ${user.estado ? "translate-x-4" : "translate-x-0"}`} />
+                          </button>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button onClick={() => handleOpenDetail(user)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200"><Info size={14} /></button>
+                            {canEditUser && <button onClick={() => handleOpenEdit(user)} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"><Edit size={14} /></button>}
+                            {canDeleteUser && <button onClick={() => handleDelete(user.id)} className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"><Trash2 size={14} /></button>}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* Footer Paginación (Igual que antes) */}
+        {/* Paginación */}
         {filteredUsers.length > 0 && (
           <div className="border-t border-gray-100 p-2.5 bg-gray-50 flex items-center justify-between flex-shrink-0">
-            {/* ... controles de paginación ... */}
-            <span className="text-[10px] text-gray-500 font-medium">
-              Mostrando página {currentPage + 1} de {totalPages}
-            </span>
+            <span className="text-[10px] text-gray-500 font-medium">Página {currentPage + 1} de {totalPages}</span>
             <div className="flex gap-2">
-              <button
-                onClick={() => currentPage > 0 && setCurrentPage((p) => p - 1)}
-                disabled={currentPage === 0}
-                className="p-1 rounded bg-white border border-gray-200"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                onClick={() =>
-                  currentPage < totalPages - 1 && setCurrentPage((p) => p + 1)
-                }
-                disabled={currentPage === totalPages - 1}
-                className="p-1 rounded bg-white border border-gray-200"
-              >
-                <ChevronRight size={14} />
-              </button>
+              <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}
+                className="p-1 rounded bg-white border border-gray-200 disabled:opacity-50"><ChevronLeft size={14} /></button>
+              <button onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))} disabled={currentPage === totalPages - 1}
+                className="p-1 rounded bg-white border border-gray-200 disabled:opacity-50"><ChevronRight size={14} /></button>
             </div>
           </div>
         )}
       </div>
 
-      {/* --- AQUÍ RENDERIZAMOS EL MODAL --- */}
-      <UserFormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveUser}
-        userToEdit={editingUser}
-      />
-      <UserDetailModal
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        user={detailUser}
-        onUpdate={handleUpdateUser}
-      />
+      {/* Modales */}
+      <UserFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveUser} userToEdit={editingUser} />
+      <UserDetailModal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} user={detailUser} onUpdate={handleUpdateUser} />
 
-      {/* --- NOTIFICACIÓN DE ESTADO --- */}
-      {notification && (
-        <StatusNotification
-          message={notification.message}
-          type={notification.type}
-          duration={notification.duration}
-          onClose={() => setNotification(null)}
-        />
-      )}
+      {notification && <StatusNotification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
 
-      {/* --- MODAL CONFIRMAR ELIMINACIÓN --- */}
+      {/* Modal Eliminar */}
       {confirmDelete.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
-            
-            {/* Header */}
             <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
-              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                <AlertCircle size={18} className="text-red-600" />
-                Eliminar Usuario
-              </h3>
-              <button 
-                onClick={() => setConfirmDelete({ show: false, id: null })}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={18} />
-              </button>
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2"><AlertCircle size={18} className="text-red-600" />Eliminar Usuario</h3>
+              <button onClick={() => setConfirmDelete({ show: false, id: null })}><X size={18} className="text-gray-400" /></button>
             </div>
-
-            {/* Body */}
             <div className="p-5">
-              <p className="text-sm text-gray-700">
-                ¿Estás seguro de eliminar este usuario?
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                Esta acción no se puede deshacer.
-              </p>
+              <p className="text-sm text-gray-700">¿Estás seguro de eliminar este usuario?</p>
+              <p className="text-xs text-gray-500 mt-2">Esta acción no se puede deshacer.</p>
             </div>
-
-            {/* Footer */}
             <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
-              <button 
-                onClick={() => setConfirmDelete({ show: false, id: null })}
-                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={confirmDeleteUser}
-                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors flex items-center gap-1 shadow-sm"
-              >
-                <Trash2 size={14} />
-                Eliminar
+              <button onClick={() => setConfirmDelete({ show: false, id: null })} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md">Cancelar</button>
+              <button onClick={confirmDeleteUser} className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md flex items-center gap-1">
+                <Trash2 size={14} /> Eliminar
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- MODAL CONFIRMAR CAMBIO DE ESTADO --- */}
+      {/* Modal Toggle Estado */}
       {confirmStatus.show && confirmStatus.user && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
-            
-            {/* Header */}
-            <div className={`px-5 py-3 border-b flex justify-between items-center ${
-              confirmStatus.user.estado 
-                ? 'bg-red-50 border-red-200' 
-                : 'bg-green-50 border-green-200'
-            }`}>
+            <div className={`px-5 py-3 border-b flex justify-between items-center ${confirmStatus.user.estado ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
               <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                {confirmStatus.user.estado ? (
-                  <AlertCircle size={18} className="text-red-600" />
-                ) : (
-                  <CheckCircle size={18} className="text-green-600" />
-                )}
-                {confirmStatus.user.estado ? 'Desactivar Usuario' : 'Activar Usuario'}
+                {confirmStatus.user.estado ? <AlertCircle size={18} className="text-red-600" /> : <CheckCircle size={18} className="text-green-600" />}
+                {confirmStatus.user.estado ? "Desactivar Usuario" : "Activar Usuario"}
               </h3>
-              <button 
-                onClick={() => setConfirmStatus({ show: false, user: null })}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X size={18} />
-              </button>
+              <button onClick={() => setConfirmStatus({ show: false, user: null })}><X size={18} className="text-gray-400" /></button>
             </div>
-
-            {/* Body */}
             <div className="p-5">
               <p className="text-sm text-gray-700">
-                {confirmStatus.user.estado 
-                  ? `¿Desactivar al usuario "${confirmStatus.user.nombre}"?`
-                  : `¿Activar al usuario "${confirmStatus.user.nombre}"?`
-                }
+                {confirmStatus.user.estado ? `¿Desactivar a "${confirmStatus.user.nombre}"?` : `¿Activar a "${confirmStatus.user.nombre}"?`}
               </p>
-              {confirmStatus.user.estado && (
-                <p className="text-xs text-gray-500 mt-2">
-                  El usuario no podrá acceder a la plataforma.
-                </p>
-              )}
             </div>
-
-            {/* Footer */}
-            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${
-              confirmStatus.user.estado 
-                ? 'bg-red-50 border-red-200' 
-                : 'bg-green-50 border-green-200'
-            }`}>
-              <button 
-                onClick={() => setConfirmStatus({ show: false, user: null })}
-                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={confirmToggleStatus}
-                className={`px-4 py-2 text-xs font-bold text-white rounded-md transition-colors flex items-center gap-1 shadow-sm ${
-                  confirmStatus.user.estado
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                {confirmStatus.user.estado ? 'Desactivar' : 'Activar'}
+            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${confirmStatus.user.estado ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+              <button onClick={() => setConfirmStatus({ show: false, user: null })} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md">Cancelar</button>
+              <button onClick={confirmToggleStatus}
+                className={`px-4 py-2 text-xs font-bold text-white rounded-md ${confirmStatus.user.estado ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}>
+                {confirmStatus.user.estado ? "Desactivar" : "Activar"}
               </button>
             </div>
           </div>

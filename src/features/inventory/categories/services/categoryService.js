@@ -1,68 +1,51 @@
-const DB_KEY = 'syspharma_categories';
+// inventory/services/categoryService.js
+import axios from 'axios';
 
-// Función auxiliar para disparar eventos de cambio
-const notifyChange = () => {
-  window.dispatchEvent(new CustomEvent("categories:changed"));
-  window.dispatchEvent(new CustomEvent("products:changed"));
+const API_URL = 'http://localhost:5055/api/Categoria';
+
+// Helper para obtener los headers con el token
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('syspharma_token');
+  return { 
+    headers: { 
+      Authorization: `Bearer ${token}` 
+    } 
+  };
 };
 
+const getAll = async () => {
+  const response = await axios.get(API_URL, getAuthHeaders());
+  return response.data;
+};
+
+const create = async (categoryData) => {
+  const response = await axios.post(API_URL, categoryData, getAuthHeaders());
+  return response.data;
+};
+
+const update = async (id, categoryData) => {
+  const response = await axios.put(API_URL, { id, ...categoryData }, getAuthHeaders());
+  return response.data;
+};
+
+const toggleStatus = async (id, newStatus) => {
+  const config = getAuthHeaders();
+  config.headers['Content-Type'] = 'application/json';
+  
+  const response = await axios.patch(`${API_URL}/${id}/estado`, newStatus, config);
+  return response.data;
+};
+
+const remove = async (id) => {
+  const response = await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+  return response.data;
+};
+
+// Exportamos todas las funciones como un objeto
 export const categoryService = {
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-
-    if (!data) return [];
-
-    try {
-      const parsed = JSON.parse(data);
-
-      // Si el localStorage contiene exactamente el dataset demo original, lo eliminamos
-      const demoNames = [
-        "Analgésicos",
-        "Antibióticos",
-        "Vitaminas",
-        "Cuidado Personal",
-        "Infantil",
-      ];
-
-      const looksLikeDemo = Array.isArray(parsed)
-        && parsed.length === demoNames.length
-        && parsed.every((c) => c && typeof c.nombre === 'string' && demoNames.includes(c.nombre));
-
-      if (looksLikeDemo) {
-        localStorage.removeItem(DB_KEY);
-        return [];
-      }
-
-      return parsed;
-    } catch (err) {
-      // Si el JSON está corrupto, limpiamos la clave para evitar comportamientos inesperados
-      localStorage.removeItem(DB_KEY);
-      return [];
-    }
-  },
-  create: (item) => {
-    const list = categoryService.getAll();
-    const newList = [{ ...item, id: Date.now() }, ...list];
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    notifyChange();
-    return newList;
-  },
-  update: (item) => {
-    const list = categoryService.getAll().map(i => i.id === item.id ? item : i);
-    localStorage.setItem(DB_KEY, JSON.stringify(list));
-    notifyChange();
-    return list;
-  },
-  toggleStatus: (id) => {
-    const list = categoryService.getAll().map(i => i.id === id ? { ...i, estado: !i.estado } : i);
-    localStorage.setItem(DB_KEY, JSON.stringify(list));
-    notifyChange();
-    return list;
-  },
-  delete: (id) => {
-    const list = categoryService.getAll().filter(i => i.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(list));
-    notifyChange();
-    return list;
-  }
+  getAll,
+  create,
+  update,
+  toggleStatus,
+  remove
 };
