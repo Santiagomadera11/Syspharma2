@@ -96,14 +96,14 @@ export const ShiftHistoryReportsPage = () => {
           { label: "Ingresos Totales", value: fmt(totalVentas), icon: TrendingUp, color: "text-green-600" },
           { label: "Gastos Totales", value: fmt(totalGastos), icon: TrendingDown, color: "text-red-600" },
           { label: "Balance Neto", value: fmt(totalVentas - totalGastos), icon: DollarSign, color: "text-indigo-600" },
-        ].map(({ label, value, icon, color }) => (
+        ].map(({ label, value, icon: IconComponent, color }) => (
           <div key={label} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">{label}</p>
                 <p className={`text-lg font-bold ${color}`}>{value}</p>
               </div>
-              <icon className={color} size={28} />
+              <IconComponent className={color} size={28} />
             </div>
           </div>
         ))}

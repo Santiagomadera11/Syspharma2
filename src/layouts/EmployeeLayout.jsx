@@ -4,7 +4,6 @@ import { AlertCircle, X } from "lucide-react";
 import EmployeeSidebar from "./Sidebar/EmployeeSidebar";
 import { EmployeeHeader } from "./Header/EmployeeHeader";
 import { authService } from "../features/auth/authService";
-import { turnService } from "../features/sales/services/turnService";
 
 const EmployeeLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

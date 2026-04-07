@@ -135,7 +135,7 @@ export const ProvidersPage = () => {
         type: "success",
       });
       await loadProviders();
-    } catch (err) {
+    } catch {
       setNotification({ message: "Error al cambiar el estado", type: "error" });
     } finally {
       setIsStatusConfirmOpen(false);

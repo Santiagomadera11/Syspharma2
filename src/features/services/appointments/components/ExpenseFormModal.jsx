@@ -31,14 +31,12 @@ const ExpenseFormModal = ({
 
   const [errors, setErrors] = useState({});
   const [paymentMethods, setPaymentMethods] = useState([]);
-  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState("");
 
   useEffect(() => {
     // Load payment methods from localStorage
     const methods = getPaymentMethods();
     setPaymentMethods(methods);
     const defaultMethod = methods.length > 0 ? methods[0].value : "";
-    setDefaultPaymentMethod(defaultMethod);
 
     if (initialData) {
       setFormData(initialData);

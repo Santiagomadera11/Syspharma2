@@ -73,9 +73,6 @@ const AppointmentFormModal = ({
 
   // Colores dinámicos basados en el rol
   const headerBgColor = isEmployee ? "bg-blue-600" : "bg-emerald-600";
-  const buttonBgColor = isEmployee
-    ? "bg-blue-600 hover:bg-blue-700"
-    : "bg-emerald-600 hover:bg-emerald-700";
 
   const [formData, setFormData] = useState(initialFormState);
   const [availableSlots, setAvailableSlots] = useState([]);

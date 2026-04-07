@@ -269,7 +269,7 @@ const KpiCard = ({ title, value, color }) => (
   </div>
 );
 
-const ChartCard = ({ title, subtitle, iconColor, children }) => (
+const ChartCard = ({ title, subtitle, children }) => (
   <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col">
     <div className="flex justify-between items-start mb-4">
       <div>

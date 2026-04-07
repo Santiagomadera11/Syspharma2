@@ -1,4 +1,4 @@
-import { apiClient } from "../../../shared/utils/apiClient";
+import { apiClient } from "../../../../shared/utils/apiClient";
 
 const APPOINTMENTS_ENDPOINT = "Cita";
 const DOCTORS_ENDPOINT = "Medico";

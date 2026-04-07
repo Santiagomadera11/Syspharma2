@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { Bell, Menu, Stethoscope, Eye } from "lucide-react";
 import { appointmentService } from "../../features/services/appointments/services/appointmentService";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,6 @@ export const EmployeeHeader = ({ onMenuClick }) => {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const mounted = useRef(false);
 
   useEffect(() => {
     const storedUser = sessionStorage.getItem("syspharma_user");
@@ -16,9 +15,9 @@ export const EmployeeHeader = ({ onMenuClick }) => {
   }, []);
 
   useEffect(() => {
-    const loadNotifications = () => {
+    const loadNotifications = async () => {
       const lastSeen = localStorage.getItem('lastSeenAppointmentsAt');
-      const all = appointmentService.getAppointments();
+      const all = await appointmentService.getAppointments();
       const newOnes = all.filter(a => a.fechaCreacion && (!lastSeen || new Date(a.fechaCreacion) > new Date(lastSeen)));
       setNotifications(newOnes.sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion)));
     }
