@@ -67,7 +67,7 @@ export const EmployeeServicesPage = () => {
   const [showTurnTooltip, setShowTurnTooltip] = useState(false);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [user] = useState(
-    JSON.parse(localStorage.getItem("syspharma_user") || "{}"),
+    JSON.parse(sessionStorage.getItem("syspharma_user") || "{}"),
   );
 
   // Escuchar cambios en servicios y estado de turno desde otras páginas

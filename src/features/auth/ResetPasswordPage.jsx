@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { passwordRecoveryService } from "./passwordRecoveryService";
 
 const ResetPasswordPage = () => {
   const [email, setEmail] = useState("");

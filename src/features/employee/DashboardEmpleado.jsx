@@ -1,349 +1,206 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Calendar,
-  Clock,
-  Users,
-  ShoppingCart,
-  Plus,
-  AlertCircle,
-  CheckCircle,
-  Package,
-  ArrowRight,
-  Stethoscope,
+  Calendar, Clock, Users, ShoppingCart, Plus,
+  AlertCircle, CheckCircle, Package, ArrowRight, Stethoscope,
 } from "lucide-react";
-import { appointmentService } from "../services/appointments/services/appointmentService";
+import axios from "axios";
 import { turnService } from "../sales/services/turnService";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
-import { useCrud } from "../../shared/hooks/useCrud";
+
+const API = "http://localhost:5055/api";
+const getAuthHeaders = () => ({
+  headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
+});
 
 const LOW_STOCK_THRESHOLD = 15;
 
 const parseToMinutes = (hhmm) => {
-  if (!hhmm || typeof hhmm !== "string") return Infinity;
-  const parts = hhmm.split(":");
-  const h = Number(parts[0] ?? 0);
-  const m = Number(parts[1] ?? 0);
-  if (Number.isNaN(h) || Number.isNaN(m)) return Infinity;
-  return h * 60 + m;
+  if (!hhmm) return Infinity;
+  const [h, m] = hhmm.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
 };
 
 export const DashboardEmpleado = () => {
   const navigate = useNavigate();
   const currentUser = useMemo(
-    () =>
-      JSON.parse(
-        localStorage.getItem("syspharma_user") || '{"nombre": "Empleado"}',
-      ),
-    [],
-  );
-  const [todaysAppointments, setTodaysAppointments] = useState([]);
-  const [pendingConfirmations, setPendingConfirmations] = useState(0);
-  const [nextAppointment, setNextAppointment] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+    () => JSON.parse(sessionStorage.getItem("syspharma_user") || '{"nombre":"Empleado"}'), []);
+
+  const [citas, setCitas] = useState([]);
+  const [productos, setProductos] = useState([]);
+  const [ventas, setVentas] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
-  // Productos (hook comparte items) - usar la misma clave que productService
-  const { items: products } = useCrud("syspharma_products", []);
-
-  const lowStockProducts = useMemo(() => {
-    return (products || [])
-      .filter((p) => Number(p.stock) < LOW_STOCK_THRESHOLD)
-      .slice(0, 4);
-  }, [products]);
-
-  const loadDashboardData = async () => {
-    setLoading(true);
-    setError(null);
+  const loadData = useCallback(async () => {
     try {
-      // Allow appointmentService to be sync or async
-      const allAppointments = await Promise.resolve(
-        appointmentService.getAppointments(),
-      );
+      const [citasRes, productosRes, ventasRes] = await Promise.allSettled([
+        axios.get(`${API}/Cita`, getAuthHeaders()),
+        axios.get(`${API}/Producto`, getAuthHeaders()),
+        axios.get(`${API}/Venta`, getAuthHeaders()),
+      ]);
+      if (citasRes.status === "fulfilled") setCitas(citasRes.value.data || []);
+      if (productosRes.status === "fulfilled") setProductos(productosRes.value.data || []);
+      if (ventasRes.status === "fulfilled") setVentas(ventasRes.value.data || []);
+    } catch {}
+    finally { setLoading(false); }
+  }, []);
 
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 60000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
-      const todayAppts = (allAppointments || []).filter(
-        (apt) => apt.fecha === todayStr && apt.estado !== "Cancelada",
-      );
-      todayAppts.sort((a, b) => a.hora.localeCompare(b.hora));
+  useEffect(() => {
+    turnService.getActiveTurn(currentUser?.id).then(turno => {
+      if (!turno) setShowOpenShiftModal(true);
+    });
+  }, [currentUser?.id]);
 
-      setTodaysAppointments(todayAppts);
+  // Citas de hoy
+  const todayStr = new Date().toISOString().split("T")[0];
+  const citasHoy = useMemo(() =>
+    citas.filter(c => c.fecha === todayStr && (c.estadoNombre || "").toLowerCase() !== "cancelada")
+      .sort((a, b) => a.hora.localeCompare(b.hora)),
+    [citas, todayStr]);
 
-      const pending = todayAppts.filter(
-        (apt) => apt.estado === "Confirmar Asistencia",
-      ).length;
-      setPendingConfirmations(pending);
+  const pendingConfirmations = citasHoy.filter(c =>
+    (c.estadoNombre || "").toLowerCase().includes("confirmar")).length;
 
-      const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nextAppointment = citasHoy.find(c =>
+    parseToMinutes(c.hora) >= nowMinutes && (c.estadoNombre || "").toLowerCase() !== "completada");
 
-      const next = todayAppts.find(
-        (apt) =>
-          parseToMinutes(apt.hora) >= nowMinutes && apt.estado !== "Completada",
-      );
-      setNextAppointment(next || null);
-    } catch (err) {
-      setError(err?.message || String(err));
-    } finally {
-      setLoading(false);
-    }
+  // Stock bajo
+  const lowStockProducts = useMemo(() =>
+    productos.filter(p => Number(p.stock) < LOW_STOCK_THRESHOLD).slice(0, 4), [productos]);
+
+  // Ventas de hoy
+  const ventasHoy = useMemo(() =>
+    ventas.filter(v => v.fechaVenta && new Date(v.fechaVenta).toISOString().split("T")[0] === todayStr),
+    [ventas, todayStr]);
+
+  const getEstadoColor = (estado) => {
+    const lower = (estado || "").toLowerCase();
+    if (lower === "completada") return "bg-green-50 text-green-700 border-green-100";
+    if (lower.includes("consulta")) return "bg-blue-50 text-blue-700 border-blue-100";
+    return "bg-yellow-50 text-yellow-700 border-yellow-100";
   };
-
-  useEffect(() => {
-    loadDashboardData();
-    const id = setInterval(loadDashboardData, 60000); // refresh cada 60s
-    return () => clearInterval(id);
-  }, []);
-
-  // Verificar turno activo al cargar - Solo empleados ven modal si no hay turno
-  useEffect(() => {
-    if (!turnService.hasActiveTurn()) {
-      setShowOpenShiftModal(true);
-    }
-  }, []);
 
   return (
     <>
       <div className="p-4 font-sans bg-gray-50">
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
           <div>
             <h1 className="text-xl font-bold text-gray-800">
-              Hola, {currentUser.nombre.split(" ")[0]} 👋
+              Hola, {currentUser.nombre?.split(" ")[0]} 👋
             </h1>
-            <p className="text-gray-500 text-sm">
-              Aquí tienes el resumen de tu jornada hoy.
-            </p>
+            <p className="text-gray-500 text-sm">Aquí tienes el resumen de tu jornada hoy.</p>
           </div>
           <div className="flex gap-2">
-            <button
-              aria-label="Nueva Venta"
-              onClick={() => navigate("/employee/ventas")}
-              className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all"
-            >
+            <button onClick={() => navigate("/employee/ventas")}
+              className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-gray-50 shadow-sm">
               <ShoppingCart size={18} /> Nueva Venta
             </button>
-            <button
-              aria-label="Agendar Cita"
-              onClick={() => navigate("/employee/citas")}
-              className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md transition-all hover:scale-105"
-            >
+            <button onClick={() => navigate("/employee/citas")}
+              className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md">
               <Plus size={18} /> Agendar Cita
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Citas para Hoy
-              </p>
-              <h3 className="text-2xl font-bold text-gray-800 mt-1">
-                {todaysAppointments.length}
-              </h3>
-              <p className="text-xs text-blue-600 font-medium mt-1">
-                {
-                  todaysAppointments.filter((a) => a.estado === "Completada")
-                    .length
-                }{" "}
-                atendidas
-              </p>
+        {/* KPIs */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: "Citas Hoy", value: citasHoy.length, sub: `${citasHoy.filter(c => (c.estadoNombre||"").toLowerCase()==="completada").length} atendidas`, icon: Calendar, bg: "bg-blue-50", color: "text-blue-600" },
+            { label: "Por Confirmar", value: pendingConfirmations, sub: "Requieren llamada", icon: AlertCircle, bg: "bg-orange-50", color: "text-orange-600" },
+            { label: "Ventas Hoy", value: ventasHoy.length, sub: `$${ventasHoy.reduce((s,v)=>s+(v.total||0),0).toLocaleString("es-CO")}`, icon: ShoppingCart, bg: "bg-green-50", color: "text-green-600" },
+            { label: "Stock Bajo", value: lowStockProducts.length, sub: "Productos por agotarse", icon: AlertCircle, bg: "bg-red-50", color: "text-red-600" },
+          ].map(({ label, value, sub, icon: Icon, bg, color }) => (
+            <div key={label} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</p>
+                <h3 className="text-2xl font-bold text-gray-800 mt-1">{value}</h3>
+                <p className={`text-xs font-medium mt-1 ${color}`}>{sub}</p>
+              </div>
+              <div className={`p-2 ${bg} rounded-lg ${color}`}><Icon size={28} /></div>
             </div>
-            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-              <Calendar size={28} />
-            </div>
-          </div>
-
-          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Por Confirmar
-              </p>
-              <h3 className="text-2xl font-bold text-gray-800 mt-1">
-                {pendingConfirmations}
-              </h3>
-              <p className="text-xs text-orange-500 font-medium mt-1">
-                Requieren llamada
-              </p>
-            </div>
-            <div className="p-2 bg-orange-50 rounded-lg text-orange-600">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-              </svg>
-            </div>
-          </div>
-
-          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Alertas Stock
-              </p>
-              <h3 className="text-2xl font-bold text-gray-800 mt-1">
-                {lowStockProducts.length}
-              </h3>
-              <p className="text-xs text-red-500 font-medium mt-1">
-                Productos por agotarse
-              </p>
-            </div>
-            <div className="p-2 bg-red-50 rounded-lg text-red-600">
-              <AlertCircle size={28} />
-            </div>
-          </div>
+          ))}
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">
+            {/* Próxima cita */}
             {nextAppointment ? (
               <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl p-4 text-white shadow relative overflow-hidden">
                 <div className="relative z-10 flex justify-between items-center">
                   <div>
                     <div className="flex items-center gap-2 mb-1 opacity-90">
                       <Clock size={16} />
-                      <span className="text-sm font-medium">
-                        Siguiente turno: {nextAppointment.hora}
-                      </span>
+                      <span className="text-sm font-medium">Siguiente turno: {nextAppointment.hora}</span>
                     </div>
-                    <h2 className="text-xl font-bold">
-                      {nextAppointment.paciente}
-                    </h2>
-                    <p className="opacity-90 text-sm mt-1">
-                      {nextAppointment.servicio}
-                    </p>
+                    <h2 className="text-xl font-bold">{nextAppointment.pacienteNombre}</h2>
+                    <p className="opacity-90 text-sm mt-1">{nextAppointment.servicioNombre || "-"}</p>
                   </div>
-                  <button
-                    aria-label="Gestionar Citas"
-                    onClick={() => navigate("/employee/citas")}
-                    className="bg-white text-blue-600 px-3 py-1 rounded-md text-sm font-bold shadow hover:bg-gray-100 transition-colors"
-                  >
+                  <button onClick={() => navigate("/employee/citas")}
+                    className="bg-white text-blue-600 px-3 py-1 rounded-md text-sm font-bold shadow hover:bg-gray-100">
                     Gestionar
                   </button>
                 </div>
-                <Stethoscope
-                  className="absolute -bottom-4 -right-4 text-white opacity-10"
-                  size={96}
-                />
+                <Stethoscope className="absolute -bottom-4 -right-4 text-white opacity-10" size={96} />
               </div>
             ) : (
               <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-center">
-                <CheckCircle
-                  className="mx-auto text-green-500 mb-2"
-                  size={32}
-                />
+                <CheckCircle className="mx-auto text-green-500 mb-2" size={32} />
                 <h3 className="text-green-800 font-bold">¡Todo al día!</h3>
-                <p className="text-green-600 text-sm">
-                  No hay más citas pendientes por hoy.
-                </p>
+                <p className="text-green-600 text-sm">No hay más citas pendientes por hoy.</p>
               </div>
             )}
 
+            {/* Agenda */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                 <h3 className="font-bold text-gray-800">Agenda de Hoy</h3>
-                <button
-                  aria-label="Ver todas las citas"
-                  onClick={() => navigate("/employee/citas")}
-                  className="text-blue-600 text-xs font-bold hover:underline"
-                >
-                  Ver todo
-                </button>
+                <button onClick={() => navigate("/employee/citas")}
+                  className="text-blue-600 text-xs font-bold hover:underline">Ver todo</button>
               </div>
               <div className="divide-y divide-gray-50">
-                {loading && (
-                  <div className="p-3 text-center text-sm text-gray-500">
-                    Cargando citas...
-                  </div>
-                )}
-                {error && (
-                  <div className="p-3 text-center text-sm text-red-500">
-                    Error: {error}
-                  </div>
-                )}
-                {!loading && todaysAppointments.length > 0
-                  ? todaysAppointments.map((apt) => (
-                      <div
-                        key={apt.id}
-                        className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors relative"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="bg-blue-50 text-blue-700 font-bold text-xs px-2 py-1 rounded-md">
-                            {apt.hora}
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-gray-800">
-                              {apt.paciente}
-                            </h4>
-                            <p className="text-xs text-gray-500">
-                              {apt.servicio}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[10px] font-bold px-2 py-1 rounded-full border ${
-                              apt.estado === "Completada"
-                                ? "bg-green-50 text-green-700 border-green-100"
-                                : apt.estado === "En Consulta"
-                                  ? "bg-blue-50 text-blue-700 border-blue-100"
-                                  : "bg-yellow-50 text-yellow-700 border-yellow-100"
-                            }`}
-                          >
-                            {apt.estado}
-                          </span>
+                {loading ? (
+                  <div className="p-3 text-center text-sm text-gray-400">Cargando citas...</div>
+                ) : citasHoy.length === 0 ? (
+                  <div className="p-6 text-center text-gray-400 text-sm">No hay citas programadas para hoy.</div>
+                ) : (
+                  citasHoy.map(apt => (
+                    <div key={apt.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-blue-50 text-blue-700 font-bold text-xs px-2 py-1 rounded-md">{apt.hora}</div>
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-800">{apt.pacienteNombre}</h4>
+                          <p className="text-xs text-gray-500">{apt.servicioNombre || apt.medicoNombre || "-"}</p>
                         </div>
                       </div>
-                    ))
-                  : !loading &&
-                    todaysAppointments.length === 0 && (
-                      <div className="p-6 text-center text-gray-400 text-sm">
-                        No hay citas programadas para hoy.
-                      </div>
-                    )}
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${getEstadoColor(apt.estadoNombre)}`}>
+                        {apt.estadoNombre}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
 
+          {/* Columna derecha */}
           <div className="space-y-4">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-              <h3 className="font-bold text-gray-800 mb-3 text-sm">
-                Accesos Rápidos
-              </h3>
+              <h3 className="font-bold text-gray-800 mb-3 text-sm">Accesos Rápidos</h3>
               <div className="grid grid-cols-2 gap-3">
-                <QuickAction
-                  icon={ShoppingCart}
-                  label="Ventas"
-                  onClick={() => navigate("/employee/ventas")}
-                  color="blue"
-                />
-                <QuickAction
-                  icon={Calendar}
-                  label="Citas"
-                  onClick={() => navigate("/employee/citas")}
-                  color="emerald"
-                />
-                <QuickAction
-                  icon={Users}
-                  label="Pacientes"
-                  onClick={() => navigate("/employee/citas")}
-                  color="purple"
-                />
-                <QuickAction
-                  icon={Package}
-                  label="Inventario"
-                  onClick={() => navigate("/employee/productos")}
-                  color="orange"
-                />
+                <QuickAction icon={ShoppingCart} label="Ventas" onClick={() => navigate("/employee/ventas")} color="blue" />
+                <QuickAction icon={Calendar} label="Citas" onClick={() => navigate("/employee/citas")} color="emerald" />
+                <QuickAction icon={Users} label="Pedidos" onClick={() => navigate("/employee/pedidos")} color="purple" />
+                <QuickAction icon={Package} label="Inventario" onClick={() => navigate("/employee/productos")} color="orange" />
               </div>
             </div>
 
@@ -355,31 +212,19 @@ export const DashboardEmpleado = () => {
               </div>
               <div className="space-y-3">
                 {lowStockProducts.length > 0 ? (
-                  lowStockProducts.map((prod) => (
-                    <div
-                      key={prod.id}
-                      className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0"
-                    >
-                      <span className="text-gray-600 truncate max-w-[120px]">
-                        {prod.nombre}
-                      </span>
-                      <span className="font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-md text-xs">
-                        {prod.stock} un.
-                      </span>
+                  lowStockProducts.map(p => (
+                    <div key={p.id} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+                      <span className="text-gray-600 truncate max-w-[120px]">{p.nombre}</span>
+                      <span className="font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-md text-xs">{p.stock} un.</span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-gray-400 text-center py-2">
-                    Inventario saludable ✅
-                  </p>
+                  <p className="text-xs text-gray-400 text-center py-2">Inventario saludable ✅</p>
                 )}
               </div>
               {lowStockProducts.length > 0 && (
-                <button
-                  aria-label="Ver inventario"
-                  onClick={() => navigate("/employee/productos")}
-                  className="w-full mt-4 text-xs text-center text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1"
-                >
+                <button onClick={() => navigate("/employee/productos")}
+                  className="w-full mt-4 text-xs text-center text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-1">
                   Ver inventario <ArrowRight size={12} />
                 </button>
               )}
@@ -388,14 +233,9 @@ export const DashboardEmpleado = () => {
         </div>
       </div>
 
-      {/* Modal para abrir caja si no hay turno al cargar */}
-      <OpenShiftModal
-        isOpen={showOpenShiftModal}
-        onShiftOpened={() => setShowOpenShiftModal(false)}
-        user={currentUser}
-        canClose={false}
-        onCancel={() => setShowOpenShiftModal(false)}
-      />
+      <OpenShiftModal isOpen={showOpenShiftModal} onShiftOpened={() => setShowOpenShiftModal(false)}
+        user={currentUser} canClose={currentUser.rol === "Administrador"}
+        onCancel={() => setShowOpenShiftModal(false)} />
     </>
   );
 };
@@ -407,12 +247,8 @@ const QuickAction = ({ icon: Icon, label, onClick, color }) => {
     purple: "bg-purple-50 text-purple-600 hover:bg-purple-100",
     orange: "bg-orange-50 text-orange-600 hover:bg-orange-100",
   };
-
   return (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${colors[color]}`}
-    >
+    <button onClick={onClick} className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${colors[color]}`}>
       <Icon size={18} className="mb-1" />
       <span className="text-xs font-bold">{label}</span>
     </button>

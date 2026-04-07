@@ -21,7 +21,7 @@ export const Header = ({ onMenuClick }) => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('syspharma_user');
+    const storedUser = sessionStorage.getItem('syspharma_user');
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 

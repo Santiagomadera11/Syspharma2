@@ -112,42 +112,15 @@ export const ClientMisCitas = () => {
     }
   };
 
-  const renderCalendar = () => {
-    const currentDate = new Date();
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-    const endDate = new Date(lastDay);
-    endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
-    const days = [];
-    const current = new Date(startDate);
-    while (current <= endDate) {
-      // Ajuste de zona horaria para comparación simple de strings
-      const dateStr = current.toISOString().split("T")[0];
-      const dayAppointments = appointments.filter((a) => a.fecha === dateStr);
-      days.push({ date: new Date(current), count: dayAppointments.length });
-      current.setDate(current.getDate() + 1);
+  const handleCancelAppointment = async (appointmentId) => {
+    try {
+      await appointmentService.cancelAppointment(appointmentId);
+      loadData();
+      window.dispatchEvent(new Event("appointments:changed"));
+    } catch (error) {
+      console.error("Error cancelando cita:", error);
+      alert("Error al cancelar la cita");
     }
-
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800">Calendario</h2>
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {["D", "L", "M", "M", "J", "V", "S"].map(d => <div key={d} className="text-center text-xs font-bold text-gray-400 py-1">{d}</div>)}
-          {days.map((d, i) => (
-            <div key={i} className={`min-h-[70px] p-2 border rounded-lg text-sm ${d.count > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}>
-              <div className="font-bold text-gray-700">{d.date.getDate()}</div>
-              {d.count > 0 && <div className="text-xs text-emerald-600 mt-1 font-medium">{d.count} {d.count === 1 ? 'cita' : 'citas'}</div>}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   const renderAppointmentsList = () => {
@@ -274,9 +247,9 @@ export const ClientMisCitas = () => {
         <AppointmentFormModal
           isOpen={isAppointmentModalOpen}
           onClose={() => setIsAppointmentModalOpen(false)}
-          onSave={(created) => {
+          onSave={() => {
             loadData();
-            window.dispatchEvent(new Event("appointments:changed")); 
+            window.dispatchEvent(new Event("appointments:changed"));
             setIsAppointmentModalOpen(false);
           }}
           appointment={editingAppointment}

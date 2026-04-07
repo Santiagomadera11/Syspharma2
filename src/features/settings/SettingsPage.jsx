@@ -34,7 +34,7 @@ export const SettingsPage = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem("syspharma_user");
+    const userData = sessionStorage.getItem("syspharma_user");
     if (userData) setUser(JSON.parse(userData));
     loadRoles();
   }, []);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Heart, Search } from "lucide-react";
-import ProductCardGrid, { fmt as cardFmt } from "./components/ProductCard";
+import ProductCardGrid from "./components/ProductCard";
 import FilterSidebar from "./components/FilterSidebar";
 import useCart from "../../shared/context/CartContext";
 
@@ -91,9 +91,11 @@ const ClientProductos = () => {
       cart.addToCart(prod);
       try {
         window.dispatchEvent(new Event("syspharma_cart_updated"));
-      } catch (e) {}
-    } catch (e) {
-      console.error("Error adding to cart", e);
+      } catch {
+        // Error dispatching event
+      }
+    } catch {
+      console.error("Error adding to cart");
     }
   };
 

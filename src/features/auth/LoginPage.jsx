@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Stethoscope,
-  User,
-  Lock,
-  ArrowRight,
-  ChevronLeft,
-  X,
-  Key,
+  Stethoscope, User, Lock, ArrowRight, ChevronLeft, X, Key,
 } from "lucide-react";
 import { authService } from "../auth/authService";
 import { sendRecoveryEmail } from "./passwordRecoveryService";
@@ -29,16 +23,12 @@ const LoginPage = () => {
   const [codeExpired, setCodeExpired] = useState(false);
   const codeInputRefs = useRef([]);
 
-  const handleChange = (e) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setCredentials({ ...credentials, [e.target.name]: e.target.value });
 
   useEffect(() => {
     let timer;
     if (recoveryStep === 2 && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
+      timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     } else if (timeLeft === 0 && recoveryStep === 2) {
       setCodeExpired(true);
       clearInterval(timer);
@@ -48,33 +38,19 @@ const LoginPage = () => {
 
   const handleEnviarCorreo = async (e) => {
     e.preventDefault();
-    if (!recoveryEmail) {
-      setToast({ message: "Ingresa tu correo electrónico", type: "error", zIndex: 70 });
-      return;
-    }
+    if (!recoveryEmail) { setToast({ message: "Ingresa tu correo electrónico", type: "error", zIndex: 70 }); return; }
     const result = await sendRecoveryEmail(recoveryEmail);
-    if (result.error) {
-      setToast({ message: result.message, type: "error", zIndex: 70 });
-      return;
-    }
-    setRecoveryStep(2);
-    setTimeLeft(180);
-    setCodeExpired(false);
+    if (result.error) { setToast({ message: result.message, type: "error", zIndex: 70 }); return; }
+    setRecoveryStep(2); setTimeLeft(180); setCodeExpired(false);
     setToast({ message: "Código enviado. Revisa tu correo.", type: "success", zIndex: 70 });
   };
 
   const handleVerificarCodigo = async (e) => {
     e.preventDefault();
     const enteredCode = codeInputs.join("");
-    if (!enteredCode) {
-      setToast({ message: "Ingresa el código", type: "error", zIndex: 70 });
-      return;
-    }
+    if (!enteredCode) { setToast({ message: "Ingresa el código", type: "error", zIndex: 70 }); return; }
     try {
-      await axios.post("http://localhost:5055/api/Auth/verify-code", {
-        email: recoveryEmail,
-        code: enteredCode
-      });
+      await axios.post("http://localhost:5055/api/Auth/verify-code", { email: recoveryEmail, code: enteredCode });
       setToast({ message: "Código verificado. Ahora puedes cambiar tu contraseña.", type: "success", zIndex: 70 });
       setRecoveryStep(3);
     } catch (error) {
@@ -91,46 +67,27 @@ const LoginPage = () => {
   };
 
   const handleCodeInputKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !codeInputs[index] && index > 0) {
+    if (e.key === "Backspace" && !codeInputs[index] && index > 0)
       codeInputRefs.current[index - 1].focus();
-    }
   };
 
   const handleResendCode = async () => {
     const result = await sendRecoveryEmail(recoveryEmail);
-    if (result.error) {
-      setToast({ message: result.message, type: "error", zIndex: 70 });
-      return;
-    }
-    setCodeInputs(["", "", "", "", "", ""]);
-    setTimeLeft(180);
-    setCodeExpired(false);
+    if (result.error) { setToast({ message: result.message, type: "error", zIndex: 70 }); return; }
+    setCodeInputs(["", "", "", "", "", ""]); setTimeLeft(180); setCodeExpired(false);
     setToast({ message: "Nuevo código enviado", type: "success", zIndex: 70 });
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (!newPassword || !confirmPassword) {
-      setToast({ message: "Completa todos los campos", type: "error", zIndex: 70 });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setToast({ message: "Las contraseñas no coinciden", type: "error", zIndex: 70 });
-      return;
-    }
+    if (!newPassword || !confirmPassword) { setToast({ message: "Completa todos los campos", type: "error", zIndex: 70 }); return; }
+    if (newPassword !== confirmPassword) { setToast({ message: "Las contraseñas no coinciden", type: "error", zIndex: 70 }); return; }
     try {
-      await axios.post("http://localhost:5055/api/Auth/reset-password", {
-        email: recoveryEmail,
-        newPassword: newPassword
-      });
+      await axios.post("http://localhost:5055/api/Auth/reset-password", { email: recoveryEmail, newPassword });
       setToast({ message: "Contraseña actualizada exitosamente", type: "success", zIndex: 70 });
       setTimeout(() => {
-        setShowRecoveryModal(false);
-        setRecoveryStep(1);
-        setRecoveryEmail("");
-        setCodeInputs(["", "", "", "", "", ""]);
-        setNewPassword("");
-        setConfirmPassword("");
+        setShowRecoveryModal(false); setRecoveryStep(1); setRecoveryEmail("");
+        setCodeInputs(["", "", "", "", "", ""]); setNewPassword(""); setConfirmPassword("");
       }, 800);
     } catch (error) {
       setToast({ message: error.response?.data?.message || "Error al cambiar la contraseña", type: "error", zIndex: 70 });
@@ -140,24 +97,23 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const user = await authService.login(
-        credentials.email.trim(),
-        credentials.password
-      );
+      const user = await authService.login(credentials.email.trim(), credentials.password);
 
       if (!user || user.error) {
         setToast({ message: user?.message || "Credenciales inválidas.", type: "error", zIndex: 70 });
         return;
       }
 
-      const roles = {
+      // Roles fijos conocidos
+      const rutasPorRol = {
         "Administrador": "/admin/dashboard",
         "Empleado": "/employee/inicio",
-        "Cliente": "/client/inicio"
+        "Cliente": "/client/inicio",
       };
 
-      navigate(roles[user.rol] || "/");
-    } catch (error) {
+      // Roles nuevos/personalizados van al panel de empleado por defecto
+      navigate(rutasPorRol[user.rol] || "/employee/inicio");
+    } catch {
       setToast({ message: "Error al conectar con el servidor", type: "error", zIndex: 70 });
     }
   };
@@ -165,18 +121,12 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex w-full overflow-hidden font-sans">
       <div className="hidden lg:flex lg:w-[70%] bg-primary-900 relative items-center justify-center">
-        <img
-          src={loginImage}
-          alt="Farmacia Syspharma"
-          className="absolute inset-0 w-full h-full object-cover opacity-60"
-        />
+        <img src={loginImage} alt="Farmacia Syspharma" className="absolute inset-0 w-full h-full object-cover opacity-60" />
         <div className="relative z-10 text-center px-20">
           <div className="inline-flex bg-white/20 p-5 rounded-3xl mb-8 backdrop-blur-md border border-white/30 shadow-2xl">
             <Stethoscope className="text-white" size={64} />
           </div>
-          <h2 className="text-6xl font-bold text-white mb-6 tracking-tight drop-shadow-lg">
-            SysPharma
-          </h2>
+          <h2 className="text-6xl font-bold text-white mb-6 tracking-tight drop-shadow-lg">SysPharma</h2>
           <p className="text-primary-50 text-2xl max-w-2xl mx-auto leading-relaxed font-light drop-shadow-md">
             El sistema integral para la gestión farmacéutica moderna.
           </p>
@@ -184,10 +134,7 @@ const LoginPage = () => {
       </div>
 
       <div className="w-full lg:w-[30%] flex items-center justify-center bg-white px-6 md:px-10 shadow-2xl z-20 relative">
-        <Link
-          to="/"
-          className="absolute top-6 left-6 flex items-center gap-1 text-gray-400 hover:text-primary-600 transition-colors text-sm font-medium group"
-        >
+        <Link to="/" className="absolute top-6 left-6 flex items-center gap-1 text-gray-400 hover:text-primary-600 transition-colors text-sm font-medium group">
           <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
           Volver al inicio
         </Link>
@@ -200,32 +147,22 @@ const LoginPage = () => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">
-                Correo Electrónico
-              </label>
+              <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Correo Electrónico</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User size={16} className="text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                 </div>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  placeholder="admin@syspharma.com"
+                <input type="email" name="email" required placeholder="admin@syspharma.com"
                   className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all text-sm bg-gray-50 focus:bg-white"
-                  onChange={handleChange}
-                />
+                  onChange={handleChange} />
               </div>
             </div>
 
             <div>
               <div className="flex justify-between items-center mb-1 ml-1">
                 <label className="block text-xs font-bold text-gray-700">Contraseña</label>
-                <a
-                  href="#"
-                  onClick={(e) => { e.preventDefault(); setShowRecoveryModal(true); }}
-                  className="text-[10px] text-primary-600 hover:text-primary-800 font-bold hover:underline"
-                >
+                <a href="#" onClick={(e) => { e.preventDefault(); setShowRecoveryModal(true); }}
+                  className="text-[10px] text-primary-600 hover:text-primary-800 font-bold hover:underline">
                   ¿Olvidaste tu contraseña?
                 </a>
               </div>
@@ -233,44 +170,28 @@ const LoginPage = () => {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock size={16} className="text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                 </div>
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  placeholder="••••••••"
+                <input type="password" name="password" required placeholder="••••••••"
                   className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-100 focus:border-primary-400 outline-none transition-all text-sm bg-gray-50 focus:bg-white"
-                  onChange={handleChange}
-                />
+                  onChange={handleChange} />
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 mt-4 text-sm"
-            >
+            <button type="submit"
+              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 mt-4 text-sm">
               Iniciar Sesión <ArrowRight size={16} />
             </button>
 
             <div className="text-center pt-4 border-t border-gray-100 mt-6">
               <p className="text-xs text-gray-500">
                 ¿Eres cliente nuevo?{" "}
-                <Link to="/registro" className="text-primary-600 font-bold hover:underline">
-                  Regístrate aquí
-                </Link>
+                <Link to="/registro" className="text-primary-600 font-bold hover:underline">Regístrate aquí</Link>
               </p>
             </div>
           </form>
         </div>
       </div>
 
-      {toast && (
-        <ToastNotification
-          message={toast.message}
-          type={toast.type}
-          zIndex={toast.zIndex}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <ToastNotification message={toast.message} type={toast.type} zIndex={toast.zIndex} onClose={() => setToast(null)} />}
 
       {showRecoveryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -280,13 +201,8 @@ const LoginPage = () => {
                 <Key size={20} className="text-cyan-700" />
                 <h2 className="text-lg font-semibold text-cyan-900">Recuperar Contraseña</h2>
               </div>
-              <button
-                onClick={() => {
-                  setShowRecoveryModal(false);
-                  setRecoveryStep(1);
-                }}
-                className="p-1 hover:bg-cyan-100 rounded-lg transition-colors text-cyan-600"
-              >
+              <button onClick={() => { setShowRecoveryModal(false); setRecoveryStep(1); }}
+                className="p-1 hover:bg-cyan-100 rounded-lg transition-colors text-cyan-600">
                 <X size={20} />
               </button>
             </div>
@@ -297,17 +213,11 @@ const LoginPage = () => {
                   <p className="text-sm text-gray-600">Ingresa tu correo para recibir el código.</p>
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Correo Electrónico</label>
-                    <input
-                      type="email"
-                      value={recoveryEmail}
-                      onChange={(e) => setRecoveryEmail(e.target.value)}
+                    <input type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)}
                       placeholder="tu@email.com"
-                      className="w-full pl-3 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 outline-none transition-all bg-gray-50"
-                    />
+                      className="w-full pl-3 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 outline-none transition-all bg-gray-50" />
                   </div>
-                  <button type="submit" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg text-sm">
-                    Enviar Código
-                  </button>
+                  <button type="submit" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg text-sm">Enviar Código</button>
                 </form>
               )}
 
@@ -316,27 +226,18 @@ const LoginPage = () => {
                   <p className="text-sm text-gray-600">Ingresa el código que recibiste en tu correo.</p>
                   <div className="flex gap-2 justify-center">
                     {codeInputs.map((value, idx) => (
-                      <input
-                        key={idx}
-                        type="text"
-                        maxLength={1}
-                        value={value}
+                      <input key={idx} type="text" maxLength={1} value={value}
                         onChange={(e) => handleCodeInputChange(idx, e.target.value)}
                         onKeyDown={(e) => handleCodeInputKeyDown(idx, e)}
                         ref={(el) => (codeInputRefs.current[idx] = el)}
                         className="w-10 h-10 text-center border border-gray-300 rounded text-lg focus:ring-2 focus:ring-primary-100"
-                        disabled={codeExpired}
-                      />
+                        disabled={codeExpired} />
                     ))}
                   </div>
                   {codeExpired ? (
-                    <button type="button" onClick={handleResendCode} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg text-sm">
-                      Reenviar Código
-                    </button>
+                    <button type="button" onClick={handleResendCode} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg text-sm">Reenviar Código</button>
                   ) : (
-                    <button type="submit" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg text-sm">
-                      Verificar Código
-                    </button>
+                    <button type="submit" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg text-sm">Verificar Código</button>
                   )}
                   <div className="text-xs text-gray-500 text-center mt-2">Tiempo restante: {timeLeft}s</div>
                 </form>
@@ -347,27 +248,17 @@ const LoginPage = () => {
                   <p className="text-sm text-gray-600">Ingresa tu nueva contraseña.</p>
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Nueva Contraseña</label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
+                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-3 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 outline-none transition-all bg-gray-50"
-                    />
+                      className="w-full pl-3 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 outline-none transition-all bg-gray-50" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Confirmar Contraseña</label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-3 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 outline-none transition-all bg-gray-50"
-                    />
+                      className="w-full pl-3 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-100 outline-none transition-all bg-gray-50" />
                   </div>
-                  <button type="submit" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg text-sm">
-                    Cambiar Contraseña
-                  </button>
+                  <button type="submit" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-2.5 rounded-lg text-sm">Cambiar Contraseña</button>
                 </form>
               )}
             </div>

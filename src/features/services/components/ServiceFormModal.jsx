@@ -22,7 +22,7 @@ const ServiceFormModal = ({
 }) => {
   // Obtener el rol actual para cambiar colores
   const currentUser = JSON.parse(
-    localStorage.getItem("syspharma_user") || "{}",
+    sessionStorage.getItem("syspharma_user") || "{}",
   );
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployee = currentUserRole === "Empleado";
