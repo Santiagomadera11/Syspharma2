@@ -367,7 +367,7 @@ export const ClientMiPerfil = () => {
                         type: "success",
                         zIndex: 70,
                       });
-                    } catch (err) {
+                    } catch {
                       setToast({
                         message: "Error guardando la foto",
                         type: "error",

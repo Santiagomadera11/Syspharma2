@@ -23,7 +23,7 @@ export const useCrud = (storageKey, initialData) => {
       try {
         const stored = localStorage.getItem(storageKey);
         setItems(stored ? JSON.parse(stored) : initialData);
-      } catch (err) {
+      } catch {
         // ignore
       }
     };

@@ -39,10 +39,6 @@ export const EmployeeAppointmentsPage = () => {
   // Modales
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isDaySummaryModalOpen, setIsDaySummaryModalOpen] = useState(false);
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [appointmentToChangeStatus, setAppointmentToChangeStatus] =
-    useState(null);
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [statusMenuFor, setStatusMenuFor] = useState(null);
 
@@ -435,7 +431,9 @@ export const EmployeeAppointmentsPage = () => {
                               onClick={() => {
                                 try {
                                   appointmentService.updateAppointmentStatus(appointment.id, status);
-                                } catch (e) {}
+                                } catch {
+                                  console.warn('Error updating appointment status');
+                                }
                                 loadData();
                                 setStatusMenuFor(null);
                               }}

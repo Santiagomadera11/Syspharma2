@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, Tag, FileText, Activity } from "lucide-react";
 
-const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave, onDelete }) => {
+const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave }) => {
   const [formData, setFormData] = useState({ nombre: '', descripcion: '', estado: true });
 
   useEffect(() => {
@@ -26,10 +26,6 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
         estado: formData.estado // Asegurar que sea booleano
       });
     }
-  };
-
-  const handleDelete = () => {
-    if (onDelete && formData.id) onDelete(formData);
   };
 
   const title = mode === 'create' ? 'Nueva Categoría' : (mode === 'edit' ? 'Editar Categoría' : 'Detalle de Categoría');

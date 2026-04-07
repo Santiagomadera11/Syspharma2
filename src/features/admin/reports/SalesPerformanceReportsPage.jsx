@@ -26,10 +26,9 @@ export const SalesPerformanceReportsPage = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [turnosRes, citasRes, medicosRes] = await Promise.allSettled([
+      const [turnosRes, citasRes] = await Promise.allSettled([
         axios.get(`${API}/Turno`, getAuthHeaders()),
         axios.get(`${API}/Cita`, getAuthHeaders()),
-        axios.get(`${API}/Medico`, getAuthHeaders()),
       ]);
       if (turnosRes.status === "fulfilled") setTurnos(turnosRes.value.data || []);
       if (citasRes.status === "fulfilled") setCitas(citasRes.value.data || []);

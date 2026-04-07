@@ -271,7 +271,9 @@ const StatusMenuButton = ({ appointment }) => {
   const changeStatus = (status) => {
     try {
       appointmentService.updateAppointmentStatus(appointment.id, status);
-    } catch (e) {}
+    } catch {
+      console.warn('Error updating appointment status');
+    }
     // appointmentService dispatches appointments:changed, parent component listens and reloads
     setOpen(false);
   };

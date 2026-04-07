@@ -7,7 +7,7 @@ const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
 });
 
-const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", onSave, onDelete }) => {
+const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", onSave }) => {
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
   const isEmployee = currentUser.rol === "Empleado";
   const headerBg = isEmployee ? "bg-blue-50" : "bg-green-50";
@@ -38,7 +38,9 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
       ]);
       setProducts(Array.isArray(prodsRes.data) ? prodsRes.data : []);
       setProviders(Array.isArray(provsRes.data) ? provsRes.data : []);
-    } catch {}
+    } catch {
+      console.warn('Error loading products and providers');
+    }
   }, []);
 
   useEffect(() => {

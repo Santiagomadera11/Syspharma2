@@ -64,13 +64,19 @@ export const CartDrawer = () => {
           window.dispatchEvent(
             new CustomEvent("syspharma_orders_updated", { detail: {} }),
           );
-        } catch (e) {}
+        } catch {
+          // ignore if CustomEvent not supported
+        }
         try {
           window.dispatchEvent(new Event("syspharma_orders_updated"));
-        } catch (e) {}
+        } catch {
+          // ignore if Event not supported
+        }
         try {
           window.dispatchEvent(new Event("storage"));
-        } catch (e) {}
+        } catch {
+          // ignore if Event not supported
+        }
 
         clearCart();
         setIsSubmitting(false);

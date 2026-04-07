@@ -36,7 +36,10 @@ export const EmployeeSalesPage = () => {
     try {
       const data = await salesService.getAll();
       setSales(Array.isArray(data) ? data : []);
-    } catch { setSales([]); }
+    } catch {
+      console.warn('Error loading sales');
+      setSales([]);
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -44,7 +47,10 @@ export const EmployeeSalesPage = () => {
     try {
       const turno = await turnService.getActiveTurn(user?.id);
       setCurrentTurn(turno);
-    } catch { setCurrentTurn(null); }
+    } catch {
+      console.warn('Error loading active turn');
+      setCurrentTurn(null);
+    }
     finally { setTurnoLoading(false); }
   }, [user?.id]);
 
@@ -66,7 +72,7 @@ export const EmployeeSalesPage = () => {
     setToast({ message: `Turno abierto con ${fmt(newTurn.montoBase)}`, type: "success", zIndex: 70 });
   };
 
-  const handleShiftClosed = (closedTurn) => {
+  const handleShiftClosed = () => {
     setCurrentTurn(null);
     setShowCloseShiftModal(false);
     setToast({ message: "Turno cerrado correctamente", type: "success", zIndex: 70 });

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const AppointmentsCalendarView = ({ appointments, doctors, availabilityService }) => {
+const AppointmentsCalendarView = ({ doctors, availabilityService }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDoctorId, setSelectedDoctorId] = useState(doctors.length > 0 ? doctors[0].id : null);  const [refreshKey, setRefreshKey] = useState(0);
 

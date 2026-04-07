@@ -42,7 +42,9 @@ export const DashboardEmpleado = () => {
       if (citasRes.status === "fulfilled") setCitas(citasRes.value.data || []);
       if (productosRes.status === "fulfilled") setProductos(productosRes.value.data || []);
       if (ventasRes.status === "fulfilled") setVentas(ventasRes.value.data || []);
-    } catch {}
+    } catch {
+      console.warn('Error loading dashboard data');
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -119,14 +121,14 @@ export const DashboardEmpleado = () => {
             { label: "Por Confirmar", value: pendingConfirmations, sub: "Requieren llamada", icon: AlertCircle, bg: "bg-orange-50", color: "text-orange-600" },
             { label: "Ventas Hoy", value: ventasHoy.length, sub: `$${ventasHoy.reduce((s,v)=>s+(v.total||0),0).toLocaleString("es-CO")}`, icon: ShoppingCart, bg: "bg-green-50", color: "text-green-600" },
             { label: "Stock Bajo", value: lowStockProducts.length, sub: "Productos por agotarse", icon: AlertCircle, bg: "bg-red-50", color: "text-red-600" },
-          ].map(({ label, value, sub, icon: Icon, bg, color }) => (
+          ].map(({ label, value, sub, bg, color }) => (
             <div key={label} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</p>
                 <h3 className="text-2xl font-bold text-gray-800 mt-1">{value}</h3>
                 <p className={`text-xs font-medium mt-1 ${color}`}>{sub}</p>
               </div>
-              <div className={`p-2 ${bg} rounded-lg ${color}`}><Icon size={28} /></div>
+              <div className={`p-2 ${bg} rounded-lg ${color}`}></div>
             </div>
           ))}
         </div>
@@ -240,7 +242,7 @@ export const DashboardEmpleado = () => {
   );
 };
 
-const QuickAction = ({ icon: Icon, label, onClick, color }) => {
+const QuickAction = ({ label, onClick, color }) => {
   const colors = {
     blue: "bg-blue-50 text-blue-600 hover:bg-blue-100",
     emerald: "bg-emerald-50 text-emerald-600 hover:bg-emerald-100",
@@ -249,7 +251,6 @@ const QuickAction = ({ icon: Icon, label, onClick, color }) => {
   };
   return (
     <button onClick={onClick} className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${colors[color]}`}>
-      <Icon size={18} className="mb-1" />
       <span className="text-xs font-bold">{label}</span>
     </button>
   );

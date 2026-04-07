@@ -52,20 +52,26 @@ const GuestOrderModal = ({ isOpen, onClose, product }) => {
         };
 
         // Use the canonical ordersService so business rules apply
-        const next = ordersService.create(orderData);
+        ordersService.create(orderData);
 
         // Emit events so admin/employee listeners pick it up
         try {
           window.dispatchEvent(
             new CustomEvent("syspharma_orders_updated", { detail: {} }),
           );
-        } catch (e) {}
+        } catch {
+          // ignore if CustomEvent not supported
+        }
         try {
           window.dispatchEvent(new Event("syspharma_orders_updated"));
-        } catch (e) {}
+        } catch {
+          // ignore if Event not supported
+        }
         try {
           window.dispatchEvent(new Event("storage"));
-        } catch (e) {}
+        } catch {
+          // ignore if Event not supported
+        }
 
         setIsSuccess(true);
         toast.success("¡Pedido realizado con éxito!");

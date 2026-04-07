@@ -31,7 +31,6 @@ export const DashboardPage = () => {
   const [pedidos, setPedidos] = useState([]);
   const [citas, setCitas] = useState([]);
   const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     try {
@@ -47,8 +46,9 @@ export const DashboardPage = () => {
       if (pedidosRes.status === "fulfilled") setPedidos(pedidosRes.value.data || []);
       if (citasRes.status === "fulfilled") setCitas(citasRes.value.data || []);
       if (productosRes.status === "fulfilled") setProductos(productosRes.value.data || []);
-    } catch {}
-    finally { setLoading(false); }
+    } catch {
+      console.warn('Error loading dashboard data');
+    }
   }, []);
 
   useEffect(() => {
@@ -240,7 +240,7 @@ export const DashboardPage = () => {
   );
 };
 
-const StatCard = ({ title, value, icon: Icon, color, suffix }) => {
+const StatCard = ({ title, value, color, suffix }) => {
   const colorMap = {
     blue: "bg-blue-50/50 border-blue-100 text-blue-700",
     green: "bg-emerald-50/50 border-emerald-100 text-emerald-700",
@@ -250,7 +250,7 @@ const StatCard = ({ title, value, icon: Icon, color, suffix }) => {
   };
   return (
     <div className={`p-5 rounded-2xl border ${colorMap[color]} flex flex-col justify-between h-32`}>
-      <div className="flex items-center gap-2 font-bold text-sm"><Icon size={18} /> {title}</div>
+      <div className="flex items-center gap-2 font-bold text-sm">{title}</div>
       <div>
         <h3 className="text-3xl font-bold">{value}</h3>
         <p className="text-xs opacity-75 mt-1">{suffix}</p>
@@ -259,9 +259,9 @@ const StatCard = ({ title, value, icon: Icon, color, suffix }) => {
   );
 };
 
-const KpiCard = ({ title, value, icon: Icon, color }) => (
+const KpiCard = ({ title, value, color }) => (
   <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
-    <div className={`p-2.5 rounded-lg ${color}`}><Icon size={20} /></div>
+    <div className={`p-2.5 rounded-lg ${color}`}></div>
     <div>
       <p className="text-xs text-gray-500 font-medium">{title}</p>
       <h3 className="text-xl font-bold text-gray-800">{value}</h3>
@@ -269,14 +269,13 @@ const KpiCard = ({ title, value, icon: Icon, color }) => (
   </div>
 );
 
-const ChartCard = ({ title, subtitle, icon: Icon, iconColor, children }) => (
+const ChartCard = ({ title, subtitle, iconColor, children }) => (
   <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col">
     <div className="flex justify-between items-start mb-4">
       <div>
         <h3 className="font-bold text-gray-800 text-sm">{title}</h3>
         <p className="text-[10px] text-gray-500">{subtitle}</p>
       </div>
-      <Icon className={iconColor} size={18} />
     </div>
     <div className="flex-1 w-full min-h-0">{children}</div>
   </div>
