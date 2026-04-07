@@ -13,15 +13,26 @@ export const ExpensesModal = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
-  const loadExpenses = () => {
-    setExpenses(expensesService.getTodayExpenses());
+  const loadExpenses = async () => {
+    try {
+      const todayExpenses = await expensesService.getTodayExpenses();
+      setExpenses(Array.isArray(todayExpenses) ? todayExpenses : []);
+    } catch (error) {
+      console.error("Error cargando gastos:", error);
+      setExpenses([]);
+    }
   };
 
-  const handleDeleteExpense = (id) => {
+  const handleDeleteExpense = async (id) => {
     if (window.confirm("¿Eliminar gasto?")) {
-      expensesService.delete(id);
-      loadExpenses();
-      setToast({ message: "Gasto eliminado", type: "success", zIndex: 70 });
+      try {
+        await expensesService.delete(id);
+        await loadExpenses();
+        setToast({ message: "Gasto eliminado", type: "success", zIndex: 70 });
+      } catch (error) {
+        console.error("Error eliminando gasto:", error);
+        setToast({ message: "Error al eliminar gasto", type: "error", zIndex: 70 });
+      }
     }
   };
 
