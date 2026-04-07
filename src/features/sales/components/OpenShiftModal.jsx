@@ -17,13 +17,14 @@ export const OpenShiftModal = ({
     e.preventDefault();
     setError("");
 
+    if (!user?.id) { setError("Usuario no identificado. Por favor recarga la página e inicia sesión nuevamente."); return; }
     if (!montoBase || montoBase === "") { setError("El monto base es obligatorio"); return; }
     const amount = parseFloat(montoBase);
     if (isNaN(amount) || amount < 0) { setError("Ingresa un monto válido (número positivo)"); return; }
 
     try {
       setLoading(true);
-      const userData = { userId: user?.id || 1, userName: user?.nombre || "Usuario" };
+      const userData = { userId: user.id, userName: user?.nombre || "Usuario" };
       const newTurn = await turnService.openTurn(userData, amount);
       setMontoBase("");
       setError("");

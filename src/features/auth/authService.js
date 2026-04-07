@@ -34,6 +34,7 @@ export const authService = {
       const data = response.data;
 
       const user = {
+        id: data.id,
         nombre: data.nombre,
         email: data.email,
         rol: data.rol,
