@@ -1,77 +1,86 @@
-const DB_KEY = "syspharma_sales";
+import { apiClient } from "../../../shared/utils/apiClient";
+
+const ENDPOINT = "Venta";
 
 export const salesService = {
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-    if (!data) {
-      localStorage.setItem(DB_KEY, JSON.stringify([]));
-      return [];
-    }
-    try {
-      return JSON.parse(data);
-    } catch {
-      localStorage.setItem(DB_KEY, JSON.stringify([]));
-      return [];
-    }
+  getAll: async () => {
+    const res = await apiClient.get(ENDPOINT);
+    return res.data;
   },
 
-  create: (saleData) => {
-    const sales = salesService.getAll();
-    const id = Date.now();
-    const newSale = {
-      id,
-      hora: new Date().toLocaleTimeString("es-CO"),
-      fecha: new Date().toLocaleDateString("es-CO"),
-      cliente: saleData.cliente || "Cliente",
-      productos: saleData.productos || [], // array de {nombre, cantidad, precio}
-      cantidadProductos: (saleData.productos || []).reduce(
-        (sum, p) => sum + (p.cantidad || 0),
-        0
-      ),
-      metodoPago: saleData.metodoPago || "Efectivo",
-      total: saleData.total || 0,
-      estado: saleData.estado || "completada", // completada, devolucion, cancelada
-      notas: saleData.notas || "",
-      ...saleData,
+  getById: async (id) => {
+    const res = await apiClient.get(`${ENDPOINT}/${id}`);
+    return res.data;
+  },
+
+  getEstados: async () => {
+    const res = await apiClient.get(`${ENDPOINT}/estados`);
+    return res.data;
+  },
+
+  create: async (saleData) => {
+    const payload = {
+      turnoId: saleData.turnoId,
+      usuarioId: saleData.usuarioId,
+      clienteNombre: saleData.cliente || saleData.clienteNombre || "Consumidor Final",
+      clienteDocumento: saleData.documento || saleData.clienteDocumento || null,
+      clienteTelefono: saleData.telefono || saleData.clienteTelefono || null,
+      metodoPagoId: saleData.metodoPagoId,
+      porcentajeIva: saleData.porcentajeIva || 0,
+      notas: saleData.notas || null,
+      detalles: (saleData.productos || saleData.detalles || []).map(p => ({
+        productoId: p.id || p.productoId,
+        cantidad: p.cantidad,
+        precioUnitario: p.precio || p.precioUnitario,
+        descuento: p.descuento || 0,
+      })),
     };
-    const next = [newSale, ...sales];
-    localStorage.setItem(DB_KEY, JSON.stringify(next));
-    return next;
+    const res = await apiClient.post(ENDPOINT, payload);
+    return res.data;
   },
 
-  update: (saleData) => {
-    const sales = salesService.getAll();
-    const updated = sales.map((s) =>
-      s.id === saleData.id ? { ...s, ...saleData } : s
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(updated));
-    return updated;
+  update: async (saleData) => {
+    const payload = {
+      id: saleData.id,
+      clienteNombre: saleData.clienteNombre || saleData.cliente,
+      clienteDocumento: saleData.clienteDocumento || null,
+      clienteTelefono: saleData.clienteTelefono || null,
+      metodoPagoId: saleData.metodoPagoId,
+      estadoId: saleData.estadoId,
+      notas: saleData.notas || null,
+    };
+    const res = await apiClient.put(ENDPOINT, payload);
+    return res.data;
   },
 
-  delete: (id) => {
-    const sales = salesService.getAll();
-    const filtered = sales.filter((s) => s.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(filtered));
-    return filtered;
+  cambiarEstado: async (id, estadoId) => {
+    const res = await apiClient.patch(`${ENDPOINT}/${id}/estado`, estadoId);
+    return res.data;
   },
 
-  getSalesByDate: (date) => {
-    const sales = salesService.getAll();
-    return sales.filter((s) => s.fecha === date);
+  delete: async (id) => {
+    const res = await apiClient.delete(`${ENDPOINT}/${id}`);
+    return res.data;
   },
 
-  getTodaySales: () => {
+  // ── Helpers de estadísticas ───────────────────────────────────────────────
+  getTodaySales: async () => {
+    const all = await salesService.getAll();
     const today = new Date().toLocaleDateString("es-CO");
-    return salesService.getSalesByDate(today);
+    return all.filter(s => {
+      const fecha = s.fechaVenta ? new Date(s.fechaVenta).toLocaleDateString("es-CO") : "";
+      return fecha === today;
+    });
   },
 
-  getTotalSalesToday: () => {
-    const sales = salesService.getTodaySales();
+  getTotalSalesToday: async () => {
+    const sales = await salesService.getTodaySales();
     return sales.reduce((sum, s) => sum + (s.total || 0), 0);
   },
 
-  getTotalProductsToday: () => {
-    const sales = salesService.getTodaySales();
-    return sales.reduce((sum, s) => sum + (s.cantidadProductos || 0), 0);
+  getTotalProductsToday: async () => {
+    const sales = await salesService.getTodaySales();
+    return sales.reduce((sum, s) =>
+      sum + (s.detalles || []).reduce((a, d) => a + d.cantidad, 0), 0);
   },
 };

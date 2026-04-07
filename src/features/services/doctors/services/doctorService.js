@@ -1,10 +1,6 @@
-import axios from "axios";
+import { apiClient } from "../../../../shared/utils/apiClient";
 
-const API_URL = "http://localhost:5055/api/Medico";
-
-const getAuthHeaders = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("syspharma_token")}` },
-});
+const ENDPOINT = "Medico";
 
 const parseDias = (diasStr) => {
   try { return diasStr ? JSON.parse(diasStr) : [1, 2, 3, 4, 5]; }
@@ -19,12 +15,12 @@ const mapDoctor = (m) => ({
 
 export const doctorService = {
   getAll: async () => {
-    const res = await axios.get(API_URL, getAuthHeaders());
+    const res = await apiClient.get(ENDPOINT);
     return res.data.map(mapDoctor);
   },
 
   getById: async (id) => {
-    const res = await axios.get(`${API_URL}/${id}`, getAuthHeaders());
+    const res = await apiClient.get(`${ENDPOINT}/${id}`);
     return mapDoctor(res.data);
   },
 
@@ -40,7 +36,7 @@ export const doctorService = {
       horaFin: doctorData.horaFin || "17:00",
       intervalo: doctorData.intervalo || 30,
     };
-    const res = await axios.post(API_URL, payload, getAuthHeaders());
+    const res = await apiClient.post(ENDPOINT, payload);
     return mapDoctor(res.data);
   },
 
@@ -57,18 +53,16 @@ export const doctorService = {
       horaFin: doctorData.horaFin || "17:00",
       intervalo: doctorData.intervalo || 30,
     };
-    const res = await axios.put(API_URL, payload, getAuthHeaders());
+    const res = await apiClient.put(ENDPOINT, payload);
     return mapDoctor(res.data);
   },
 
   delete: async (id) => {
-    await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+    await apiClient.delete(`${ENDPOINT}/${id}`);
   },
 
   toggleStatus: async (id, estadoActual) => {
-    const config = getAuthHeaders();
-    config.headers["Content-Type"] = "application/json";
-    await axios.patch(`${API_URL}/${id}/estado`, !estadoActual, config);
+    await apiClient.patch(`${ENDPOINT}/${id}/estado`, !estadoActual);
   },
 
   getActive: async () => {

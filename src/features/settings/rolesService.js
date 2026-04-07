@@ -1,12 +1,7 @@
-import axios from "axios";
+import { apiClient } from "../../shared/utils/apiClient";
 import { PERMISSIONS_CONFIG } from "./rolesConfig";
 
-const API_URL = "http://localhost:5055/api/RolMaestro";
-const PERM_LOCAL_KEY = "syspharma_role_perms_local";
-
-const getAuthHeaders = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("syspharma_token")}` },
-});
+const ENDPOINT = "RolMaestro";
 
 const COLOR_OPTIONS = [
   { id: "turquoise", name: "Turquesa", hex: "#4fd1c5" },
@@ -32,16 +27,16 @@ const getColorForRole = (nombre, colorId) => {
   return DEFAULT_COLORS[nombre] || COLOR_OPTIONS[6];
 };
 
-const getLocalPerms = () => {
-  try { return JSON.parse(localStorage.getItem(PERM_LOCAL_KEY) || "{}"); }
+// Color guardado por rol en localStorage solo para UI (no permisos)
+const getColorMap = () => {
+  try { return JSON.parse(localStorage.getItem("syspharma_role_colors") || "{}"); }
   catch { return {}; }
 };
-const saveLocalPerms = (map) => localStorage.setItem(PERM_LOCAL_KEY, JSON.stringify(map));
 
 const enrichRole = (r) => {
-  const localPerms = getLocalPerms();
-  const colorData = getColorForRole(r.nombre, r.colorId);
-  const rawPerms = localPerms[r.nombre];
+  const colorMap = getColorMap();
+  const colorId = colorMap[r.nombre] || null;
+  const colorData = getColorForRole(r.nombre, colorId);
   return {
     ...r,
     name: r.nombre,
@@ -49,18 +44,19 @@ const enrichRole = (r) => {
     active: r.estado,
     color: colorData.hex,
     colorId: colorData.id,
-    permissions: Array.isArray(rawPerms) ? rawPerms : [],
+    // Permisos vienen desde el backend en r.permisos
+    permissions: Array.isArray(r.permisos) ? r.permisos : [],
   };
 };
 
 export const rolesService = {
   getAll: async () => {
-    const res = await axios.get(API_URL, getAuthHeaders());
+    const res = await apiClient.get(ENDPOINT);
     return res.data.map(enrichRole);
   },
 
   getById: async (id) => {
-    const res = await axios.get(`${API_URL}/${id}`, getAuthHeaders());
+    const res = await apiClient.get(`${ENDPOINT}/${id}`);
     return enrichRole(res.data);
   },
 
@@ -68,15 +64,13 @@ export const rolesService = {
     const payload = {
       nombre: roleData.name || roleData.nombre,
       descripcion: roleData.description || roleData.descripcion || null,
+      permisos: Array.isArray(roleData.permissions) ? roleData.permissions : [],
     };
-    const res = await axios.post(API_URL, payload, getAuthHeaders());
+    const res = await apiClient.post(ENDPOINT, payload);
     const created = enrichRole(res.data);
 
-    const localPerms = getLocalPerms();
-    localPerms[created.nombre] = Array.isArray(roleData.permissions) ? roleData.permissions : [];
-    saveLocalPerms(localPerms);
-
-    const colorMap = JSON.parse(localStorage.getItem("syspharma_role_colors") || "{}");
+    // Solo guardar color en localStorage (no permisos)
+    const colorMap = getColorMap();
     colorMap[created.nombre] = roleData.colorId || "gray";
     localStorage.setItem("syspharma_role_colors", JSON.stringify(colorMap));
 
@@ -88,15 +82,13 @@ export const rolesService = {
       id: roleData.id,
       nombre: roleData.name || roleData.nombre,
       descripcion: roleData.description || roleData.descripcion || null,
+      permisos: Array.isArray(roleData.permissions) ? roleData.permissions : [],
     };
-    const res = await axios.put(API_URL, payload, getAuthHeaders());
+    const res = await apiClient.put(ENDPOINT, payload);
     const updated = enrichRole(res.data);
 
-    const localPerms = getLocalPerms();
-    localPerms[updated.nombre] = Array.isArray(roleData.permissions) ? roleData.permissions : [];
-    saveLocalPerms(localPerms);
-
-    const colorMap = JSON.parse(localStorage.getItem("syspharma_role_colors") || "{}");
+    // Solo guardar color en localStorage (no permisos)
+    const colorMap = getColorMap();
     colorMap[updated.nombre] = roleData.colorId || "gray";
     localStorage.setItem("syspharma_role_colors", JSON.stringify(colorMap));
 
@@ -104,25 +96,26 @@ export const rolesService = {
   },
 
   remove: async (id) => {
-    await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+    await apiClient.delete(`${ENDPOINT}/${id}`);
   },
 
   toggleStatus: async (id, estadoActual) => {
-    const config = getAuthHeaders();
-    config.headers["Content-Type"] = "application/json";
-    await axios.patch(`${API_URL}/${id}/estado`, !estadoActual, config);
+    await apiClient.patch(`${ENDPOINT}/${id}/estado`, !estadoActual);
   },
 
-  saveLocalPermissions: (roleName, permissions) => {
-    const localPerms = getLocalPerms();
-    localPerms[roleName] = Array.isArray(permissions) ? permissions : [];
-    saveLocalPerms(localPerms);
+  // Obtener permisos de un rol desde el backend
+  getPermisos: async (rolId) => {
+    const res = await apiClient.get(`${ENDPOINT}/${rolId}/permisos`);
+    return res.data;
   },
 
-  getLocalPermissions: (roleName) => {
-    const perms = getLocalPerms()[roleName];
-    return Array.isArray(perms) ? perms : [];
+  // Asignar permisos a un rol en el backend
+  asignarPermisos: async (rolId, permisos) => {
+    await apiClient.post(`${ENDPOINT}/${rolId}/permisos`, permisos);
   },
 
+  // Compatibilidad con código anterior
+  saveLocalPermissions: () => {},
+  getLocalPermissions: () => [],
   saveAll: () => {},
 };

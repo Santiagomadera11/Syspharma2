@@ -1,11 +1,7 @@
-import axios from "axios";
+import { apiClient } from "../../../shared/utils/apiClient";
 
-const API_URL = "http://localhost:5055/api/Cita";
-const DOCTORS_API = "http://localhost:5055/api/Medico";
-
-const getAuthHeaders = () => ({
-  headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
-});
+const APPOINTMENTS_ENDPOINT = "Cita";
+const DOCTORS_ENDPOINT = "Medico";
 
 // Mapear estructura del frontend a la API
 const mapToApiFormat = (appointmentData) => ({
@@ -46,7 +42,7 @@ export const appointmentService = {
   // --- MÉDICOS ---
   getDoctors: async () => {
     try {
-      const res = await axios.get(DOCTORS_API, getAuthHeaders());
+      const res = await apiClient.get(DOCTORS_ENDPOINT);
       return Array.isArray(res.data) ? res.data : [];
     } catch (error) {
       console.error("Error obteniendo médicos:", error);
@@ -56,7 +52,7 @@ export const appointmentService = {
 
   updateDoctorSchedule: async (doctor) => {
     try {
-      const res = await axios.put(DOCTORS_API, doctor, getAuthHeaders());
+      const res = await apiClient.put(DOCTORS_ENDPOINT, doctor);
       return res.data;
     } catch (error) {
       console.error("Error actualizando horario del médico:", error);
@@ -67,7 +63,7 @@ export const appointmentService = {
   // --- CITAS ---
   getAppointments: async () => {
     try {
-      const res = await axios.get(API_URL, getAuthHeaders());
+      const res = await apiClient.get(APPOINTMENTS_ENDPOINT);
       const appointments = Array.isArray(res.data) ? res.data : [];
       return appointments.map(mapFromApiFormat);
     } catch (error) {
@@ -89,7 +85,7 @@ export const appointmentService = {
       };
 
       const apiPayload = mapToApiFormat(appointmentData);
-      const res = await axios.post(API_URL, apiPayload, getAuthHeaders());
+      const res = await apiClient.post(APPOINTMENTS_ENDPOINT, apiPayload);
 
       window.dispatchEvent(new Event("appointments:changed"));
       return mapFromApiFormat(res.data);
@@ -102,7 +98,7 @@ export const appointmentService = {
   updateAppointment: async (id, updates) => {
     try {
       const apiPayload = mapToApiFormat(updates);
-      const res = await axios.put(API_URL, { id, ...apiPayload }, getAuthHeaders());
+      const res = await apiClient.put(APPOINTMENTS_ENDPOINT, { id, ...apiPayload });
 
       window.dispatchEvent(new Event("appointments:changed"));
       return mapFromApiFormat(res.data);
@@ -114,9 +110,7 @@ export const appointmentService = {
 
   updateAppointmentStatus: async (id, newStatus) => {
     try {
-      const config = getAuthHeaders();
-      config.headers["Content-Type"] = "application/json";
-      const res = await axios.patch(`${API_URL}/${id}/estado`, newStatus, config);
+      const res = await apiClient.patch(`${APPOINTMENTS_ENDPOINT}/${id}/estado`, newStatus);
 
       window.dispatchEvent(new Event("appointments:changed"));
       return mapFromApiFormat(res.data);
@@ -128,7 +122,7 @@ export const appointmentService = {
 
   deleteAppointment: async (id) => {
     try {
-      await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+      await apiClient.delete(`${APPOINTMENTS_ENDPOINT}/${id}`);
 
       window.dispatchEvent(new Event("appointments:changed"));
       return true;

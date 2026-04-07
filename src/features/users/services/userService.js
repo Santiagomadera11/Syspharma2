@@ -1,49 +1,45 @@
-import axios from "axios";
+import { apiClient } from "../../../shared/utils/apiClient";
 
-const API_URL = "http://localhost:5055/api/Usuario";
-const ROLES_URL = "http://localhost:5055/api/RolMaestro";
-
-const getAuthHeaders = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("syspharma_token")}` },
-});
+const USER_ENDPOINT = "Usuario";
+const ROLES_ENDPOINT = "RolMaestro";
 
 const mapUser = (u) => ({
   ...u,
-  // compatibilidad con frontend que usa 'rol' y 'estado'
   rol: u.rolNombre || u.rol || "",
   estado: u.estado,
+  tipoDocumentoId: u.tipoDocumentoId || null,
+  tipoDocumento: u.tipoDocumento || "",
   avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.nombre || u.id)}`,
 });
 
 export const userService = {
   getAll: async () => {
-    const res = await axios.get(API_URL, getAuthHeaders());
+    const res = await apiClient.get(USER_ENDPOINT);
     return res.data.map(mapUser);
   },
 
   getById: async (id) => {
-    const res = await axios.get(`${API_URL}/${id}`, getAuthHeaders());
+    const res = await apiClient.get(`${USER_ENDPOINT}/${id}`);
     return mapUser(res.data);
   },
 
-  // Obtener roles para el select
   getRoles: async () => {
-    const res = await axios.get(ROLES_URL, getAuthHeaders());
-    return res.data; // [{ id, nombre, ... }]
+    const res = await apiClient.get(ROLES_ENDPOINT);
+    return res.data;
   },
 
   create: async (userData) => {
     const payload = {
       nombre: `${userData.nombres || ""} ${userData.apellidos || ""}`.trim() || userData.nombre,
       email: userData.email,
-      tipoDocumento: userData.tipoDocumento || null,
+      tipoDocumentoId: userData.tipoDocumentoId ? Number(userData.tipoDocumentoId) : null,
       documento: userData.documento || null,
       telefono: userData.telefono || null,
       rolId: Number(userData.rolId),
       estado: typeof userData.estado === "boolean" ? userData.estado : true,
       contrasena: userData.password,
     };
-    const res = await axios.post(API_URL, payload, getAuthHeaders());
+    const res = await apiClient.post(USER_ENDPOINT, payload);
     return mapUser(res.data);
   },
 
@@ -52,24 +48,22 @@ export const userService = {
       id: userData.id,
       nombre: `${userData.nombres || ""} ${userData.apellidos || ""}`.trim() || userData.nombre,
       email: userData.email,
-      tipoDocumento: userData.tipoDocumento || null,
+      tipoDocumentoId: userData.tipoDocumentoId ? Number(userData.tipoDocumentoId) : null,
       documento: userData.documento || null,
       telefono: userData.telefono || null,
       rolId: Number(userData.rolId),
       estado: typeof userData.estado === "boolean" ? userData.estado : true,
     };
-    const res = await axios.put(API_URL, payload, getAuthHeaders());
+    const res = await apiClient.put(USER_ENDPOINT, payload);
     return mapUser(res.data);
   },
 
   toggleStatus: async (id, estadoActual) => {
-    const config = getAuthHeaders();
-    config.headers["Content-Type"] = "application/json";
-    const res = await axios.patch(`${API_URL}/${id}/estado`, !estadoActual, config);
+    const res = await apiClient.patch(`${USER_ENDPOINT}/${id}/estado`, !estadoActual);
     return res.data;
   },
 
   delete: async (id) => {
-    await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+    await apiClient.delete(`${USER_ENDPOINT}/${id}`);
   },
 };

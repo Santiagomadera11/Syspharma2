@@ -1,43 +1,29 @@
-// inventory/services/categoryService.js
-import axios from 'axios';
+import { apiClient } from "../../../../shared/utils/apiClient";
 
-const API_URL = 'http://localhost:5055/api/Categoria';
-
-// Helper para obtener los headers con el token
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('syspharma_token');
-  return { 
-    headers: { 
-      Authorization: `Bearer ${token}` 
-    } 
-  };
-};
+const ENDPOINT = "Categoria";
 
 const getAll = async () => {
-  const response = await axios.get(API_URL, getAuthHeaders());
+  const response = await apiClient.get(ENDPOINT);
   return response.data;
 };
 
 const create = async (categoryData) => {
-  const response = await axios.post(API_URL, categoryData, getAuthHeaders());
+  const response = await apiClient.post(ENDPOINT, categoryData);
   return response.data;
 };
 
 const update = async (id, categoryData) => {
-  const response = await axios.put(API_URL, { id, ...categoryData }, getAuthHeaders());
+  const response = await apiClient.put(ENDPOINT, { id, ...categoryData });
   return response.data;
 };
 
 const toggleStatus = async (id, newStatus) => {
-  const config = getAuthHeaders();
-  config.headers['Content-Type'] = 'application/json';
-  
-  const response = await axios.patch(`${API_URL}/${id}/estado`, newStatus, config);
+  const response = await apiClient.patch(`${ENDPOINT}/${id}/estado`, newStatus);
   return response.data;
 };
 
 const remove = async (id) => {
-  const response = await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+  const response = await apiClient.delete(`${ENDPOINT}/${id}`);
   return response.data;
 };
 

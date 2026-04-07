@@ -1,72 +1,46 @@
-import axios from "axios";
+import { apiClient } from "../../shared/utils/apiClient";
+import { authService } from "../auth/authService";
 
-const API_URL = "http://localhost:5055/api/Permiso";
-const PERM_MAP_KEY = "syspharma_role_perms_local";
+const ENDPOINT = "Permiso";
 
-const getAuthHeaders = () => ({
-  headers: { Authorization: `Bearer ${localStorage.getItem("syspharma_token")}` },
-});
-
-// ─── Permisos del backend (catálogo) ─────────────────────────────────────────
 export const permissionService = {
-  // Obtener catálogo de permisos desde el backend
+  // ── Catálogo de permisos desde backend ───────────────────────────────────
   getCatalog: async () => {
-    const res = await axios.get(API_URL, getAuthHeaders());
+    const res = await apiClient.get(ENDPOINT);
     return res.data;
   },
 
   createPermiso: async (data) => {
-    const res = await axios.post(API_URL, data, getAuthHeaders());
+    const res = await apiClient.post(ENDPOINT, data);
     return res.data;
   },
 
   updatePermiso: async (data) => {
-    const res = await axios.put(API_URL, data, getAuthHeaders());
+    const res = await apiClient.put(ENDPOINT, data);
     return res.data;
   },
 
-  // ─── Mapa local de permisos por rol (frontend) ─────────────────────────────
-  getAll: () => {
-    try { return JSON.parse(localStorage.getItem(PERM_MAP_KEY) || "{}"); }
-    catch { return {}; }
-  },
-
-  saveAll: (map) => {
-    localStorage.setItem(PERM_MAP_KEY, JSON.stringify(map || {}));
-  },
-
-  syncFromRoles: () => {
-    // No-op: ahora la sincronización la maneja rolesService
-  },
-
-  updateRole: (roleName, permissionsArray) => {
-    const map = permissionService.getAll();
-    map[roleName] = {};
-    (permissionsArray || []).forEach((id) => (map[roleName][id] = true));
-    permissionService.saveAll(map);
-  },
-
-  removeRole: (roleName) => {
-    const map = permissionService.getAll();
-    delete map[roleName];
-    permissionService.saveAll(map);
-  },
-
-  getRolePerms: (roleName) => {
-    const map = permissionService.getAll();
-    return map[roleName] || {};
-  },
-
+  // ── Verificación de permisos (desde memoria, no localStorage) ────────────
   hasPerm: (roleName, permId) => {
     if (!roleName) return false;
     if (roleName === "Administrador") return true;
-    const perms = permissionService.getRolePerms(roleName);
-    return !!perms[permId];
+
+    // Obtener permisos desde memoria (cargados en el login)
+    const permisos = authService.getPermisos();
+    return permisos.includes(permId);
   },
 
-  init: () => {
-    // No-op: ya no usamos localStorage para inicializar roles
-  },
+  // ── Obtener permisos actuales en memoria ─────────────────────────────────
+  getPermisos: () => authService.getPermisos(),
+
+  // Compatibilidad con código anterior — ya no usa localStorage
+  getAll: () => ({}),
+  saveAll: () => {},
+  getRolePerms: () => ({}),
+  updateRole: () => {},
+  removeRole: () => {},
+  syncFromRoles: () => {},
+  init: () => {},
 };
 
-permissionService.init();
+permissionService.init(); 

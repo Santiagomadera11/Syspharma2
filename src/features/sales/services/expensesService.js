@@ -1,15 +1,11 @@
-import axios from "axios";
+import { apiClient } from "../../../shared/utils/apiClient";
 
-const API_URL = "http://localhost:5055/api/Gasto";
-
-const getAuthHeaders = () => ({
-  headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
-});
+const EXPENSES_ENDPOINT = "Gasto";
 
 export const expensesService = {
   getAll: async () => {
     try {
-      const res = await axios.get(API_URL, getAuthHeaders());
+      const res = await apiClient.get(EXPENSES_ENDPOINT);
       return Array.isArray(res.data) ? res.data : [];
     } catch (error) {
       console.error("Error obteniendo gastos:", error);
@@ -19,7 +15,7 @@ export const expensesService = {
 
   getById: async (id) => {
     try {
-      const res = await axios.get(`${API_URL}/${id}`, getAuthHeaders());
+      const res = await apiClient.get(`${EXPENSES_ENDPOINT}/${id}`);
       return res.data;
     } catch (error) {
       console.error("Error obteniendo gasto:", error);
@@ -41,7 +37,7 @@ export const expensesService = {
         usuarioId: expenseData.usuarioId || currentUser.id,
       };
 
-      const res = await axios.post(API_URL, payload, getAuthHeaders());
+      const res = await apiClient.post(EXPENSES_ENDPOINT, payload);
       return res.data;
     } catch (error) {
       console.error("Error creando gasto:", error);
@@ -60,7 +56,7 @@ export const expensesService = {
         notas: expenseData.notas || null,
       };
 
-      const res = await axios.put(API_URL, payload, getAuthHeaders());
+      const res = await apiClient.put(EXPENSES_ENDPOINT, payload);
       return res.data;
     } catch (error) {
       console.error("Error actualizando gasto:", error);
@@ -70,7 +66,7 @@ export const expensesService = {
 
   delete: async (id) => {
     try {
-      await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+      await apiClient.delete(`${EXPENSES_ENDPOINT}/${id}`);
       return true;
     } catch (error) {
       console.error("Error eliminando gasto:", error);
@@ -93,7 +89,7 @@ export const expensesService = {
 
   getExpensesByTurn: async (turnoId) => {
     try {
-      const res = await axios.get(`${API_URL}/turno/${turnoId}`, getAuthHeaders());
+      const res = await apiClient.get(`${EXPENSES_ENDPOINT}/turno/${turnoId}`);
       return Array.isArray(res.data) ? res.data : [];
     } catch (error) {
       console.error("Error obteniendo gastos del turno:", error);

@@ -1,168 +1,83 @@
-const DB_KEY = "syspharma_orders";
+import { apiClient } from "../../../../shared/utils/apiClient";
 
-const initialData = [];
+const ENDPOINT = "Pedido";
 
-// Helper para obtener turno activo
-const getActiveTurn = () => {
-  try {
-    const turnKey = "syspharma_current_turn";
-    const turn = localStorage.getItem(turnKey);
-    return turn ? JSON.parse(turn) : null;
-  } catch (error) {
-    return null;
-  }
-};
-
-// REGLA DE ORO: Empleados SIEMPRE necesitan turno abierto
-// Web/Externos: pueden crear sin turno pero marcar como "Pendientes de Validación"
-const validateOrderCreation = (orderData) => {
-  const origin = orderData.origin || "web";
-  const turn = getActiveTurn();
-
-  if (origin === "empleado" && !turn) {
-    return {
-      valid: false,
-      message:
-        "REGLA DE ORO: Los empleados no pueden crear pedidos sin turno abierto. Debes abrir caja primero.",
-    };
-  }
-
-  if (origin === "web" && !turn) {
-    return {
-      valid: true,
-      warning:
-        "Pedido web sin validación de turno. Será marcado como Pendiente.",
-      state: "Pendientes de Validación",
-    };
-  }
-
-  return { valid: true, message: "" };
+const notifyChange = () => {
+  window.dispatchEvent(new CustomEvent("syspharma_orders_updated"));
 };
 
 export const ordersService = {
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-    if (!data) {
-      localStorage.setItem(DB_KEY, JSON.stringify(initialData));
-      return initialData;
-    }
-    try {
-      return JSON.parse(data);
-    } catch {
-      localStorage.setItem(DB_KEY, JSON.stringify(initialData));
-      return initialData;
-    }
+  getAll: async () => {
+    const res = await apiClient.get(ENDPOINT);
+    return res.data;
   },
 
-  create: (orderData) => {
-    // REGLA DE ORO: Validar según origen del pedido (empleado vs web)
-    const validation = validateOrderCreation(orderData);
-    if (!validation.valid) {
-      throw new Error(validation.message);
-    }
+  getById: async (id) => {
+    const res = await apiClient.get(`${ENDPOINT}/${id}`);
+    return res.data;
+  },
 
-    const orders = ordersService.getAll();
-    const id = `PED-${String(orders.length + 1).padStart(3, "0")}`;
-    const turn = getActiveTurn();
+  getEstados: async () => {
+    const res = await apiClient.get(`${ENDPOINT}/estados`);
+    return res.data;
+  },
 
-    // Determinar estado: si es pedido web sin turno, marcarlo como "Pendientes de Validación"
-    let estado = "Pendiente";
-    if (validation.state === "Pendientes de Validación") {
-      estado = "Pendientes de Validación";
-    } else if (orderData.estado) {
-      estado = orderData.estado;
-    }
-
-    const newOrder = {
-      id,
-      cliente: orderData.cliente || "",
-      documento: orderData.documento || "",
-      fecha: new Date().toISOString().split("T")[0],
-      productos: orderData.productos || [],
-      cantidadProductos: (orderData.productos || []).reduce(
-        (sum, p) => sum + (p.cantidad || 0),
-        0,
-      ),
-      total: orderData.total || 0,
-      turnId: turn?.turnId || null,
-      userId: orderData.userId || null,
-      userName: orderData.userName || "",
-      origin: orderData.origin || "web",
-      estado: estado,
-      notas: orderData.notas || "",
-      creadoPor: orderData.creadoPor || "Administrador",
-      ...orderData,
+  create: async (orderData) => {
+    const payload = {
+      usuarioId: orderData.userId || orderData.usuarioId || null,
+      clienteNombre: orderData.cliente || orderData.clienteNombre || "Consumidor Final",
+      clienteDocumento: orderData.documento || orderData.clienteDocumento || null,
+      clienteTelefono: orderData.telefono || orderData.clienteTelefono || null,
+      clienteEmail: orderData.correo || orderData.clienteEmail || null,
+      metodoPagoId: orderData.metodoPagoId || null,
+      porcentajeIva: orderData.porcentajeIva || 0,
+      notas: orderData.notas || null,
+      origen: orderData.origin || orderData.origen || "web",
+      fechaEntrega: orderData.fechaEntrega || null,
+      detalles: (orderData.productos || orderData.detalles || []).map(p => ({
+        productoId: p.id || p.productoId || null,
+        nombre: p.nombre,
+        cantidad: p.cantidad,
+        precioUnitario: p.precio || p.precioUnitario,
+      })),
     };
-    const next = [newOrder, ...orders];
-    localStorage.setItem(DB_KEY, JSON.stringify(next));
-
-    // Emitir eventos para notificar otras pestañas/componentes
-    try {
-      window.dispatchEvent(
-        new CustomEvent(`${DB_KEY}_updated`, { detail: {} }),
-      );
-    } catch (e) {}
-    try {
-      window.dispatchEvent(new Event(`${DB_KEY}_updated`));
-    } catch (e) {}
-    try {
-      window.dispatchEvent(new Event("storage"));
-    } catch (e) {}
-
-    // Si es pedido de empleado CON turno, registrar como venta inmediata
-    if (orderData.origin === "empleado" && turn) {
-      try {
-        const salesKey = "syspharma_sales";
-        const sales = JSON.parse(localStorage.getItem(salesKey) || "[]");
-        const newSale = {
-          saleId: Date.now(),
-          fecha: new Date().toISOString(),
-          userId: orderData.userId || turn.userId,
-          userName: orderData.userName || turn.userName,
-          monto: orderData.total || 0,
-          tipo: "pedido",
-          categoria: "producto",
-          descripcion: `Pedido ${id}`,
-          referencia: id,
-          turnId: turn.turnId,
-        };
-        sales.push(newSale);
-        localStorage.setItem(salesKey, JSON.stringify(sales));
-      } catch (error) {
-        console.warn("Error registrando venta de pedido:", error);
-      }
-    }
-
-    return next;
+    const res = await apiClient.post(ENDPOINT, payload);
+    notifyChange();
+    return res.data;
   },
 
-  update: (orderData) => {
-    const orders = ordersService.getAll();
-    const updated = orders.map((o) =>
-      o.id === orderData.id ? { ...o, ...orderData } : o,
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(updated));
-    return updated;
+  update: async (orderData) => {
+    const payload = {
+      id: orderData.id,
+      clienteNombre: orderData.cliente || orderData.clienteNombre,
+      clienteDocumento: orderData.documento || orderData.clienteDocumento || null,
+      clienteTelefono: orderData.telefono || orderData.clienteTelefono || null,
+      clienteEmail: orderData.correo || orderData.clienteEmail || null,
+      metodoPagoId: orderData.metodoPagoId || null,
+      estadoId: orderData.estadoId,
+      notas: orderData.notas || null,
+      fechaEntrega: orderData.fechaEntrega || null,
+      detalles: orderData.productos ? orderData.productos.map(p => ({
+        productoId: p.id || p.productoId || null,
+        nombre: p.nombre,
+        cantidad: p.cantidad,
+        precioUnitario: p.precio || p.precioUnitario,
+      })) : null,
+    };
+    const res = await apiClient.put(ENDPOINT, payload);
+    notifyChange();
+    return res.data;
   },
 
-  delete: (id) => {
-    const orders = ordersService.getAll();
-    const filtered = orders.filter((o) => o.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(filtered));
-    return filtered;
+  updateStatus: async (id, estadoId) => {
+    const res = await apiClient.patch(`${ENDPOINT}/${id}/estado`, estadoId);
+    notifyChange();
+    return res.data;
   },
 
-  getById: (id) => {
-    const orders = ordersService.getAll();
-    return orders.find((o) => o.id === id);
-  },
-
-  updateStatus: (id, newStatus) => {
-    const orders = ordersService.getAll();
-    const updated = orders.map((o) =>
-      o.id === id ? { ...o, estado: newStatus } : o,
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(updated));
-    return updated;
+  delete: async (id) => {
+    const res = await apiClient.delete(`${ENDPOINT}/${id}`);
+    notifyChange();
+    return res.data;
   },
 };
