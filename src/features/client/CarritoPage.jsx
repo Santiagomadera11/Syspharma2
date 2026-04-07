@@ -12,7 +12,6 @@ import { ordersService } from "../sales/orders/services/ordersService";
 
 const CarritoPage = () => {
   const [cartItems, setCartItems] = useState([]);
-  const [products, setProducts] = useState([]);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -67,7 +66,6 @@ const CarritoPage = () => {
     });
     const mapped = normalized;
     setCartItems(mapped);
-    setProducts(prods);
     // Persist adjustments if admin reduced stock below quantities in cart
     try {
       const raw = read(LS.CART) || [];
@@ -82,7 +80,9 @@ const CarritoPage = () => {
         return { id: m.id, cantidad: m.cantidad || 0, precio: m.precioActual };
       });
       if (changed) write(LS.CART, toWrite);
-    } catch (e) {}
+    } catch {
+      // Error persisting cart adjustments
+    }
   }
 
   const changeQty = (id, delta) => {
@@ -468,7 +468,7 @@ const CarritoPage = () => {
                       type: "success",
                       zIndex: 70,
                     });
-                  } catch (e) {
+                  } catch {
                     setProcessing(false);
                     setCheckoutError("Error procesando la compra");
                   }

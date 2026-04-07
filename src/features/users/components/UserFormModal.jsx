@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { X, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { userService } from "../services/userService";
 import { formValidations } from "../../../shared/utils/formValidations";
-import { getDocumentTypes } from "../../settings/services/parameterService";
+import { getDocumentTypes, fetchDocumentTypes } from "../../settings/services/parameterService";
 
 export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    tipoDocumento: "",
+    tipoDocumentoId: "",
     documento: "",
     nombres: "",
     apellidos: "",
@@ -27,11 +27,10 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   useEffect(() => {
     if (!isOpen) return;
 
-    // Cargar roles del backend
     userService.getRoles().then(roles => setRolesOptions(roles)).catch(console.error);
 
-    // Cargar tipos de documento
-    setDocumentTypes(getDocumentTypes());
+    // Cargar tipos de documento desde backend con fallback a localStorage
+    fetchDocumentTypes().then(types => setDocumentTypes(types));
 
     const handleParamUpdate = () => setDocumentTypes(getDocumentTypes());
     window.addEventListener("syspharma_parameters_updated", handleParamUpdate);
@@ -43,7 +42,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       const apellidos = parts.slice(1).join(" ") || "";
 
       setFormData({
-        tipoDocumento: userToEdit.tipoDocumento || "",
+        tipoDocumentoId: userToEdit.tipoDocumentoId ? String(userToEdit.tipoDocumentoId) : "",
         documento: userToEdit.documento || "",
         nombres,
         apellidos,
@@ -56,7 +55,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
       });
     } else {
       setFormData({
-        tipoDocumento: "", documento: "", nombres: "", apellidos: "",
+        tipoDocumentoId: "", documento: "", nombres: "", apellidos: "",
         email: "", rolId: "", password: "", confirmPassword: "", telefono: "", estado: true,
       });
     }
@@ -90,7 +89,7 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
     newErrors.email = formValidations.validateEmail(formData.email);
     setErrors(newErrors);
 
-    if (!formData.tipoDocumento) { setGeneralError("Selecciona el tipo de documento"); return false; }
+    if (!formData.tipoDocumentoId) { setGeneralError("Selecciona el tipo de documento"); return false; }
     if (!formData.rolId) { setGeneralError("Selecciona un rol"); return false; }
     if (!userToEdit && !formData.password) { setGeneralError("La contraseña es obligatoria"); return false; }
     if (!userToEdit && formData.password !== formData.confirmPassword) { setGeneralError("Las contraseñas no coinciden"); return false; }
@@ -149,9 +148,11 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-1">
               <label className={labelClass}>Tipo Doc *</label>
-              <select name="tipoDocumento" value={formData.tipoDocumento} onChange={handleChange} className={inputClass()} required>
+              <select name="tipoDocumentoId" value={formData.tipoDocumentoId} onChange={handleChange} className={inputClass()} required>
                 <option value="">--</option>
-                {documentTypes.map(dt => <option key={dt.id} value={dt.value}>{dt.value}</option>)}
+                {documentTypes.map(dt => (
+                  <option key={dt.id} value={dt.id}>{dt.value}</option>
+                ))}
               </select>
             </div>
             <div className="col-span-2">

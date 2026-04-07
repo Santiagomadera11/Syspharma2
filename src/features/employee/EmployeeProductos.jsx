@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Search,
-  Eye,
-  ChevronLeft,
-  ChevronRight,
-  Package,
-  X,
+  Search, Eye, ChevronLeft, ChevronRight, Package,
 } from "lucide-react";
 import { productService } from "../inventory/products/services/productService";
 import ProductDetailModal from "../../shared/ui/ProductDetailModal";
@@ -18,13 +13,18 @@ export const EmployeeProductos = () => {
   const [detailProduct, setDetailProduct] = useState(null);
   const itemsPerPage = 5;
 
-  // Cargar productos al montar el componente
   useEffect(() => {
-    setProducts(productService.getAll());
-    // Refrescar cada 2 segundos para sincronizar cambios
-    const interval = setInterval(() => {
-      setProducts(productService.getAll());
-    }, 2000);
+    const load = async () => {
+      try {
+        const data = await productService.getAll();
+        setProducts(Array.isArray(data) ? data : []);
+      } catch {
+        setProducts([]);
+      }
+    };
+
+    load();
+    const interval = setInterval(load, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -35,33 +35,26 @@ export const EmployeeProductos = () => {
   const filtered = products.filter((p) => {
     const matchSearch =
       p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.categoria?.toLowerCase().includes(searchTerm.toLowerCase());
+      p.categoriaNombre?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus =
       filterStatus === "todos" ||
       (filterStatus === "Activo" ? p.estado : !p.estado);
     return matchSearch && matchStatus;
   });
+
   const currentItems = filtered.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
-  // Badge de Estado (fijo, sin interacción)
-  const StateBadge = ({ estado }) => {
-    const isActive = estado;
-    return (
-      <span
-        className={`inline-block px-3 py-1.5 rounded-full text-[10px] font-bold ${
-          isActive
-            ? "bg-emerald-100 text-emerald-700"
-            : "bg-gray-200 text-gray-700"
-        }`}
-      >
-        {estado ? "Activo" : "Inactivo"}
-      </span>
-    );
-  };
+  const StateBadge = ({ estado }) => (
+    <span className={`inline-block px-3 py-1.5 rounded-full text-[10px] font-bold ${
+      estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-700"
+    }`}>
+      {estado ? "Activo" : "Inactivo"}
+    </span>
+  );
 
   return (
     <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
@@ -74,10 +67,7 @@ export const EmployeeProductos = () => {
 
       <div className="flex gap-3 mb-4 flex-shrink-0">
         <div className="relative flex-1">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            size={16}
-          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input
             type="text"
             placeholder="Buscar productos..."
@@ -86,7 +76,6 @@ export const EmployeeProductos = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -105,51 +94,28 @@ export const EmployeeProductos = () => {
               <tr>
                 <th className="py-3 px-4 text-[11px] font-semibold">ID</th>
                 <th className="py-3 px-4 text-[11px] font-semibold">Nombre</th>
-                <th className="py-3 px-4 text-[11px] font-semibold">
-                  Categoría
-                </th>
-                <th className="py-3 px-4 text-[11px] text-center font-semibold">
-                  Stock
-                </th>
-                <th className="py-3 px-4 text-[11px] text-right font-semibold">
-                  Precio
-                </th>
-                <th className="py-3 px-4 text-[11px] text-center font-semibold">
-                  Estado
-                </th>
-                <th className="py-3 px-4 text-[11px] text-center font-semibold">
-                  Acción
-                </th>
+                <th className="py-3 px-4 text-[11px] font-semibold">Categoría</th>
+                <th className="py-3 px-4 text-[11px] text-center font-semibold">Stock</th>
+                <th className="py-3 px-4 text-[11px] text-right font-semibold">Precio</th>
+                <th className="py-3 px-4 text-[11px] text-center font-semibold">Estado</th>
+                <th className="py-3 px-4 text-[11px] text-center font-semibold">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {currentItems.length > 0 ? (
                 currentItems.map((prod) => (
-                  <tr
-                    key={prod.id}
-                    className="hover:bg-blue-50 transition-colors"
-                  >
-                    <td className="py-3 px-4 text-xs font-medium text-gray-900">
-                      {prod.id}
-                    </td>
+                  <tr key={prod.id} className="hover:bg-blue-50 transition-colors">
+                    <td className="py-3 px-4 text-xs font-medium text-gray-900">{prod.id}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <Package size={14} className="text-blue-500" />
-                        <span className="text-xs font-semibold text-gray-900">
-                          {prod.nombre}
-                        </span>
+                        <span className="text-xs font-semibold text-gray-900">{prod.nombre}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-xs text-gray-600">
-                      {prod.categoria}
-                    </td>
-                    <td
-                      className={`py-3 px-4 text-xs text-center font-semibold ${
-                        prod.stock === 0
-                          ? "bg-red-100 text-red-700 font-bold"
-                          : "text-gray-900"
-                      }`}
-                    >
+                    <td className="py-3 px-4 text-xs text-gray-600">{prod.categoriaNombre}</td>
+                    <td className={`py-3 px-4 text-xs text-center font-semibold ${
+                      prod.stock === 0 ? "bg-red-100 text-red-700 font-bold" : "text-gray-900"
+                    }`}>
                       {prod.stock}
                     </td>
                     <td className="py-3 px-4 text-xs text-right font-semibold text-blue-600">
@@ -174,9 +140,7 @@ export const EmployeeProductos = () => {
               ) : (
                 <tr>
                   <td colSpan="7" className="py-8 px-4 text-center">
-                    <p className="text-gray-400 text-sm">
-                      No hay productos que coincidan con los filtros aplicados
-                    </p>
+                    <p className="text-gray-400 text-sm">No hay productos que coincidan</p>
                   </td>
                 </tr>
               )}
@@ -184,7 +148,6 @@ export const EmployeeProductos = () => {
           </table>
         </div>
 
-        {/* Paginación mejorada */}
         <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
           <span className="text-[11px] text-gray-500">
             Pág {currentPage} de {totalPages || 1}
@@ -208,7 +171,6 @@ export const EmployeeProductos = () => {
         </div>
       </div>
 
-      {/* Modal de Detalle del Producto */}
       <ProductDetailModal
         product={detailProduct}
         onClose={() => setDetailProduct(null)}

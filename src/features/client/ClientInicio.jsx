@@ -15,7 +15,7 @@ const ClientInicio = () => {
 
   useEffect(() => {
     const currentUser = JSON.parse(
-      localStorage.getItem("syspharma_user") || "{}",
+      sessionStorage.getItem("syspharma_user") || "{}",
     );
     setUser(currentUser);
 

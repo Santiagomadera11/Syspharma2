@@ -12,7 +12,7 @@ export const LS = {
 export const read = (key) => {
   try {
     return JSON.parse(localStorage.getItem(key) || 'null');
-  } catch (e) {
+  } catch {
     return null;
   }
 };
@@ -24,22 +24,22 @@ export const write = (key, value) => {
     // Dispatch both a CustomEvent (with detail) and a plain Event for broader compatibility
     try {
       window.dispatchEvent(new CustomEvent(`${key}_updated`, { detail: { key } }));
-    } catch (e) {
+    } catch {
       // ignore if CustomEvent not supported
     }
     try {
       window.dispatchEvent(new Event(`${key}_updated`));
-    } catch (e) {
+    } catch {
       // ignore
     }
     try {
       // also dispatch a generic 'storage' event to notify listeners that rely on that
       window.dispatchEvent(new Event('storage'));
-    } catch (e) {
+    } catch {
       // ignore
     }
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 };

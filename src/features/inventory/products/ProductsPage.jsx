@@ -30,7 +30,7 @@ export const ProductsPage = () => {
 
   const itemsPerPage = 6;
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
   const canEdit = permissionService.hasPerm(user.rol, "inven.edit");
   const canDelete = permissionService.hasPerm(user.rol, "inven.delete");
 

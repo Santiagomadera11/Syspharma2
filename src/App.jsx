@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { AppRouter } from "./routes/AppRouter";
 import { CartProvider } from "./shared/context/CartContext";
 import CartDrawer from "./features/landing/components/CartDrawer";
 import { ToastHost } from "./shared/ui/ToastHost";
+import { authService } from "./features/auth/authService";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -24,25 +25,29 @@ class ErrorBoundary extends React.Component {
         <div style={{ padding: "20px", background: "red", color: "white" }}>
           <h1>Error in React App!</h1>
           <p>{this.state.error?.toString()}</p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-          >
+          <button onClick={() => this.setState({ hasError: false, error: null })}>
             Try Again
           </button>
         </div>
       );
     }
-
     return this.props.children;
   }
 }
 
 function App() {
+  useEffect(() => {
+    // Al recargar la página, restaurar permisos desde el backend
+    const user = authService.getCurrentUser();
+    if (user?.token || sessionStorage.getItem("syspharma_token")) {
+      authService.recargarPermisos();
+    }
+  }, []);
+
   return (
     <ErrorBoundary>
       <CartProvider>
         <div className="app-container">
-          {/* Aquí cargamos todo el sistema de rutas */}
           <AppRouter />
           <ToastHost />
           <CartDrawer />

@@ -21,15 +21,15 @@ export const Header = ({ onMenuClick }) => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('syspharma_user');
+    const storedUser = sessionStorage.getItem('syspharma_user');
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
   // Load notifications: appointments created after `lastSeenAppointmentsAt`
   useEffect(() => {
-    const loadNotifications = () => {
+    const loadNotifications = async () => {
       const lastSeen = localStorage.getItem('lastSeenAppointmentsAt');
-      const all = appointmentService.getAppointments();
+      const all = await appointmentService.getAppointments();
       const newOnes = all.filter((a) => {
         if (!a.fechaCreacion) return false; // ignore old seed data
         if (!lastSeen) return true;

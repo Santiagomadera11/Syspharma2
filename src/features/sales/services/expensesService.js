@@ -1,65 +1,119 @@
-const DB_KEY = "syspharma_expenses";
+import { apiClient } from "../../../shared/utils/apiClient";
+
+const EXPENSES_ENDPOINT = "Gasto";
 
 export const expensesService = {
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-    if (!data) {
-      localStorage.setItem(DB_KEY, JSON.stringify([]));
-      return [];
-    }
+  getAll: async () => {
     try {
-      return JSON.parse(data);
-    } catch {
-      localStorage.setItem(DB_KEY, JSON.stringify([]));
+      const res = await apiClient.get(EXPENSES_ENDPOINT);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (error) {
+      console.error("Error obteniendo gastos:", error);
       return [];
     }
   },
 
-  create: (expenseData) => {
-    const expenses = expensesService.getAll();
-    const id = Date.now();
-    const newExpense = {
-      id,
-      hora: new Date().toLocaleTimeString("es-CO"),
-      fecha: new Date().toLocaleDateString("es-CO"),
-      descripcion: expenseData.descripcion || "",
-      monto: expenseData.monto || 0,
-      categoria: expenseData.categoria || "Otro",
-      ...expenseData,
-    };
-    const next = [newExpense, ...expenses];
-    localStorage.setItem(DB_KEY, JSON.stringify(next));
-    return next;
+  getById: async (id) => {
+    try {
+      const res = await apiClient.get(`${EXPENSES_ENDPOINT}/${id}`);
+      return res.data;
+    } catch (error) {
+      console.error("Error obteniendo gasto:", error);
+      return null;
+    }
   },
 
-  update: (expenseData) => {
-    const expenses = expensesService.getAll();
-    const updated = expenses.map((e) =>
-      e.id === expenseData.id ? { ...e, ...expenseData } : e
-    );
-    localStorage.setItem(DB_KEY, JSON.stringify(updated));
-    return updated;
+  create: async (expenseData) => {
+    try {
+      const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+
+      const payload = {
+        turnoId: expenseData.turnoId || null,
+        descripcion: expenseData.descripcion || "",
+        monto: parseFloat(expenseData.monto) || 0,
+        categoria: expenseData.categoria || "Otro",
+        fecha: expenseData.fecha || new Date().toISOString().split("T")[0],
+        notas: expenseData.notas || null,
+        usuarioId: expenseData.usuarioId || currentUser.id,
+      };
+
+      const res = await apiClient.post(EXPENSES_ENDPOINT, payload);
+      return res.data;
+    } catch (error) {
+      console.error("Error creando gasto:", error);
+      throw error;
+    }
   },
 
-  delete: (id) => {
-    const expenses = expensesService.getAll();
-    const filtered = expenses.filter((e) => e.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(filtered));
-    return filtered;
+  update: async (expenseData) => {
+    try {
+      const payload = {
+        id: expenseData.id,
+        descripcion: expenseData.descripcion || "",
+        monto: parseFloat(expenseData.monto) || 0,
+        categoria: expenseData.categoria || "Otro",
+        fecha: expenseData.fecha || new Date().toISOString().split("T")[0],
+        notas: expenseData.notas || null,
+      };
+
+      const res = await apiClient.put(EXPENSES_ENDPOINT, payload);
+      return res.data;
+    } catch (error) {
+      console.error("Error actualizando gasto:", error);
+      throw error;
+    }
   },
 
-  getExpensesByDate: (date) => {
-    const expenses = expensesService.getAll();
-    return expenses.filter((e) => e.fecha === date);
+  delete: async (id) => {
+    try {
+      await apiClient.delete(`${EXPENSES_ENDPOINT}/${id}`);
+      return true;
+    } catch (error) {
+      console.error("Error eliminando gasto:", error);
+      throw error;
+    }
   },
 
-  getTodayExpenses: () => {
-    const today = new Date().toLocaleDateString("es-CO");
-    return expensesService.getExpensesByDate(today);
+  getExpensesByDate: async (date) => {
+    try {
+      const expenses = await expensesService.getAll();
+      return expenses.filter((e) => {
+        const expenseDate = e.fecha ? new Date(e.fecha).toLocaleDateString("es-CO") : "";
+        return expenseDate === date;
+      });
+    } catch (error) {
+      console.error("Error filtrando gastos por fecha:", error);
+      return [];
+    }
   },
 
-  getTotalExpensesToday: () => {
-    const expenses = expensesService.getTodayExpenses();
-    return expenses.reduce((sum, e) => sum + (e.monto || 0), 0);
+  getExpensesByTurn: async (turnoId) => {
+    try {
+      const res = await apiClient.get(`${EXPENSES_ENDPOINT}/turno/${turnoId}`);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (error) {
+      console.error("Error obteniendo gastos del turno:", error);
+      return [];
+    }
+  },
+
+  getTodayExpenses: async () => {
+    try {
+      const today = new Date().toLocaleDateString("es-CO");
+      return await expensesService.getExpensesByDate(today);
+    } catch (error) {
+      console.error("Error obteniendo gastos de hoy:", error);
+      return [];
+    }
+  },
+
+  getTotalExpensesToday: async () => {
+    try {
+      const expenses = await expensesService.getTodayExpenses();
+      return expenses.reduce((sum, e) => sum + (parseFloat(e.monto) || 0), 0);
+    } catch (error) {
+      console.error("Error calculando total de gastos:", error);
+      return 0;
+    }
   },
 };

@@ -12,7 +12,7 @@ const ProductDetailModal = ({ product, onClose }) => {
 
   // Detectar rol para colores dinámicos
   const currentUser = JSON.parse(
-    localStorage.getItem("syspharma_user") || "{}",
+    sessionStorage.getItem("syspharma_user") || "{}",
   );
   const isEmployee = currentUser.rol === "Empleado";
   const headerBgColor = isEmployee

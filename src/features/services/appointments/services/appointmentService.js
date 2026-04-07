@@ -1,207 +1,175 @@
-const DB_DOCTORS = "syspharma_doctors";
-const DB_APPOINTMENTS = "sys_appointments_db"; // Sincronizado con dashboard
+import { apiClient } from "../../../../shared/utils/apiClient";
 
-// Datos iniciales: Médicos y sus horarios
-const initialDoctors = [
-  {
-    id: 1,
-    nombre: "Dr. Andrés López",
-    especialidad: "Medicina General",
-    diasLaborales: [1, 2, 3, 4, 5], // Lun a Vie (0=Dom, 6=Sab)
-    horaInicio: "08:00",
-    horaFin: "17:00",
-    intervalo: 30, // minutos por cita
-  },
-  {
-    id: 2,
-    nombre: "Enf. María Ruiz",
-    especialidad: "Inyectología",
-    diasLaborales: [1, 2, 3, 4, 5, 6], // Lun a Sab
-    horaInicio: "07:00",
-    horaFin: "19:00",
-    intervalo: 15,
-  },
-];
+const APPOINTMENTS_ENDPOINT = "Cita";
+const DOCTORS_ENDPOINT = "Medico";
 
-const initialAppointments = [
-  {
-    id: 1,
-    doctorId: 1,
-    paciente: "Juan Pérez",
-    documento: "12345678",
-    telefono: "3001234567",
-    fecha: "2026-02-06",
-    hora: "09:00",
-    estado: "Confirmar Asistencia",
-    servicio: "Consulta General",
-    precio: 25000,
-    notas: "",
-  },
-  {
-    id: 2,
-    doctorId: 2,
-    paciente: "Ana Díaz",
-    documento: "87654321",
-    telefono: "3019876543",
-    fecha: "2026-02-06",
-    hora: "10:15",
-    estado: "Completada",
-    servicio: "Inyección",
-    precio: 50000,
-    notas: "",
-  },
-  {
-    id: 3,
-    doctorId: 1,
-    paciente: "Carlos López",
-    documento: "11223344",
-    telefono: "3105555666",
-    fecha: "2026-02-04",
-    hora: "14:00",
-    estado: "Completada",
-    servicio: "Consulta General",
-    precio: 25000,
-    notas: "",
-  },
-  {
-    id: 4,
-    doctorId: 2,
-    paciente: "María González",
-    documento: "55667788",
-    telefono: "3117778899",
-    fecha: "2026-02-03",
-    hora: "08:30",
-    estado: "Completada",
-    servicio: "Inyección",
-    precio: 50000,
-    notas: "",
-  },
-  {
-    id: 5,
-    doctorId: 1,
-    paciente: "Pedro Martínez",
-    documento: "99001122",
-    telefono: "3129990011",
-    fecha: "2026-02-10",
-    hora: "11:00",
-    estado: "Confirmar Asistencia",
-    servicio: "Consulta General",
-    precio: 25000,
-    notas: "",
-  },
-];
+// Mapear estructura del frontend a la API
+const mapToApiFormat = (appointmentData) => ({
+  medicoId: appointmentData.doctorId,
+  clienteNombre: appointmentData.paciente,
+  clienteDocumento: appointmentData.documento,
+  clienteTelefono: appointmentData.telefono,
+  clienteEmail: appointmentData.email,
+  fecha: appointmentData.fecha,
+  hora: appointmentData.hora,
+  motivo: appointmentData.servicio || "Consulta",
+  precio: appointmentData.precio || 0,
+  notas: appointmentData.notas,
+  estadoId: appointmentData.estadoId || 1,
+});
+
+// Mapear estructura de la API a lo que espera el frontend
+const mapFromApiFormat = (apiData) => ({
+  id: apiData.id,
+  doctorId: apiData.medicoId,
+  medicoNombre: apiData.medicoNombre || apiData.medico?.nombre,
+  paciente: apiData.clienteNombre,
+  pacienteNombre: apiData.clienteNombre,
+  documento: apiData.clienteDocumento,
+  telefono: apiData.clienteTelefono,
+  email: apiData.clienteEmail,
+  fecha: apiData.fecha,
+  hora: apiData.hora,
+  servicio: apiData.motivo,
+  servicioNombre: apiData.motivo,
+  precio: apiData.precio,
+  notas: apiData.notas,
+  estado: apiData.estadoNombre || apiData.estado,
+  estadoNombre: apiData.estadoNombre || apiData.estado,
+});
 
 export const appointmentService = {
   // --- MÉDICOS ---
-  getDoctors: () => {
-    const data = localStorage.getItem(DB_DOCTORS);
-    if (!data) {
-      localStorage.setItem(DB_DOCTORS, JSON.stringify(initialDoctors));
-      return initialDoctors;
+  getDoctors: async () => {
+    try {
+      const res = await apiClient.get(DOCTORS_ENDPOINT);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (error) {
+      console.error("Error obteniendo médicos:", error);
+      return [];
     }
-    return JSON.parse(data);
   },
 
-  updateDoctorSchedule: (doctor) => {
-    const list = appointmentService
-      .getDoctors()
-      .map((d) => (d.id === doctor.id ? doctor : d));
-    localStorage.setItem(DB_DOCTORS, JSON.stringify(list));
-    return list;
+  updateDoctorSchedule: async (doctor) => {
+    try {
+      const res = await apiClient.put(DOCTORS_ENDPOINT, doctor);
+      return res.data;
+    } catch (error) {
+      console.error("Error actualizando horario del médico:", error);
+      throw error;
+    }
   },
 
   // --- CITAS ---
-  getAppointments: () => {
-    const data = localStorage.getItem(DB_APPOINTMENTS);
-    if (!data) {
-      localStorage.setItem(
-        DB_APPOINTMENTS,
-        JSON.stringify(initialAppointments),
-      );
-      return initialAppointments;
+  getAppointments: async () => {
+    try {
+      const res = await apiClient.get(APPOINTMENTS_ENDPOINT);
+      const appointments = Array.isArray(res.data) ? res.data : [];
+      return appointments.map(mapFromApiFormat);
+    } catch (error) {
+      console.error("Error obteniendo citas:", error);
+      return [];
     }
-    return JSON.parse(data);
   },
 
-  createAppointment: (appt) => {
-    const list = appointmentService.getAppointments();
-    const newAppt = {
-      ...appt,
-      id: Date.now() + Math.random(),
-      estado: "Confirmar Asistencia",
-      fechaCreacion: new Date().toISOString(),
-    };
-    // If caller didn't include user association, try to attach current logged user info
+  createAppointment: async (appt) => {
     try {
-      const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
-      if (currentUser && currentUser.id) {
-        if (!newAppt.userId) newAppt.userId = currentUser.id;
-        if (!newAppt.email && currentUser.email) newAppt.email = currentUser.email;
-        if (!newAppt.paciente && currentUser.nombre) newAppt.paciente = currentUser.nombre;
-        if (!newAppt.documento && currentUser.documento) newAppt.documento = currentUser.documento;
-        if (!newAppt.telefono && currentUser.telefono) newAppt.telefono = currentUser.telefono;
-      }
-    } catch (e) {
-      console.warn("[appointmentService] could not attach currentUser to appointment", e);
+      const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+
+      const appointmentData = {
+        ...appt,
+        paciente: appt.paciente || currentUser.nombre,
+        documento: appt.documento || currentUser.documento,
+        telefono: appt.telefono || currentUser.telefono,
+        email: appt.email || currentUser.email,
+      };
+
+      const apiPayload = mapToApiFormat(appointmentData);
+      const res = await apiClient.post(APPOINTMENTS_ENDPOINT, apiPayload);
+
+      window.dispatchEvent(new Event("appointments:changed"));
+      return mapFromApiFormat(res.data);
+    } catch (error) {
+      console.error("Error creando cita:", error);
+      throw error;
     }
-
-    const updatedList = [...list, newAppt];
-    localStorage.setItem(DB_APPOINTMENTS, JSON.stringify(updatedList));
-    try {
-      window.dispatchEvent(new Event("appointments:changed"));
-    } catch (e) {}
-
-    return newAppt;
   },
 
-  updateAppointment: (id, updates) => {
-    const list = appointmentService.getAppointments();
-    const updated = list.map((a) => (a.id === id ? { ...a, ...updates } : a));
-    localStorage.setItem(DB_APPOINTMENTS, JSON.stringify(updated));
-    // Notify listeners that appointments changed
+  updateAppointment: async (id, updates) => {
     try {
+      const apiPayload = mapToApiFormat(updates);
+      const res = await apiClient.put(APPOINTMENTS_ENDPOINT, { id, ...apiPayload });
+
       window.dispatchEvent(new Event("appointments:changed"));
-    } catch (e) {}
-    return updated;
+      return mapFromApiFormat(res.data);
+    } catch (error) {
+      console.error("Error actualizando cita:", error);
+      throw error;
+    }
   },
 
-  updateAppointmentStatus: (id, newStatus) => {
-    return appointmentService.updateAppointment(id, { estado: newStatus });
+  updateAppointmentStatus: async (id, newStatus) => {
+    try {
+      const res = await apiClient.patch(`${APPOINTMENTS_ENDPOINT}/${id}/estado`, newStatus);
+
+      window.dispatchEvent(new Event("appointments:changed"));
+      return mapFromApiFormat(res.data);
+    } catch (error) {
+      console.error("Error actualizando estado:", error);
+      throw error;
+    }
   },
 
-  deleteAppointment: (id) => {
-    const list = appointmentService.getAppointments();
-    const filtered = list.filter((a) => a.id !== id);
-    localStorage.setItem(DB_APPOINTMENTS, JSON.stringify(filtered));
+  deleteAppointment: async (id) => {
     try {
+      await apiClient.delete(`${APPOINTMENTS_ENDPOINT}/${id}`);
+
       window.dispatchEvent(new Event("appointments:changed"));
-    } catch (e) {}
-    return filtered;
+      return true;
+    } catch (error) {
+      console.error("Error eliminando cita:", error);
+      throw error;
+    }
   },
 
-  cancelAppointment: (id) => {
-    const res = appointmentService.updateAppointmentStatus(id, "Cancelada");
+  cancelAppointment: async (id) => {
     try {
-      window.dispatchEvent(new Event("appointments:changed"));
-    } catch (e) {}
-    return res;
+      return await appointmentService.updateAppointmentStatus(id, "Cancelada");
+    } catch (error) {
+      console.error("Error cancelando cita:", error);
+      throw error;
+    }
   },
 
   // --- UTILIDADES ---
-  getAppointmentsByDate: (date) => {
-    return appointmentService.getAppointments().filter((a) => a.fecha === date);
+  getAppointmentsByDate: async (date) => {
+    try {
+      const appointments = await appointmentService.getAppointments();
+      return appointments.filter((a) => a.fecha === date);
+    } catch (error) {
+      console.error("Error filtrando citas por fecha:", error);
+      return [];
+    }
   },
 
-  getAppointmentsByDoctor: (doctorId) => {
-    return appointmentService
-      .getAppointments()
-      .filter((a) => a.doctorId === doctorId);
+  getAppointmentsByDoctor: async (doctorId) => {
+    try {
+      const appointments = await appointmentService.getAppointments();
+      return appointments.filter((a) => a.doctorId === doctorId);
+    } catch (error) {
+      console.error("Error filtrando citas por médico:", error);
+      return [];
+    }
   },
 
-  getAppointmentsByDateAndDoctor: (date, doctorId) => {
-    return appointmentService
-      .getAppointments()
-      .filter((a) => a.fecha === date && a.doctorId === doctorId);
+  getAppointmentsByDateAndDoctor: async (date, doctorId) => {
+    try {
+      const appointments = await appointmentService.getAppointments();
+      return appointments.filter((a) => a.fecha === date && a.doctorId === doctorId);
+    } catch (error) {
+      console.error("Error filtrando citas:", error);
+      return [];
+    }
   },
 };
 

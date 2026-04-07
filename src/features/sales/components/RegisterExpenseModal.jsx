@@ -25,7 +25,7 @@ export const RegisterExpenseModal = ({ isOpen, onClose, onSaveSuccess }) => {
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const newErrors = {};
@@ -45,17 +45,22 @@ export const RegisterExpenseModal = ({ isOpen, onClose, onSaveSuccess }) => {
       return;
     }
 
-    expensesService.create({
-      descripcion: formData.descripcion,
-      monto: parseFloat(formData.monto),
-      categoria: formData.categoria,
-    });
+    try {
+      await expensesService.create({
+        descripcion: formData.descripcion,
+        monto: parseFloat(formData.monto),
+        categoria: formData.categoria,
+      });
 
-    // Reset form
-    setFormData({ descripcion: "", monto: "", categoria: "Materiales" });
-    setErrors({});
-    onSaveSuccess?.();
-    onClose();
+      // Reset form
+      setFormData({ descripcion: "", monto: "", categoria: "Materiales" });
+      setErrors({});
+      onSaveSuccess?.();
+      onClose();
+    } catch (error) {
+      console.error("Error guardando gasto:", error);
+      setErrors({ submit: "Error al guardar el gasto" });
+    }
   };
 
   const handleCancel = () => {

@@ -1,52 +1,74 @@
-const DB_KEY = 'syspharma_purchases';
+import { apiClient } from "../../../../shared/utils/apiClient";
 
-const initialData = [];
+const ENDPOINT = "Compra";
 
-// Función auxiliar para disparar eventos de cambio
 const notifyChange = () => {
   window.dispatchEvent(new CustomEvent("purchases:changed"));
 };
 
 export const purchaseService = {
-  getAll: () => {
-    const data = localStorage.getItem(DB_KEY);
-    if (!data) {
-      localStorage.setItem(DB_KEY, JSON.stringify(initialData));
-      return initialData;
-    }
-    return JSON.parse(data);
+  getAll: async () => {
+    const res = await apiClient.get(ENDPOINT);
+    return res.data;
   },
 
-  create: (purchase) => {
-    const purchases = purchaseService.getAll();
-    const newPurchase = { ...purchase, id: Date.now() };
-    const newList = [newPurchase, ...purchases];
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    notifyChange();
-    return newList;
+  getById: async (id) => {
+    const res = await apiClient.get(`${ENDPOINT}/${id}`);
+    return res.data;
   },
 
-  update: (purchase) => {
-    const purchases = purchaseService.getAll();
-    const newList = purchases.map(p => p.id === purchase.id ? purchase : p);
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
-    notifyChange();
-    return newList;
+  getEstados: async () => {
+    const res = await apiClient.get(`${ENDPOINT}/estados`);
+    return res.data;
   },
 
-  delete: (id) => {
-    const purchases = purchaseService.getAll();
-    const newList = purchases.filter(p => p.id !== id);
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
+  create: async (purchase) => {
+    const payload = {
+      proveedorId: purchase.proveedorId,
+      usuarioId: purchase.usuarioId,
+      porcentajeIva: purchase.porcentajeIva ?? 19,
+      notas: purchase.notas || null,
+      observaciones: purchase.observaciones || null,
+      fechaEntrega: purchase.fechaEntrega || null,
+      detalles: (purchase.detalles || purchase.productos || []).map(p => ({
+        productoId: p.productoId || p.id,
+        cantidad: p.cantidad,
+        precioUnitario: p.precioUnitario || p.precio,
+      })),
+    };
+    const res = await apiClient.post(ENDPOINT, payload);
     notifyChange();
-    return newList;
+    return res.data;
   },
 
-  changeStatus: (id, newStatus) => {
-    const purchases = purchaseService.getAll();
-    const newList = purchases.map(p => p.id === id ? { ...p, estado: newStatus } : p);
-    localStorage.setItem(DB_KEY, JSON.stringify(newList));
+  update: async (purchase) => {
+    const payload = {
+      id: purchase.id,
+      proveedorId: purchase.proveedorId,
+      estadoId: purchase.estadoId,
+      notas: purchase.notas || null,
+      observaciones: purchase.observaciones || null,
+      fechaEntrega: purchase.fechaEntrega || null,
+      detalles: (purchase.detalles || []).map(p => ({
+        productoId: p.productoId || p.id,
+        cantidad: p.cantidad,
+        precioUnitario: p.precioUnitario || p.precio,
+      })),
+    };
+    const res = await apiClient.put(ENDPOINT, payload);
     notifyChange();
-    return newList;
-  }
+    return res.data;
+  },
+
+  changeStatus: async (id, estadoId) => {
+    const res = await apiClient.patch(`${ENDPOINT}/${id}/estado`, estadoId);
+    notifyChange();
+    return res.data;
+  },
+
+  delete: async (id) => {
+    const res = await apiClient.delete(`${ENDPOINT}/${id}`);
+    notifyChange();
+    return res.data;
+  },
 };

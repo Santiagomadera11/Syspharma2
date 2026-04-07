@@ -6,7 +6,6 @@ import ProductCardGrid from "./components/ProductCard";
 
 const FavoritosPage = () => {
   const [favorites, setFavorites] = useState([]);
-  const [products, setProducts] = useState([]);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -42,7 +41,6 @@ const FavoritosPage = () => {
       };
     });
     setFavorites(mapped);
-    setProducts(prods);
   }
 
   const handleRemove = (id) => {

@@ -16,7 +16,7 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
   // Cargar datos del usuario si existe sesión
   useEffect(() => {
     try {
-      const userStr = localStorage.getItem("syspharma_user");
+      const userStr = sessionStorage.getItem("syspharma_user");
       if (userStr) {
         const user = JSON.parse(userStr);
         setFormData({
@@ -75,7 +75,7 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
 
     try {
       // Obtener usuario actual si existe
-      const userStr = localStorage.getItem("syspharma_user");
+      const userStr = sessionStorage.getItem("syspharma_user");
       const user = userStr ? JSON.parse(userStr) : null;
 
       // Calcular total

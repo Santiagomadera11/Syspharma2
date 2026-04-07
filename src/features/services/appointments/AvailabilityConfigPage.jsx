@@ -89,8 +89,9 @@ export const AvailabilityConfigPage = () => {
     }
   }, [selectedDoctor?.id]);
 
-  const loadData = () => {
-    setDoctors(appointmentService.getDoctors());
+  const loadData = async () => {
+    const doctorsData = await appointmentService.getDoctors();
+    setDoctors(doctorsData);
     setAvailability(availabilityService.getAvailability());
     setUnavailableDays(availabilityService.getUnavailableDays());
   };
@@ -224,7 +225,7 @@ export const AvailabilityConfigPage = () => {
                   </h3>
                   <button
                     onClick={handleSaveSchedule}
-                    className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                    className="px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
                   >
                     <Save size={16} />
                     Guardar Horario
@@ -240,7 +241,7 @@ export const AvailabilityConfigPage = () => {
                           onClick={() => toggleDayAvailability(dayKey)}
                           className={`px-3 py-1 rounded text-sm ${
                             doctorSchedule[dayKey]
-                              ? "bg-green-100 text-green-700 hover:bg-green-200"
+                              ? "bg-primary-100 text-primary-700 hover:bg-primary-200"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >
@@ -391,7 +392,7 @@ export const AvailabilityConfigPage = () => {
                   <div className="flex items-end">
                     <button
                       onClick={handleAddUnavailableDay}
-                      className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <Plus size={16} />
                       Agregar

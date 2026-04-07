@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 export const FilterSidebar = ({
   selectedCategory,
   onCategoryChange,
-  priceRange,
   onPriceChange,
 }) => {
   const [categories, setCategories] = useState([]);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, Building2, User, Phone, Mail, MapPin, AlertCircle, FileText } from "lucide-react";
-
-const TIPOS_DOCUMENTO = ["NIT", "Cédula", "Cédula Extranjería", "Pasaporte", "RUT"];
+import { getDocumentTypes, fetchDocumentTypes } from "../../../settings/services/parameterService";
 
 const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "create", onDelete }) => {
   const [formData, setFormData] = useState({
@@ -10,12 +9,21 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
     telefono: "",
     email: "",
     direccion: "",
-    tipoDocumento: "",
+    tipoDocumentoId: "",
     documento: "",
     estado: true,
   });
-
   const [errors, setErrors] = useState({});
+  const [documentTypes, setDocumentTypes] = useState([]);
+
+  useEffect(() => {
+    // Cargar tipos de documento desde backend con fallback a localStorage
+    fetchDocumentTypes().then(types => setDocumentTypes(types));
+
+    const handleParamUpdate = () => setDocumentTypes(getDocumentTypes());
+    window.addEventListener("syspharma_parameters_updated", handleParamUpdate);
+    return () => window.removeEventListener("syspharma_parameters_updated", handleParamUpdate);
+  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -26,20 +34,14 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
         telefono: initialData.telefono || "",
         email: initialData.email || "",
         direccion: initialData.direccion || "",
-        tipoDocumento: initialData.tipoDocumento || "",
+        tipoDocumentoId: initialData.tipoDocumentoId ? String(initialData.tipoDocumentoId) : "",
         documento: initialData.documento || "",
         estado: initialData.estado !== undefined ? initialData.estado : true,
       });
     } else {
       setFormData({
-        nombre: "",
-        contacto: "",
-        telefono: "",
-        email: "",
-        direccion: "",
-        tipoDocumento: "",
-        documento: "",
-        estado: true,
+        nombre: "", contacto: "", telefono: "", email: "",
+        direccion: "", tipoDocumentoId: "", documento: "", estado: true,
       });
     }
     setErrors({});
@@ -72,8 +74,16 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
   const handleSubmit = () => {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
-    if (onSave) onSave(formData);
+    if (onSave) onSave({
+      ...formData,
+      tipoDocumentoId: formData.tipoDocumentoId ? Number(formData.tipoDocumentoId) : null,
+    });
   };
+
+  const inputClass = (hasError) =>
+    `w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${
+      hasError ? "border-red-500" : "border-gray-300 focus:border-emerald-500"
+    } disabled:bg-gray-100 disabled:text-gray-500`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -100,9 +110,7 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
               <input
                 type="text"
                 disabled={isView}
-                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${
-                  errors.nombre ? "border-red-500" : "border-gray-300 focus:border-emerald-500"
-                } disabled:bg-gray-100 disabled:text-gray-500`}
+                className={inputClass(errors.nombre)}
                 placeholder="Ej: Farmacéutica Global S.A."
                 value={formData.nombre}
                 onChange={(e) => handleChange("nombre", e.target.value)}
@@ -119,11 +127,13 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
               <select
                 disabled={isView}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                value={formData.tipoDocumento}
-                onChange={(e) => handleChange("tipoDocumento", e.target.value)}
+                value={formData.tipoDocumentoId}
+                onChange={(e) => handleChange("tipoDocumentoId", e.target.value)}
               >
                 <option value="">Seleccionar...</option>
-                {TIPOS_DOCUMENTO.map(t => <option key={t} value={t}>{t}</option>)}
+                {documentTypes.map(dt => (
+                  <option key={dt.id} value={dt.id}>{dt.value}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -152,9 +162,7 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
               <input
                 type="text"
                 disabled={isView}
-                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${
-                  errors.contacto ? "border-red-500" : "border-gray-300 focus:border-emerald-500"
-                } disabled:bg-gray-100 disabled:text-gray-500`}
+                className={inputClass(errors.contacto)}
                 placeholder="Ej: Juan Pérez"
                 value={formData.contacto}
                 onChange={(e) => handleChange("contacto", e.target.value)}
@@ -187,9 +195,7 @@ const ProviderFormModal = ({ isOpen, onClose, onSave, initialData, mode = "creat
               <input
                 type="email"
                 disabled={isView}
-                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${
-                  errors.email ? "border-red-500" : "border-gray-300 focus:border-emerald-500"
-                } disabled:bg-gray-100 disabled:text-gray-500`}
+                className={inputClass(errors.email)}
                 placeholder="contacto@empresa.com"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}

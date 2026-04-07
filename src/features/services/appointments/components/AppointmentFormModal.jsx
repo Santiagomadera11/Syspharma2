@@ -66,16 +66,13 @@ const AppointmentFormModal = ({
 
   // Obtener el rol actual para cambiar colores
   const currentUser = JSON.parse(
-    localStorage.getItem("syspharma_user") || "{}",
+    sessionStorage.getItem("syspharma_user") || "{}",
   );
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployee = currentUserRole === "Empleado";
 
   // Colores dinámicos basados en el rol
   const headerBgColor = isEmployee ? "bg-blue-600" : "bg-emerald-600";
-  const buttonBgColor = isEmployee
-    ? "bg-blue-600 hover:bg-blue-700"
-    : "bg-emerald-600 hover:bg-emerald-700";
 
   const [formData, setFormData] = useState(initialFormState);
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -88,17 +85,17 @@ const AppointmentFormModal = ({
   useEffect(() => {
     if (appointment) {
       setFormData({
-        paciente: appointment.paciente || "",
-        documento: appointment.documento || "",
-        telefono: appointment.telefono || "",
-        email: appointment.email || "",
-        doctorId: appointment.doctorId || "",
+        paciente: appointment.paciente || appointment.pacienteNombre || "",
+        documento: appointment.documento || appointment.clienteDocumento || "",
+        telefono: appointment.telefono || appointment.clienteTelefono || "",
+        email: appointment.email || appointment.clienteEmail || "",
+        doctorId: appointment.doctorId || appointment.medicoId || "",
         fecha: appointment.fecha || getLocalToday(),
         hora: appointment.hora || "",
-        servicio: appointment.servicio || "",
+        servicio: appointment.servicio || appointment.motivo || "",
         precio: appointment.precio || "",
         notas: appointment.notas || "",
-        userId: appointment.userId || "", // Capturar userId si viene prefillado
+        userId: appointment.userId || "",
       });
     } else {
       // Prefill paciente, documento, telefono y userId from current user when available
@@ -122,7 +119,7 @@ const AppointmentFormModal = ({
     setErrors({});
 
     // Cargar servicios
-    const loadServices = () => {
+    const loadServices = async () => {
       try {
         const storedServices = localStorage.getItem("sys_services");
         if (storedServices) {
@@ -312,7 +309,7 @@ const AppointmentFormModal = ({
       // Priorizar userId de formData (si fue pre-cargado), sino obtener del usuario actual
       if (!appointmentData.userId) {
         const currentUser = JSON.parse(
-          localStorage.getItem("syspharma_user") || "{}",
+          sessionStorage.getItem("syspharma_user") || "{}",
         );
         if (currentUser && currentUser.id)
           appointmentData.userId = currentUser.id;
@@ -333,7 +330,7 @@ const AppointmentFormModal = ({
 
           // Registrar venta de servicio en el turno actual
           const currentUser = JSON.parse(
-            localStorage.getItem("syspharma_user") || "{}",
+            sessionStorage.getItem("syspharma_user") || "{}",
           );
           turnService.recordSale({
             userId: appointmentData.userId || currentUser.id,

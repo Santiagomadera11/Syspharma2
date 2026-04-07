@@ -25,41 +25,54 @@ export const ClientMisCitas = () => {
     const onChange = () => loadData();
     window.addEventListener("appointments:changed", onChange);
     window.addEventListener("storage", onChange); // Sincroniza entre pestañas
-    
+
     return () => {
         window.removeEventListener("appointments:changed", onChange);
         window.removeEventListener("storage", onChange);
     };
   }, []);
 
-  const loadData = () => {
-    setDoctors(appointmentService.getDoctors());
-    const all = appointmentService.getAppointments();
-    const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const loadData = async () => {
+    try {
+      const [doctorsData, appointmentsData] = await Promise.all([
+        appointmentService.getDoctors(),
+        appointmentService.getAppointments()
+      ]);
 
-    if (!currentUser || !currentUser.id) return;
+      setDoctors(doctorsData);
 
-    // LÓGICA DE FILTRADO ROBUSTA
-    const filtered = all.filter((a) => {
-      // 1. Coincidencia por ID de usuario (Prioridad)
-      if (a.userId && String(a.userId) === String(currentUser.id)) return true;
+      const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
 
-      // 2. Coincidencia por Documento (Si el usuario tiene documento registrado)
-      if (a.documento && currentUser.documento && String(a.documento).trim() === String(currentUser.documento).trim()) return true;
+      if (!currentUser || !currentUser.id) {
+        setAppointments([]);
+        return;
+      }
 
-      // 3. Coincidencia por Email (Respaldo)
-      if (a.email && currentUser.email && a.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
+      // LÓGICA DE FILTRADO ROBUSTA
+      const filtered = appointmentsData.filter((a) => {
+        // 1. Coincidencia por ID de usuario (Prioridad)
+        if (a.userId && String(a.userId) === String(currentUser.id)) return true;
 
-      return false;
-    });
+        // 2. Coincidencia por Documento (Si el usuario tiene documento registrado)
+        if (a.documento && currentUser.documento && String(a.documento).trim() === String(currentUser.documento).trim()) return true;
 
-    // Ordenar: Más recientes primero
-    setAppointments(filtered.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)));
+        // 3. Coincidencia por Email (Respaldo)
+        if (a.email && currentUser.email && a.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
+
+        return false;
+      });
+
+      // Ordenar: Más recientes primero
+      setAppointments(filtered.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)));
+    } catch (error) {
+      console.error("Error cargando datos de citas:", error);
+      setAppointments([]);
+    }
   };
 
   // ✅ AQUÍ ESTÁ LA MAGIA: PRE-LLENAR DATOS
   const openNewAppointment = () => {
-    const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+    const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
     
     setEditingAppointment({
       userId: currentUser.id,
@@ -99,42 +112,15 @@ export const ClientMisCitas = () => {
     }
   };
 
-  const renderCalendar = () => {
-    const currentDate = new Date();
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-    const endDate = new Date(lastDay);
-    endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
-    const days = [];
-    const current = new Date(startDate);
-    while (current <= endDate) {
-      // Ajuste de zona horaria para comparación simple de strings
-      const dateStr = current.toISOString().split("T")[0];
-      const dayAppointments = appointments.filter((a) => a.fecha === dateStr);
-      days.push({ date: new Date(current), count: dayAppointments.length });
-      current.setDate(current.getDate() + 1);
+  const handleCancelAppointment = async (appointmentId) => {
+    try {
+      await appointmentService.cancelAppointment(appointmentId);
+      loadData();
+      window.dispatchEvent(new Event("appointments:changed"));
+    } catch (error) {
+      console.error("Error cancelando cita:", error);
+      alert("Error al cancelar la cita");
     }
-
-    return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800">Calendario</h2>
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {["D", "L", "M", "M", "J", "V", "S"].map(d => <div key={d} className="text-center text-xs font-bold text-gray-400 py-1">{d}</div>)}
-          {days.map((d, i) => (
-            <div key={i} className={`min-h-[70px] p-2 border rounded-lg text-sm ${d.count > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-white'}`}>
-              <div className="font-bold text-gray-700">{d.date.getDate()}</div>
-              {d.count > 0 && <div className="text-xs text-emerald-600 mt-1 font-medium">{d.count} {d.count === 1 ? 'cita' : 'citas'}</div>}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   const renderAppointmentsList = () => {
@@ -261,9 +247,9 @@ export const ClientMisCitas = () => {
         <AppointmentFormModal
           isOpen={isAppointmentModalOpen}
           onClose={() => setIsAppointmentModalOpen(false)}
-          onSave={(created) => {
+          onSave={() => {
             loadData();
-            window.dispatchEvent(new Event("appointments:changed")); 
+            window.dispatchEvent(new Event("appointments:changed"));
             setIsAppointmentModalOpen(false);
           }}
           appointment={editingAppointment}

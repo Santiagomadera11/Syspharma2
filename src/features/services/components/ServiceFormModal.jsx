@@ -22,7 +22,7 @@ const ServiceFormModal = ({
 }) => {
   // Obtener el rol actual para cambiar colores
   const currentUser = JSON.parse(
-    localStorage.getItem("syspharma_user") || "{}",
+    sessionStorage.getItem("syspharma_user") || "{}",
   );
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployee = currentUserRole === "Empleado";
@@ -35,7 +35,7 @@ const ServiceFormModal = ({
 
   const [formData, setFormData] = useState({
     nombre: "",
-    categoria: "",
+    categoriaId: "",
     estado: "Activo",
     precio: "",
     duracion: "",
@@ -44,7 +44,6 @@ const ServiceFormModal = ({
 
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
-  const [defaultCategory, setDefaultCategory] = useState("");
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -52,14 +51,13 @@ const ServiceFormModal = ({
     const cats = getServiceCategories();
     setCategories(cats);
     const defaultCat = cats.length > 0 ? cats[0].value : "";
-    setDefaultCategory(defaultCat);
 
     if (initialData) {
       setFormData(initialData);
     } else {
       setFormData({
         nombre: "",
-        categoria: defaultCat,
+        categoriaId: defaultCat,
         estado: "Activo",
         precio: "",
         duracion: "",
@@ -67,6 +65,7 @@ const ServiceFormModal = ({
       });
     }
     setErrors({});
+    setToast(null);
 
     // Listen for parameter updates
     const handleParameterUpdate = () => {
@@ -84,7 +83,7 @@ const ServiceFormModal = ({
         handleParameterUpdate,
       );
     };
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, isViewMode]);
 
   if (!isOpen) return null;
 
@@ -184,13 +183,13 @@ const ServiceFormModal = ({
               <select
                 disabled={isViewMode}
                 className="w-full pl-2 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                value={formData.categoria}
+                value={formData.categoriaId}
                 onChange={(e) =>
-                  setFormData({ ...formData, categoria: e.target.value })
+                  setFormData({ ...formData, categoriaId: e.target.value })
                 }
               >
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.value}>
+                  <option key={cat.id} value={cat.id}>
                     {cat.value}
                   </option>
                 ))}

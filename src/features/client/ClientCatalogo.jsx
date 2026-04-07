@@ -35,7 +35,6 @@ const ClientCatalogo = () => {
     new Set((products || []).map((p) => p.categoria)),
   ).filter(Boolean);
   // Mostrar todos los productos sin filtros
-  const filtered = products;
   const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -54,7 +53,7 @@ const ClientCatalogo = () => {
   // load user from localStorage for greeting
   useEffect(() => {
     try {
-      const u = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      const u = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
       if (u && u.nombre) setUserName(u.nombre);
     } catch {
       // ignore parse errors

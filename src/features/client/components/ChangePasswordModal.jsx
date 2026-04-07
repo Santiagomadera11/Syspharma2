@@ -24,7 +24,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+    const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
 
     // Validar contra el usuario global en syspharma_users si existe, sino contra syspharma_user
     const allUsers = userService.getAll();
@@ -66,10 +66,10 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
       setLoading(true);
 
       // Actualizar contraseña en localStorage para el usuario actual
-      const user = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
       user.password = newPassword;
       user.lastPasswordUpdate = new Date().toISOString();
-      localStorage.setItem("syspharma_user", JSON.stringify(user));
+      sessionStorage.setItem("syspharma_user", JSON.stringify(user));
 
       // Actualizar también en el array global de usuarios (syspharma_users)
       const allUsers = userService.getAll();

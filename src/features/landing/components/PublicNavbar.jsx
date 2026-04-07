@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { ShoppingCart, User, Stethoscope } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { read, LS } from '../../../shared/services/lsService';
+import { LS } from '../../../shared/services/lsService';
 import useCart from '../../../shared/context/CartContext';
 
 export const PublicNavbar = () => {

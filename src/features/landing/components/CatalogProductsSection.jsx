@@ -22,7 +22,6 @@ export const CatalogProductsSection = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [guestProduct, setGuestProduct] = useState(null);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
-  const cart = useCart();
 
   // Cargar productos y categorías del localStorage al montar el componente
   useEffect(() => {

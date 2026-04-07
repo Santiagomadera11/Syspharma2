@@ -14,7 +14,7 @@ import { getDocumentTypes } from "../settings/services/parameterService";
 export const ClientMiPerfil = () => {
   const [user, setUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      return JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
     } catch {
       return {};
     }
@@ -25,7 +25,7 @@ export const ClientMiPerfil = () => {
   const [formData, setFormData] = useState(() => {
     try {
       const sessionUser = JSON.parse(
-        localStorage.getItem("syspharma_user") || "{}",
+        sessionStorage.getItem("syspharma_user") || "{}",
       );
       // Get complete user data from syspharma_users by email
       const allUsers = JSON.parse(
@@ -76,7 +76,7 @@ export const ClientMiPerfil = () => {
   // Cargar datos del usuario al montar
   useEffect(() => {
     const sessionUser = JSON.parse(
-      localStorage.getItem("syspharma_user") || "{}",
+      sessionStorage.getItem("syspharma_user") || "{}",
     );
     setUser(sessionUser);
     // Get complete user data from syspharma_users by email
@@ -108,7 +108,7 @@ export const ClientMiPerfil = () => {
         tipoDocumento:
           completeUser.tipoDocumento || completeUser.tipo_doc || "",
       });
-    } catch (err) {
+    } catch {
       // fallback to session user only
       setFormData({
         nombres: (sessionUser.nombre || "").split(/\s+/).slice(0, 1).join(" "),
@@ -124,7 +124,7 @@ export const ClientMiPerfil = () => {
     try {
       const types = getDocumentTypes();
       setDocumentTypes(types || []);
-    } catch (err) {
+    } catch {
       setDocumentTypes([]);
     }
   }, []);
@@ -155,7 +155,7 @@ export const ClientMiPerfil = () => {
 
     try {
       // Use stored syspharma_user as source of truth and merge changes
-      const stored = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+      const stored = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
       const updatedUser = {
         ...stored,
         ...formData,
@@ -167,7 +167,7 @@ export const ClientMiPerfil = () => {
         if (n || a) {
           updatedUser.nombre = `${n} ${a}`.trim();
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
       // normalize common aliases so global users array keys are updated too
@@ -185,7 +185,7 @@ export const ClientMiPerfil = () => {
       if (stored.password) updatedUser.password = stored.password;
       if (stored.rol) updatedUser.rol = stored.rol;
 
-      localStorage.setItem("syspharma_user", JSON.stringify(updatedUser));
+      sessionStorage.setItem("syspharma_user", JSON.stringify(updatedUser));
       setUser(updatedUser);
       // Also update global users array if user has an id or email match
       try {
@@ -212,7 +212,7 @@ export const ClientMiPerfil = () => {
           if (found.rol && !merged.rol) merged.rol = found.rol;
           userService.update(merged);
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
       setIsEditing(false);
@@ -312,7 +312,7 @@ export const ClientMiPerfil = () => {
                     setTempAvatar(dataUrl);
                   };
                   reader.readAsDataURL(file);
-                } catch (err) {
+                } catch {
                   // ignore
                 }
               }}
@@ -331,7 +331,7 @@ export const ClientMiPerfil = () => {
                     try {
                       // Persist avatar to current session user
                       const stored = JSON.parse(
-                        localStorage.getItem("syspharma_user") || "{}",
+                        sessionStorage.getItem("syspharma_user") || "{}",
                       );
                       const updated = {
                         ...stored,
@@ -357,7 +357,7 @@ export const ClientMiPerfil = () => {
                         if (found) {
                           userService.update({ ...found, avatar: tempAvatar });
                         }
-                      } catch (err) {
+                      } catch {
                         // ignore
                       }
 
@@ -367,7 +367,7 @@ export const ClientMiPerfil = () => {
                         type: "success",
                         zIndex: 70,
                       });
-                    } catch (err) {
+                    } catch {
                       setToast({
                         message: "Error guardando la foto",
                         type: "error",

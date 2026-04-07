@@ -28,8 +28,8 @@ export const ProvidersPage = () => {
     try {
       const data = await providerService.getAll();
       setProviders(data);
-    } catch (err) {
-      console.error("Error cargando proveedores:", err);
+    } catch {
+      console.error("Error cargando proveedores");
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export const ProvidersPage = () => {
         type: "success",
       });
       await loadProviders();
-    } catch (err) {
+    } catch {
       setNotification({ message: "Error al eliminar el proveedor", type: "error" });
     } finally {
       setIsDeleteConfirmOpen(false);
@@ -113,7 +113,7 @@ export const ProvidersPage = () => {
         });
       }
       await loadProviders();
-    } catch (err) {
+    } catch {
       setNotification({ message: "Error al guardar el proveedor", type: "error" });
     } finally {
       setIsModalOpen(false);
@@ -135,7 +135,7 @@ export const ProvidersPage = () => {
         type: "success",
       });
       await loadProviders();
-    } catch (err) {
+    } catch {
       setNotification({ message: "Error al cambiar el estado", type: "error" });
     } finally {
       setIsStatusConfirmOpen(false);

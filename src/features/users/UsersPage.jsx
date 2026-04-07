@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search, Plus, Info, Edit, Trash2,
   ChevronLeft, ChevronRight, AlertCircle, CheckCircle, X,
@@ -13,7 +13,7 @@ export const UsersPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [roleColorMap, setRoleColorMap] = useState({});
-  const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
   const canCreateUser = permissionService.hasPerm(currentUser.rol, "users.create");
   const canEditUser = permissionService.hasPerm(currentUser.rol, "users.edit");
   const canDeleteUser = permissionService.hasPerm(currentUser.rol, "users.delete");

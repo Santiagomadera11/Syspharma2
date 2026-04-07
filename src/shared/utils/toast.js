@@ -6,7 +6,7 @@ export const toast = {
           detail: { message, type: "success", title },
         }),
       );
-    } catch (e) {
+    } catch {
       console.log("toast success:", message);
     }
   },
@@ -17,7 +17,7 @@ export const toast = {
           detail: { message, type: "error", title },
         }),
       );
-    } catch (e) {
+    } catch {
       console.error("toast error:", message);
     }
   },
@@ -28,7 +28,7 @@ export const toast = {
           detail: { message, type: "info", title },
         }),
       );
-    } catch (e) {
+    } catch {
       console.log("toast info:", message);
     }
   },
@@ -38,7 +38,9 @@ export const toast = {
       window.dispatchEvent(
         new CustomEvent("app:toast", { detail: { message, type: "success" } }),
       );
-    } catch (e) {}
+    } catch {
+      // ignore if CustomEvent not supported
+    }
   },
 };
 
