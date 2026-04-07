@@ -89,8 +89,9 @@ export const AvailabilityConfigPage = () => {
     }
   }, [selectedDoctor?.id]);
 
-  const loadData = () => {
-    setDoctors(appointmentService.getDoctors());
+  const loadData = async () => {
+    const doctorsData = await appointmentService.getDoctors();
+    setDoctors(doctorsData);
     setAvailability(availabilityService.getAvailability());
     setUnavailableDays(availabilityService.getUnavailableDays());
   };
