@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Calendar, List, Settings, Plus, Search, Eye, Edit, Trash2,
   ChevronLeft, ChevronRight, Clock, CheckCircle, XCircle,
@@ -255,7 +254,7 @@ export const AppointmentsPage = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
           <div className="overflow-x-auto flex-1">
             <table className="w-full">
-              <thead className={`${currentUserRole === "Administrador" ? "bg-emerald-600" : "bg-blue-600"} text-white sticky top-0`}>
+              <thead className={`${currentUserRole === "Administrador" ? "bg-primary-600" : "bg-primary-600"} text-white sticky top-0`}>
                 <tr>
                   {["Paciente", "Fecha", "Servicio", "Precio", "Estado", "Acciones"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold">{h}</th>
@@ -292,12 +291,12 @@ export const AppointmentsPage = () => {
                           <button onClick={() => { setSelectedAppointment(apt); setIsDetailModalOpen(true); }}
                             className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded" title="Ver"><Eye size={16} /></button>
                           <button onClick={() => { setAppointmentToChangeStatus(apt); setIsStatusModalOpen(true); }}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Cambiar Estado"><Settings size={16} /></button>
+                            className="p-1.5 text-primary-600 hover:bg-primary-50 rounded" title="Cambiar Estado"><Settings size={16} /></button>
                           <button onClick={() => { setEditingAppointment(apt); setIsAppointmentModalOpen(true); }}
                             className="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="Editar"><Edit size={16} /></button>
                           {(apt.estadoNombre || "").toLowerCase() !== "completada" && (
                             <button onClick={() => handleStatusChange(apt.id, "Completada")}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Completar"><CheckCircle size={16} /></button>
+                              className="p-1.5 text-primary-600 hover:bg-primary-50 rounded" title="Completar"><CheckCircle size={16} /></button>
                           )}
                           {currentUserRole === "Administrador" && (
                             <button onClick={() => setShowDeleteConfirm(apt)}
@@ -334,7 +333,7 @@ export const AppointmentsPage = () => {
         </div>
         {(activeTab === "calendario" || activeTab === "citas") && (
           <button onClick={() => { setEditingAppointment(null); setIsAppointmentModalOpen(true); }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm">
+            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2 text-sm">
             <Plus size={16} /> Nueva Cita
           </button>
         )}
@@ -428,7 +427,7 @@ export const AppointmentsPage = () => {
                     <p className="text-xs text-gray-500">{apt.servicioNombre} - {apt.medicoNombre}</p>
                     {(apt.estadoNombre || "").toLowerCase() !== "completada" && (
                       <button onClick={() => handleStatusChange(apt.id, "Completada")}
-                        className="mt-2 w-full py-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded border border-blue-200">
+                        className="mt-2 w-full py-1 text-xs font-bold text-primary-600 bg-primary-50 hover:bg-primary-100 rounded border border-primary-200">
                         Marcar como Completada
                       </button>
                     )}
