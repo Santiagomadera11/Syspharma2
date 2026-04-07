@@ -65,6 +65,7 @@ const ServiceFormModal = ({
       });
     }
     setErrors({});
+    setToast(null);
 
     // Listen for parameter updates
     const handleParameterUpdate = () => {
@@ -82,7 +83,7 @@ const ServiceFormModal = ({
         handleParameterUpdate,
       );
     };
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, isViewMode]);
 
   if (!isOpen) return null;
 
