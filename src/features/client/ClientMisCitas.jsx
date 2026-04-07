@@ -25,41 +25,54 @@ export const ClientMisCitas = () => {
     const onChange = () => loadData();
     window.addEventListener("appointments:changed", onChange);
     window.addEventListener("storage", onChange); // Sincroniza entre pestañas
-    
+
     return () => {
         window.removeEventListener("appointments:changed", onChange);
         window.removeEventListener("storage", onChange);
     };
   }, []);
 
-  const loadData = () => {
-    setDoctors(appointmentService.getDoctors());
-    const all = appointmentService.getAppointments();
-    const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+  const loadData = async () => {
+    try {
+      const [doctorsData, appointmentsData] = await Promise.all([
+        appointmentService.getDoctors(),
+        appointmentService.getAppointments()
+      ]);
 
-    if (!currentUser || !currentUser.id) return;
+      setDoctors(doctorsData);
 
-    // LÓGICA DE FILTRADO ROBUSTA
-    const filtered = all.filter((a) => {
-      // 1. Coincidencia por ID de usuario (Prioridad)
-      if (a.userId && String(a.userId) === String(currentUser.id)) return true;
+      const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
 
-      // 2. Coincidencia por Documento (Si el usuario tiene documento registrado)
-      if (a.documento && currentUser.documento && String(a.documento).trim() === String(currentUser.documento).trim()) return true;
+      if (!currentUser || !currentUser.id) {
+        setAppointments([]);
+        return;
+      }
 
-      // 3. Coincidencia por Email (Respaldo)
-      if (a.email && currentUser.email && a.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
+      // LÓGICA DE FILTRADO ROBUSTA
+      const filtered = appointmentsData.filter((a) => {
+        // 1. Coincidencia por ID de usuario (Prioridad)
+        if (a.userId && String(a.userId) === String(currentUser.id)) return true;
 
-      return false;
-    });
+        // 2. Coincidencia por Documento (Si el usuario tiene documento registrado)
+        if (a.documento && currentUser.documento && String(a.documento).trim() === String(currentUser.documento).trim()) return true;
 
-    // Ordenar: Más recientes primero
-    setAppointments(filtered.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)));
+        // 3. Coincidencia por Email (Respaldo)
+        if (a.email && currentUser.email && a.email.toLowerCase() === currentUser.email.toLowerCase()) return true;
+
+        return false;
+      });
+
+      // Ordenar: Más recientes primero
+      setAppointments(filtered.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)));
+    } catch (error) {
+      console.error("Error cargando datos de citas:", error);
+      setAppointments([]);
+    }
   };
 
   // ✅ AQUÍ ESTÁ LA MAGIA: PRE-LLENAR DATOS
   const openNewAppointment = () => {
-    const currentUser = JSON.parse(localStorage.getItem("syspharma_user") || "{}");
+    const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
     
     setEditingAppointment({
       userId: currentUser.id,
