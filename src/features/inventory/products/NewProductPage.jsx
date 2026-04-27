@@ -143,8 +143,25 @@ const NewProductPage = () => {
           onConfirm: () => { setShowConfirmModal(false); navigate("/admin/productos"); },
         });
       } else {
-        await productService.create(payload);
+        const created = await productService.create(payload);
+
+        // Sincronizar a localStorage para landing pública
+        const stored = JSON.parse(localStorage.getItem("syspharma_products") || "[]");
+        const newProduct = {
+          id: created.id,
+          nombre: created.nombre,
+          precio: created.precio,
+          stock: created.stock,
+          imagen: created.imagen,
+          categoria: categories.find(c => c.id === Number(formData.categoriaId))?.nombre || "Sin categoría",
+          estado: true,
+        };
+        localStorage.setItem("syspharma_products", JSON.stringify([...stored, newProduct]));
+        console.log("✅ Producto guardado en localStorage:", newProduct);
+
         window.dispatchEvent(new CustomEvent("products:changed"));
+        window.dispatchEvent(new Event("syspharma_products_updated"));
+
         setConfirmData({
           type: "success",
           title: "Producto Registrado",

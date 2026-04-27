@@ -9,488 +9,210 @@ import {
 import { getPaymentMethods } from "../settings/services/parameterService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { ordersService } from "../sales/orders/services/ordersService";
+import { useNavigate } from "react-router-dom";
 
 const CarritoPage = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [toast, setToast] = useState(null);
+
+  // Estados para Checkout
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [selectedPaymentId, setSelectedPaymentId] = useState("");
+  const [checkoutError, setCheckoutError] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     load();
     const onCartUpdated = () => load();
     window.addEventListener(`${LS.CART}_updated`, onCartUpdated);
-    window.addEventListener(`${LS.PRODUCTS}_updated`, onCartUpdated);
-    return () => {
-      window.removeEventListener(`${LS.CART}_updated`, onCartUpdated);
-      window.removeEventListener(`${LS.PRODUCTS}_updated`, onCartUpdated);
-    };
+    return () => window.removeEventListener(`${LS.CART}_updated`, onCartUpdated);
   }, []);
 
+  // Carga y normalización de productos en el carrito
   function load() {
     const cart = read(LS.CART) || [];
-    const prods = read(LS.PRODUCTS) || [];
-    // Cart may be stored as array of ids or objects. Normalize to objects for display.
+    const prods = JSON.parse(localStorage.getItem("syspharma_products") || "[]");
+    
     const normalized = (cart || []).map((item) => {
-      if (item && (typeof item === "string" || typeof item === "number")) {
-        const p =
-          prods.find((x) => x.id === item || x.id === Number(item)) || {};
-        const computed = Number(p.precio ?? p.price ?? 0) || 0;
-        return {
-          id: p.id ?? item,
-          cantidad: p && (p.stock ?? p.existencia) > 0 ? 1 : 0,
-          precioActual: computed,
-          nombre: p.nombre ?? p.name ?? "",
-          imagen: p.imagen ?? p.image ?? "",
-          laboratorio: p.laboratorio ?? p.marca ?? "",
-          producto: p,
-        };
-      }
-
-      const p = prods.find((x) => x.id === item.id) || {};
-      const precioStored = item.precio ?? item.price;
-      const currentPrice =
-        Number(p.precio ?? p.price ?? precioStored ?? 0) || 0;
-      const requestedQty = item.cantidad || 1;
-      const allowedQty = Math.max(0, p.stock ?? p.existencia ?? requestedQty);
-      const adjustedQty = Math.min(requestedQty, allowedQty);
-      const priceChanged =
-        precioStored !== undefined &&
-        p &&
-        Number(precioStored) !== Number(p.precio ?? p.price);
+      const p = prods.find((x) => x.id === item.id || x.id === Number(item)) || {};
       return {
-        ...item,
-        producto: p,
-        precioActual: currentPrice,
-        priceChanged,
-        cantidad: adjustedQty,
+        id: p.id || item.id,
+        nombre: p.nombre || item.nombre || "Producto",
+        imagen: p.imagen || item.imagen,
+        precioActual: Number(p.precio || item.precio || 0),
+        cantidad: item.cantidad || 1,
+        producto: p
       };
     });
-    const mapped = normalized;
-    setCartItems(mapped);
-    // Persist adjustments if admin reduced stock below quantities in cart
-    try {
-      const raw = read(LS.CART) || [];
-      const rawNorm = (raw || []).map((it) =>
-        it && typeof it === "object" ? it : { id: it, cantidad: 1 },
-      );
-      let changed = false;
-      const toWrite = mapped.map((m) => {
-        const found = rawNorm.find((r) => r.id === m.id);
-        const prevQty = found ? found.cantidad || 1 : 0;
-        if (prevQty !== (m.cantidad || 0)) changed = true;
-        return { id: m.id, cantidad: m.cantidad || 0, precio: m.precioActual };
-      });
-      if (changed) write(LS.CART, toWrite);
-    } catch {
-      // Error persisting cart adjustments
-    }
+    setCartItems(normalized);
   }
 
   const changeQty = (id, delta) => {
-    const raw = read(LS.CART) || [];
-    const prods = read(LS.PRODUCTS) || [];
-    // Normalize primitives to objects for mutation
-    let arr = raw.map((it) => {
-      if (it && (typeof it === "string" || typeof it === "number")) {
-        const p = prods.find((x) => x.id === it || x.id === Number(it)) || {};
-        return {
-          id: p.id ?? it,
-          cantidad: 1,
-          precio: p.precio ?? p.price ?? 0,
-        };
-      }
-      return it;
-    });
-
-    arr = arr.map((it) =>
-      it.id === id
-        ? { ...it, cantidad: Math.max(1, (it.cantidad || 1) + delta) }
-        : it,
-    );
-    write(LS.CART, arr);
+    const cart = read(LS.CART) || [];
+    const updated = cart.map(it => it.id === id ? { ...it, cantidad: Math.max(1, (it.cantidad || 1) + delta) } : it);
+    write(LS.CART, updated);
+    load();
   };
 
   const handleRemove = (id) => {
-    const raw = read(LS.CART) || [];
-    const arr = raw.filter((f) => {
-      if (f && (typeof f === "string" || typeof f === "number"))
-        return f !== id;
-      if (f && typeof f === "object") return f.id !== id;
-      return true;
-    });
-    write(LS.CART, arr);
-    setToast({ message: "Eliminado del carrito", type: "success", zIndex: 70 });
+    const cart = read(LS.CART) || [];
+    const updated = cart.filter(it => it.id !== id);
+    write(LS.CART, updated);
+    load();
+    setToast({ message: "Producto eliminado", type: "success" });
   };
 
-  const handleClear = () => {
-    write(LS.CART, []);
-    setToast({ message: "Carrito vaciado", type: "success", zIndex: 70 });
-  };
+  const total = cartItems.reduce((s, it) => s + (it.precioActual * it.cantidad), 0);
 
-  const total = cartItems.reduce(
-    (s, it) => s + (it.precioActual || 0) * (it.cantidad || 1),
-    0,
-  );
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [paymentMethods, setPaymentMethods] = useState([]);
-  const [selectedPayment, setSelectedPayment] = useState(null);
-  const [checkoutError, setCheckoutError] = useState(null);
-  const [processing, setProcessing] = useState(false);
-
-  if (!cartItems || cartItems.length === 0) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => window.history.back()}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Volver"
-          >
-            <ArrowLeft size={24} className="text-gray-700" />
-          </button>
-          <h2 className="text-xl font-bold">Tu Carrito</h2>
-        </div>
-        <p>Tu carrito está vacío. Agrega productos desde el catálogo.</p>
-      </div>
-    );
-  }
+  const formatCurrency = (amount) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(amount);
 
   return (
-    <div className="p-6">
+    <div className="p-6 font-sans">
       <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => window.history.back()}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          title="Volver"
-        >
-          <ArrowLeft size={24} className="text-gray-700" />
-        </button>
-        <h2 className="text-xl font-bold">Tu Carrito</h2>
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><ArrowLeft size={24} /></button>
+        <h2 className="text-2xl font-black text-gray-900">Tu Carrito</h2>
       </div>
-      <div className="space-y-4">
-        {cartItems.map((it) => (
-          <div
-            key={it.id}
-            className="flex items-center gap-4 border p-3 rounded"
-          >
-            <img
-              src={(it.producto && it.producto.imagen) || it.imagen}
-              className="w-20 h-20 object-cover"
-              alt=""
-            />
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-bold">
-                    {(it.producto && it.producto.nombre) || it.nombre}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {(it.producto && it.producto.laboratorio) || it.laboratorio}
-                  </div>
+
+      {cartItems.length === 0 ? (
+        <div className="text-center py-20 text-gray-400">Tu carrito está vacío</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Lista de Productos */}
+          <div className="lg:col-span-2 space-y-4">
+            {cartItems.map((it) => (
+              <div key={it.id} className="flex items-center gap-4 bg-white border border-gray-100 p-4 rounded-2xl shadow-sm">
+                <img src={it.imagen || "/src/assets/farmacia.avif"} className="w-20 h-20 object-cover rounded-xl" alt="" />
+                <div className="flex-1">
+                  <h4 className="font-bold text-gray-900">{it.nombre}</h4>
+                  <p className="text-emerald-600 font-black">{formatCurrency(it.precioActual)}</p>
                 </div>
-                <div className="text-emerald-600 font-bold text-lg">
-                  ${Number(it.precioActual || 0).toFixed(2)}
+                <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl">
+                  <button onClick={() => changeQty(it.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white border rounded-lg">-</button>
+                  <span className="font-bold w-4 text-center">{it.cantidad}</span>
+                  <button onClick={() => changeQty(it.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white border rounded-lg">+</button>
                 </div>
+                <button onClick={() => handleRemove(it.id)} className="p-2 text-red-400 hover:text-red-600">✕</button>
               </div>
-              <div className="mt-2">
-                {(() => {
-                  const stock =
-                    (it.producto &&
-                      (it.producto.stock ?? it.producto.existencia)) ??
-                    0;
-                  if (stock === 0)
-                    return (
-                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
-                        Producto agotado
-                      </span>
-                    );
-                  if (stock < 50)
-                    return (
-                      <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">
-                        Pocas unidades
-                      </span>
-                    );
-                  return null;
-                })()}
-              </div>
-            </div>
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => changeQty(it.id, -1)}
-                  className="px-2 py-1 border rounded"
-                >
-                  -
-                </button>
-                <div className="px-3">{it.cantidad}</div>
-                {(() => {
-                  const stock =
-                    (it.producto &&
-                      (it.producto.stock ?? it.producto.existencia)) ??
-                    0;
-                  const disabled = (it.cantidad || 0) >= stock || stock === 0;
-                  return (
-                    <button
-                      onClick={() => changeQty(it.id, 1)}
-                      disabled={disabled}
-                      className={`px-2 py-1 border rounded ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      +
-                    </button>
-                  );
-                })()}
-              </div>
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={() => handleRemove(it.id)}
-                  className="px-3 py-1 border rounded text-sm"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="mt-6 flex justify-between items-center">
-        <div className="text-xl font-bold">Total: {formatCurrency(total)}</div>
-        <div className="flex gap-2">
-          <button onClick={handleClear} className="px-4 py-2 border rounded">
-            Vaciar Carrito
-          </button>
-          <button
-            onClick={() => {
-              const methods = getPaymentMethods();
-              setPaymentMethods(methods || []);
-              setSelectedPayment(
-                methods && methods.length ? methods[0].value : null,
-              );
-              setCheckoutOpen(true);
-            }}
-            className="px-4 py-2 bg-emerald-600 text-white rounded"
-          >
-            Finalizar Compra
-          </button>
-        </div>
-      </div>
-
-      {/* Checkout Modal */}
-      {checkoutOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-lg p-6">
-            <h3 className="text-lg font-bold mb-3">Confirmar Compra</h3>
-            <div className="mb-3">
-              <div className="text-sm text-gray-600 mb-2">Resumen</div>
-              <div className="space-y-2 max-h-40 overflow-auto mb-2">
-                {cartItems.map((it) => (
-                  <div
-                    key={it.id}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={(it.producto && it.producto.imagen) || it.imagen}
-                        alt=""
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                      <div>
-                        <div className="font-semibold">
-                          {(it.producto && it.producto.nombre) || it.nombre}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {it.cantidad} x {formatCurrency(it.precioActual || 0)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="font-bold">
-                      {formatCurrency(
-                        (it.precioActual || 0) * (it.cantidad || 1),
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between border-t pt-3">
-                <div className="text-sm text-gray-600">Total</div>
-                <div className="text-lg font-bold text-emerald-600">
-                  {formatCurrency(total)}
-                </div>
-              </div>
+          {/* Resumen de Pago */}
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm h-fit space-y-4">
+            <h3 className="font-black text-gray-900 uppercase text-xs tracking-widest">Resumen</h3>
+            <div className="flex justify-between items-center text-xl font-black text-gray-900 border-t pt-4">
+              <span>Total:</span>
+              <span className="text-emerald-600">{formatCurrency(total)}</span>
             </div>
+            <button
+              onClick={() => {
+                const methods = getPaymentMethods();
+                setPaymentMethods(methods || []);
+                setCheckoutOpen(true);
+              }}
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-lg shadow-emerald-100 transition-all"
+            >
+              Finalizar Compra
+            </button>
+          </div>
+        </div>
+      )}
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Método de pago
-              </label>
+      {/* MODAL DE CONFIRMACIÓN */}
+      {checkoutOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-2xl font-black text-gray-900 mb-6">Confirmar Pedido</h3>
+            
+            <div className="mb-6">
+              <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Método de Pago</label>
               <select
-                value={selectedPayment || ""}
-                onChange={(e) => setSelectedPayment(e.target.value)}
-                className="w-full border px-3 py-2 rounded"
+                value={selectedPaymentId}
+                onChange={(e) => setSelectedPaymentId(e.target.value)}
+                className="w-full border-2 border-gray-100 p-3 rounded-2xl outline-none focus:border-emerald-500 font-medium"
               >
-                <option value="">-- Seleccione --</option>
+                <option value="">Seleccione cómo desea pagar...</option>
                 {paymentMethods.map((m) => (
-                  <option key={m.id} value={m.value}>
-                    {m.value}
-                  </option>
+                  <option key={m.id} value={m.id}>{m.value}</option>
                 ))}
               </select>
             </div>
 
             {checkoutError && (
-              <div className="text-sm text-red-600 mb-2">{checkoutError}</div>
+              <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-bold mb-6 border border-red-100">
+                {checkoutError}
+              </div>
             )}
 
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setCheckoutOpen(false)}
-                className="px-4 py-2 border rounded"
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setCheckoutOpen(false)} 
+                className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition-colors"
               >
                 Cancelar
               </button>
               <button
+                disabled={processing || !selectedPaymentId}
                 onClick={async () => {
-                  // Process checkout
-                  setCheckoutError(null);
                   setProcessing(true);
+                  setCheckoutError(null);
                   try {
-                    // reload latest products and cart
-                    const latestProducts = read(LS.PRODUCTS) || [];
-                    const latestCart = read(LS.CART) || [];
-                    const normCart = (latestCart || []).map((it) =>
-                      it && typeof it === "object"
-                        ? it
-                        : { id: it, cantidad: 1 },
-                    );
-
-                    // Validate stock
-                    for (const item of normCart) {
-                      const prod = latestProducts.find((p) => p.id === item.id);
-                      const available = prod
-                        ? (prod.stock ?? prod.existencia ?? 0)
-                        : 0;
-                      if ((item.cantidad || 0) > available) {
-                        setCheckoutError(
-                          `Stock insuficiente para ${prod ? prod.nombre || prod.name : item.id}`,
-                        );
-                        setProcessing(false);
-                        return;
-                      }
+                    // 1. LEER USUARIO DE SESIÓN (Sincronizado con el resto de la app)
+                    const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "null");
+                    
+                    if (!user || !user.id) {
+                      throw new Error("No hay una sesión activa. Por favor, inicia sesión de nuevo.");
                     }
 
-                    // Deduct stock
-                    const updatedProducts = latestProducts.map((p) => {
-                      const cartItem = normCart.find((it) => it.id === p.id);
-                      if (cartItem) {
-                        const newStock = Math.max(
-                          0,
-                          (p.stock ?? p.existencia ?? 0) -
-                            (cartItem.cantidad || 0),
-                        );
-                        return { ...p, stock: newStock };
-                      }
-                      return p;
-                    });
-                    write(LS.PRODUCTS, updatedProducts);
-
-                    // Create order — recompute total using latest product prices
-                    const session = read(LS.USER) || {};
-                    const computedTotal = normCart.reduce((s, it) => {
-                      const prod =
-                        latestProducts.find((p) => p.id === it.id) || {};
-                      const price =
-                        Number(
-                          it.precio ??
-                            it.precioActual ??
-                            prod.precio ??
-                            prod.price ??
-                            0,
-                        ) || 0;
-                      return s + price * (it.cantidad || 1);
-                    }, 0);
-
-                    const order = {
-                      cliente: session.nombre || session.email || "Cliente",
-                      documento: session.documento || "",
-                      correo: session.email || "",
-                      fecha: new Date().toISOString().split("T")[0],
-                      productos: normCart.map((it) => {
-                        const prod =
-                          latestProducts.find((p) => p.id === it.id) || {};
-                        const price =
-                          Number(
-                            it.precio ??
-                              it.precioActual ??
-                              prod.precio ??
-                              prod.price ??
-                              0,
-                          ) || 0;
-                        return {
-                          id: it.id,
-                          nombre: prod.nombre || prod.name || null,
-                          cantidad: it.cantidad || 1,
-                          precio: price,
-                        };
-                      }),
-                      total: computedTotal,
-                      metodoPago: selectedPayment || null,
-                      estado: "Pendiente",
-                      origin: "web",
-                      creadoPor: "Cliente",
-                      notas: "Compra desde web",
+                    // 2. CONSTRUIR OBJETO PARA EL BACKEND (DTO)
+                    const dataParaGuardar = {
+                      usuarioId: Number(user.id),
+                      clienteNombre: user.nombre,
+                      clienteEmail: user.email,
+                      metodoPagoId: Number(selectedPaymentId),
+                      porcentajeIva: 0,
+                      detalles: cartItems.map(it => ({
+                        productoId: Number(it.id),
+                        nombre: it.nombre,
+                        cantidad: Number(it.cantidad),
+                        precioUnitario: Number(it.precioActual)
+                      }))
                     };
-                    ordersService.create(order);
 
-                    // Clear cart
+                    console.log("ENVIANDO PEDIDO:", dataParaGuardar);
+                    await ordersService.create(dataParaGuardar);
+
+                    // 3. ÉXITO: Limpiar y Redirigir
                     write(LS.CART, []);
-
-                    // Push notification
-                    pushNotification({
-                      title: "Compra exitosa",
-                      message:
-                        "¡Compra exitosa! Tu pedido ha sido registrado y está en proceso",
-                      date: new Date().toISOString(),
-                      path: "/client/mis-pedidos",
-                    });
-
-                    setProcessing(false);
                     setCheckoutOpen(false);
-                    setToast({
-                      message: "Compra registrada correctamente",
-                      type: "success",
-                      zIndex: 70,
+                    pushNotification({
+                        title: "¡Gracias por tu compra!",
+                        message: "Tu pedido se ha registrado con éxito.",
+                        date: new Date().toISOString(),
+                        path: "/client/mis-pedidos"
                     });
-                  } catch {
+                    
+                    // Redirección forzada para ver el pedido
+                    window.location.href = "/client/mis-pedidos";
+
+                  } catch (err) {
+                    const msg = err.response?.data?.message || err.message;
+                    setCheckoutError(msg);
+                  } finally {
                     setProcessing(false);
-                    setCheckoutError("Error procesando la compra");
                   }
                 }}
-                disabled={processing || !selectedPayment}
-                className={`px-4 py-2 bg-emerald-600 text-white rounded ${processing || !selectedPayment ? "opacity-60 cursor-not-allowed" : ""}`}
+                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-xl shadow-emerald-100 disabled:opacity-50 transition-all active:scale-95"
               >
-                {processing ? "Procesando..." : "Confirmar y Pagar"}
+                {processing ? "Procesando..." : "Confirmar Pago"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {toast && (
-        <ToastNotification
-          message={toast.message}
-          type={toast.type}
-          zIndex={toast.zIndex}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <ToastNotification message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };

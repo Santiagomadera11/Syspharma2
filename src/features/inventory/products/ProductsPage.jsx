@@ -45,6 +45,25 @@ export const ProductsPage = () => {
       setProducts(prods);
       setCategories(cats);
       setProviders(provs);
+
+      // Sincronizar productos a localStorage para que se vean en landing pública
+      // Simplificar: solo guardar los campos necesarios para la landing
+      const productsForPublic = prods.map(p => ({
+        id: p.id,
+        nombre: p.nombre,
+        precio: p.precio,
+        stock: p.stock || 0,
+        imagen: p.imagen,
+        categoria: p.categoria || "Sin categoría",
+        estado: p.estado !== false, // Por defecto true si no está definido
+      }));
+
+      localStorage.setItem("syspharma_products", JSON.stringify(productsForPublic));
+      console.log("✅ Productos sincronizados a localStorage:", productsForPublic.length);
+      console.log("📦 Primer producto guardado:", productsForPublic[0]);
+
+      // Disparar evento para que el catálogo público se actualice
+      window.dispatchEvent(new Event("syspharma_products_updated"));
     } catch (err) {
       console.error("Error cargando datos:", err);
     } finally {

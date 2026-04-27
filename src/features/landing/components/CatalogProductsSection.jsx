@@ -25,6 +25,7 @@ export const CatalogProductsSection = () => {
 
   // Cargar productos y categorías del localStorage al montar el componente
   useEffect(() => {
+    console.log("🔄 CatalogProductsSection montado, cargando datos...");
     cargarDatos();
     window.addEventListener("syspharma_products_updated", cargarDatos);
 
@@ -35,19 +36,33 @@ export const CatalogProductsSection = () => {
 
   const cargarDatos = () => {
     try {
-      // Obtener productos del localStorage
-      const products = JSON.parse(
-        localStorage.getItem("syspharma_products") || "[]",
-      );
+      // La página pública carga productos desde localStorage
+      // Los productos se sincronizan desde el admin/employee cuando crean nuevos
+      console.log("📦 Intentando cargar productos desde localStorage...");
 
-      console.log("📦 Datos RAW de localStorage:", products);
+      const stored = localStorage.getItem("syspharma_products");
+      console.log("💾 localStorage.syspharma_products existe?", !!stored);
+      console.log("💾 localStorage.syspharma_products contenido:", stored?.substring(0, 200));
 
-      // Filtrar solo productos activos (estado === true)
-      const activeProducts = products.filter((p) => p.estado === true);
+      let products = JSON.parse(stored || "[]");
+      console.log("📦 Productos cargados (RAW):", products.length);
+
+      if (products.length > 0) {
+        console.log("📋 Primer producto RAW:", JSON.stringify(products[0]));
+      }
+
+      // Filtrar solo productos activos (estado === true o estado === "Activo")
+      const activeProducts = products.filter((p) => {
+        const isActive = p.estado === true || p.estado === "Activo" || p.estado === undefined || p.estado === null;
+        if (!isActive) {
+          console.log(`   ❌ ${p.nombre}: estado=${p.estado} (filtrado)`);
+        }
+        return isActive;
+      });
 
       console.log("✅ Productos activos:", activeProducts.length);
       if (activeProducts.length > 0) {
-        console.log("📋 Primer producto:", activeProducts[0]);
+        console.log("📋 Primer producto activo:", JSON.stringify(activeProducts[0]));
       }
 
       // Guardar en estado original
@@ -55,7 +70,7 @@ export const CatalogProductsSection = () => {
 
       // Extraer categorías únicas de los productos activos
       const uniqueCategories = [
-        ...new Set(activeProducts.map((p) => p.categoria).filter(Boolean)),
+        ...new Set(activeProducts.map((p) => p.categoria || p.categoría).filter(Boolean)),
       ].sort();
 
       setCategorias(uniqueCategories);
@@ -80,6 +95,12 @@ export const CatalogProductsSection = () => {
 
   // FUNCIÓN ÚNICA DE FILTRADO: aplica todos los filtros simultáneamente
   const filtrarProductos = () => {
+    console.log("🔍 Filtrando productos...");
+    console.log("   - Productos originales:", productosOriginales.length);
+    console.log("   - Búsqueda:", searchValue);
+    console.log("   - Categoría:", categoriaSeleccionada);
+    console.log("   - Rango precio:", priceRange);
+
     const filtered = productosOriginales.filter((product) => {
       // Filtro 1: Búsqueda por nombre
       const matchesSearch =
@@ -88,17 +109,25 @@ export const CatalogProductsSection = () => {
           product.nombre.toLowerCase().includes(searchValue.toLowerCase()));
 
       // Filtro 2: Categoría (si no es "Todas", filtra por la categoría seleccionada)
+      const categoria = product.categoria || product.categoría;
       const matchesCategory =
         categoriaSeleccionada === "Todas" ||
-        product.categoria === categoriaSeleccionada;
+        categoria === categoriaSeleccionada;
 
       // Filtro 3: Rango de precio
       const matchesPrice =
         product.precio >= priceRange[0] && product.precio <= priceRange[1];
 
-      return matchesSearch && matchesCategory && matchesPrice;
+      const passes = matchesSearch && matchesCategory && matchesPrice;
+
+      if (!passes) {
+        console.log(`   ❌ ${product.nombre}: search=${matchesSearch}, cat=${matchesCategory}, price=${matchesPrice}`);
+      }
+
+      return passes;
     });
 
+    console.log("✅ Productos filtrados:", filtered.length);
     setFilteredProducts(filtered);
   };
 

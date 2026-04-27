@@ -17,40 +17,14 @@ import {
 // Así, si cambias el diseño del formulario, cambia para todos.
 import ServiceFormModal from "../services/components/ServiceFormModal";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
-
-// ✅ USAMOS EL MISMO HOOK Y LA MISMA "KEY" (sys_services)
-// Esto asegura que el Empleado vea LOS MISMOS datos que el Admin.
-import { useCrud } from "../../shared/hooks/useCrud";
+import { apiClient } from "../../shared/utils/apiClient";
 import { turnService } from "../sales/services/turnService";
 
-const INITIAL_SERVICES = [
-  {
-    id: "SRV-001",
-    nombre: "Inyectable Intramuscular",
-    categoria: "Enfermería",
-    precio: 2500,
-    duracion: 10,
-    estado: "Activo",
-  },
-  {
-    id: "SRV-002",
-    nombre: "Toma de Presión Arterial",
-    categoria: "Enfermería",
-    precio: 1000,
-    duracion: 5,
-    estado: "Activo",
-  },
-];
+const SERVICES_ENDPOINT = "Servicio";
 
 export const EmployeeServicesPage = () => {
-  // Usamos "sys_services" para compartir la base de datos con el Admin
-  const {
-    items: services,
-    addItem,
-    updateItem,
-    deleteItem,
-  } = useCrud("sys_services", INITIAL_SERVICES);
-
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
 
@@ -70,19 +44,33 @@ export const EmployeeServicesPage = () => {
     JSON.parse(sessionStorage.getItem("syspharma_user") || "{}"),
   );
 
-  // Escuchar cambios en servicios y estado de turno desde otras páginas
+  // Cargar servicios de la API
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const loadServices = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get(SERVICES_ENDPOINT);
+      console.log("📋 Servicios cargados:", response.data);
+      setServices(response.data || []);
+    } catch (error) {
+      console.error("❌ Error cargando servicios:", error);
+      setServices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Escuchar cambios en servicios desde otras páginas
   useEffect(() => {
     const handleServicesChange = () => {
-      // Forzar re-renderizado leyendo del localStorage
-      const stored = localStorage.getItem("sys_services");
-      if (stored) {
-        // El hook se re-subscribirá automáticamente
-        setCurrentPage(1);
-      }
+      loadServices();
+      setCurrentPage(1);
     };
 
     const handleTurnChange = () => {
-      // Actualizar estado del turno cuando cambie
       setHasActiveTurn(turnService.hasActiveTurn());
     };
 
@@ -128,15 +116,38 @@ export const EmployeeServicesPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    deleteItem(id);
-    window.dispatchEvent(new CustomEvent("services:changed"));
+  const handleDelete = async (id) => {
+    try {
+      await apiClient.delete(`${SERVICES_ENDPOINT}/${id}`);
+      setServices(services.filter((s) => s.id !== id));
+      window.dispatchEvent(new Event("services:changed"));
+    } catch (error) {
+      console.error("Error eliminando servicio:", error);
+      alert("Error al eliminar el servicio");
+    }
   };
 
-  const handleSave = (formData) => {
-    if (editingItem) updateItem(editingItem.id, formData);
-    else addItem({ ...formData, id: `SRV-${Date.now().toString().slice(-4)}` });
-    window.dispatchEvent(new CustomEvent("services:changed"));
+  const handleSave = async (formData) => {
+    try {
+      if (editingItem) {
+        // Actualizar
+        await apiClient.put(`${SERVICES_ENDPOINT}/${editingItem.id}`, formData);
+        setServices(
+          services.map((s) =>
+            s.id === editingItem.id ? { ...formData, id: editingItem.id } : s
+          )
+        );
+      } else {
+        // Crear
+        const response = await apiClient.post(SERVICES_ENDPOINT, formData);
+        setServices([...services, response.data]);
+      }
+      window.dispatchEvent(new Event("services:changed"));
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Error guardando servicio:", error);
+      alert("Error al guardar el servicio");
+    }
   };
 
   // --- FILTROS Y PAGINACIÓN ---
@@ -145,7 +156,9 @@ export const EmployeeServicesPage = () => {
     const matchTexto =
       srv.nombre.toLowerCase().includes(texto) ||
       srv.categoria.toLowerCase().includes(texto);
-    const matchEstado = statusFilter === "Todos" || srv.estado === statusFilter;
+    // srv.estado es un booleano (true = Activo, false = Inactivo)
+    const matchEstado = statusFilter === "Todos" ||
+      (statusFilter === "Activo" ? srv.estado : !srv.estado);
     return matchTexto && matchEstado;
   });
 
@@ -162,12 +175,20 @@ export const EmployeeServicesPage = () => {
   };
 
   const getStatusBadge = (estado) => {
+    // estado es un booleano: true = Activo, false = Inactivo
+    const isActive = estado === true;
+
     return (
-      <span
-        className={`px-2 py-0.5 rounded text-[10px] font-bold border ${estado === "Activo" ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}
+      <button
+        type="button"
+        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+          isActive
+            ? "bg-primary-500 text-white hover:bg-primary-600"
+            : "bg-gray-700 text-white hover:bg-gray-800"
+        }`}
       >
-        {estado}
-      </span>
+        {isActive ? "Activado" : "Inactivo"}
+      </button>
     );
   };
 
@@ -264,63 +285,82 @@ export const EmployeeServicesPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {currentItems.map((srv) => (
-                <tr key={srv.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-1.5 px-3 text-xs font-medium text-gray-900">
-                    {srv.id}
-                  </td>
-                  <td className="py-1.5 px-3">
-                    <div className="flex items-center gap-2">
-                      <Stethoscope size={12} className="text-blue-600" />
-                      <span className="text-xs font-bold text-gray-700">
-                        {srv.nombre}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-1.5 px-3 text-xs text-gray-600">
-                    {srv.categoria}
-                  </td>
-                  <td className="py-1.5 px-3 text-xs font-bold text-blue-600 text-right">
-                    $ {Number(srv.precio).toLocaleString()}
-                  </td>
-                  <td className="py-1.5 px-3 text-xs text-center text-gray-500">
-                    <div className="flex items-center justify-center gap-1">
-                      <Clock size={10} /> {srv.duracion} min
-                    </div>
-                  </td>
-                  <td className="py-1.5 px-3 text-center">
-                    {getStatusBadge(srv.estado)}
-                  </td>
-                  <td className="py-1.5 px-3">
-                    <div className="flex items-center justify-center gap-1">
-                      {/* VER DETALLE */}
-                      <button
-                        onClick={() => handleView(srv)}
-                        className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50"
-                        title="Ver detalle"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      {/* EDITAR */}
-                      <button
-                        onClick={() => handleEdit(srv)}
-                        className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50"
-                        title="Editar"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      {/* ELIMINAR */}
-                      <button
-                        onClick={() => handleDelete(srv.id)}
-                        className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      Cargando servicios...
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : currentItems.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
+                    {searchTerm || statusFilter !== "Todos"
+                      ? "No hay servicios que cumplan con los filtros"
+                      : "No hay servicios registrados"}
+                  </td>
+                </tr>
+              ) : (
+                currentItems.map((srv) => (
+                  <tr key={srv.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-1.5 px-3 text-xs font-medium text-gray-900">
+                      {srv.id}
+                    </td>
+                    <td className="py-1.5 px-3">
+                      <div className="flex items-center gap-2">
+                        <Stethoscope size={12} className="text-blue-600" />
+                        <span className="text-xs font-bold text-gray-700">
+                          {srv.nombre}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-1.5 px-3 text-xs text-gray-600">
+                      {srv.categoria}
+                    </td>
+                    <td className="py-1.5 px-3 text-xs font-bold text-blue-600 text-right">
+                      $ {Number(srv.precio).toLocaleString()}
+                    </td>
+                    <td className="py-1.5 px-3 text-xs text-center text-gray-500">
+                      <div className="flex items-center justify-center gap-1">
+                        <Clock size={10} /> {srv.duracion} min
+                      </div>
+                    </td>
+                    <td className="py-1.5 px-3 text-center">
+                      {getStatusBadge(srv.estado)}
+                    </td>
+                    <td className="py-1.5 px-3">
+                      <div className="flex items-center justify-center gap-1">
+                        {/* VER DETALLE */}
+                        <button
+                          onClick={() => handleView(srv)}
+                          className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50"
+                          title="Ver detalle"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        {/* EDITAR */}
+                        <button
+                          onClick={() => handleEdit(srv)}
+                          className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50"
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        {/* ELIMINAR */}
+                        <button
+                          onClick={() => handleDelete(srv.id)}
+                          className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

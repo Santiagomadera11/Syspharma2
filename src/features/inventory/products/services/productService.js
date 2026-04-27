@@ -5,7 +5,7 @@ const ENDPOINT = "Producto";
 export const productService = {
   getAll: async () => {
     const response = await apiClient.get(ENDPOINT);
-    return response.data;
+    return response.data || [];
   },
 
   getById: async (id) => {

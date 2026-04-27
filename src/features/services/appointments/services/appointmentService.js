@@ -4,34 +4,39 @@ const APPOINTMENTS_ENDPOINT = "Cita";
 const DOCTORS_ENDPOINT = "Medico";
 
 // Mapear estructura del frontend a la API
-const mapToApiFormat = (appointmentData) => ({
-  medicoId: appointmentData.doctorId,
-  clienteNombre: appointmentData.paciente,
-  clienteDocumento: appointmentData.documento,
-  clienteTelefono: appointmentData.telefono,
-  clienteEmail: appointmentData.email,
-  fecha: appointmentData.fecha,
-  hora: appointmentData.hora,
-  motivo: appointmentData.servicio || "Consulta",
-  precio: appointmentData.precio || 0,
-  notas: appointmentData.notas,
-  estadoId: appointmentData.estadoId || 1,
-});
+const mapToApiFormat = (appointmentData) => {
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+
+  return {
+    medicoId: appointmentData.doctorId,
+    pacienteNombre: appointmentData.paciente,
+    pacienteDocumento: appointmentData.documento,
+    pacienteTelefono: appointmentData.telefono,
+    pacienteEmail: appointmentData.email,
+    fecha: appointmentData.fecha,
+    hora: appointmentData.hora,
+    servicioNombre: appointmentData.servicio || "Consulta",
+    precio: appointmentData.precio || 0,
+    notas: appointmentData.notas,
+    estadoId: appointmentData.estadoId || 1,
+    usuarioId: appointmentData.userId || currentUser?.id,
+  };
+};
 
 // Mapear estructura de la API a lo que espera el frontend
 const mapFromApiFormat = (apiData) => ({
   id: apiData.id,
   doctorId: apiData.medicoId,
   medicoNombre: apiData.medicoNombre || apiData.medico?.nombre,
-  paciente: apiData.clienteNombre,
-  pacienteNombre: apiData.clienteNombre,
-  documento: apiData.clienteDocumento,
-  telefono: apiData.clienteTelefono,
-  email: apiData.clienteEmail,
+  paciente: apiData.pacienteNombre,
+  pacienteNombre: apiData.pacienteNombre,
+  documento: apiData.pacienteDocumento,
+  telefono: apiData.pacienteTelefono,
+  email: apiData.pacienteEmail,
   fecha: apiData.fecha,
   hora: apiData.hora,
-  servicio: apiData.motivo,
-  servicioNombre: apiData.motivo,
+  servicio: apiData.servicioNombre,
+  servicioNombre: apiData.servicioNombre,
   precio: apiData.precio,
   notas: apiData.notas,
   estado: apiData.estadoNombre || apiData.estado,

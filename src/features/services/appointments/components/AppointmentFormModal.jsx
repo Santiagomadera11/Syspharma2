@@ -222,16 +222,17 @@ const AppointmentFormModal = ({
           );
           // Si el servicio devuelve null/undefined convertimos a array vacío.
           if (!Array.isArray(slots)) slots = [];
-        } else {
-          // Si no hay servicio de disponibilidad, mostramos una lista de respaldo
+        }
+
+        // Si no hay slots del servicio O el servicio no existe, usar el generador de respaldo
+        if (slots.length === 0) {
           slots = generateTimeSlots();
         }
       } catch (error) {
         console.warn("Error slots servicio", error);
-        slots = [];
+        slots = generateTimeSlots(); // Fallback en caso de error
       }
 
-      // NOTA: NO hacer fallback a generateTimeSlots si el servicio indicó que no hay slots (evita mostrar horarios cuando el médico no está disponible)
       setAvailableSlots(slots);
     } else {
       setAvailableSlots([]);
@@ -292,8 +293,8 @@ const AppointmentFormModal = ({
     const isValid = validateForm();
     if (!isValid) return;
 
-    // Validar turno activo - Clientes no necesitan turno
-    const turnValidation = turnService.validateOperationAllowed(currentUser);
+    // Validar turno activo - Administrador y Cliente no necesitan turno
+    const turnValidation = await turnService.validateOperationAllowed(currentUser);
     if (!turnValidation.valid) {
       alert(turnValidation.message);
       return;
@@ -325,8 +326,10 @@ const AppointmentFormModal = ({
       } else {
         // Es una creación
         try {
+          console.log("📤 Enviando cita a API:", appointmentData);
           const created =
             await appointmentService.createAppointment(appointmentData);
+          console.log("✅ Cita creada:", created);
 
           // Registrar venta de servicio en el turno actual
           const currentUser = JSON.parse(
@@ -343,9 +346,11 @@ const AppointmentFormModal = ({
             paciente: formData.paciente,
           });
 
-          onSave && onSave(created);
+          // El evento appointments:changed ya se disparó en appointmentService
+          // No se necesita llamar a onSave ni onClose aquí
         } catch (err) {
-          console.error(err);
+          console.error("❌ Error creando cita:", err);
+          throw err;
         }
       }
       onClose();
@@ -684,7 +689,7 @@ const AppointmentFormModal = ({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`${headerBgColor} px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-2`}
+            className={`${headerBgColor} px-4 py-2 text-sm font-medium text-white hover:opacity-90 rounded-lg transition-colors flex items-center gap-2`}
           >
             {isSubmitting ? (
               <Loader2 size={16} className="animate-spin" />

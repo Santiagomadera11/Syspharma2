@@ -33,7 +33,7 @@ export const AdminPedidos = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState(null);
   const [tooltipOrderId, setTooltipOrderId] = useState(null);
-  const itemsPerPage = 10;
+  const itemsPerPage = 6;  // ✅ CAMBIADO A 6 REGISTROS POR PÁGINA
 
   const loadOrders = useCallback(async () => {
     try {
