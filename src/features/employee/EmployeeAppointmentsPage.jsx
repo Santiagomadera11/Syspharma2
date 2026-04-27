@@ -41,18 +41,35 @@ export const EmployeeAppointmentsPage = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [statusMenuFor, setStatusMenuFor] = useState(null);
+  const [isDaySummaryModalOpen, setIsDaySummaryModalOpen] = useState(false);
 
   useEffect(() => {
     loadData();
+
+    // Escuchar cambios en citas desde otras vistas
+    window.addEventListener("appointments:changed", loadData);
+
+    return () => {
+      window.removeEventListener("appointments:changed", loadData);
+    };
   }, []);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const loadData = () => {
-    setAppointments(appointmentService.getAppointments());
-    setDoctors(appointmentService.getDoctors());
+  const loadData = async () => {
+    try {
+      const appts = await appointmentService.getAppointments();
+      console.log("📋 Citas cargadas:", appts);
+      setAppointments(appts);
+
+      const docs = await appointmentService.getDoctors();
+      console.log("👨‍⚕️ Médicos cargados:", docs);
+      setDoctors(docs);
+    } catch (error) {
+      console.error("❌ Error cargando datos:", error);
+    }
   };
 
   const getStatusColor = (status) => {

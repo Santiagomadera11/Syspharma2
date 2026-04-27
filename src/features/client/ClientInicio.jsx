@@ -1,201 +1,179 @@
 import React, { useEffect, useState } from "react";
-import { ShoppingBag, Calendar, Heart, Clock, MapPin } from "lucide-react";
+import { 
+  ShoppingBag, Calendar, Heart, Clock, 
+  User, ChevronRight, PlusCircle, ArrowRight 
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { LS, read } from "../../shared/services/lsService";
 import { ordersService } from "../sales/orders/services/ordersService";
 import { appointmentService } from "../services/appointments/services/appointmentService";
-import ProductCardGrid from "./components/ProductCard";
 
 const ClientInicio = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [products, setProducts] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [orders, setOrders] = useState([]);
   const [appointments, setAppointments] = useState([]);
-  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = JSON.parse(
-      sessionStorage.getItem("syspharma_user") || "{}",
-    );
-    setUser(currentUser);
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+        setUser(currentUser);
+        
+        // --- LOG DE DIAGNÓSTICO ---
+        console.log("DATOS DEL USUARIO LOGUEADO:", currentUser);
 
-    const prods = JSON.parse(
-      localStorage.getItem("syspharma_products") || "[]",
-    );
-    setProducts(Array.isArray(prods) ? prods : []);
+        if (currentUser?.email || currentUser?.id) {
+          
+          // 1. CARGAR PEDIDOS
+          const allOrdersRes = await ordersService.getAll();
+          const allOrders = Array.isArray(allOrdersRes) ? allOrdersRes : (allOrdersRes.data || []);
+          
+          console.log("PEDIDOS TOTALES EN EL SERVIDOR:", allOrders);
 
-    const fav = read(LS.FAVORITES) || [];
-    setFavorites(Array.isArray(fav) ? fav : []);
+          const myOrders = allOrders.filter(o => {
+            const matchId = o.usuarioId && Number(o.usuarioId) === Number(currentUser.id);
+            const matchEmail = (o.clienteEmail || "").toLowerCase() === (currentUser.email || "").toLowerCase();
+            const matchNombre = (o.clienteNombre || "").toLowerCase().includes((currentUser.nombre || "").toLowerCase());
+            return matchId || matchEmail || matchNombre;
+          }).sort((a, b) => new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
+          
+          console.log("PEDIDOS FILTRADOS PARA ESTE CLIENTE:", myOrders);
+          setOrders(myOrders);
 
-    if (currentUser?.email) {
-      const allOrders = ordersService.getAll() || [];
-      setOrders(
-        allOrders
-          .filter(
-            (o) =>
-              o.correo === currentUser.email || o.email === currentUser.email,
-          )
-          .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
-      );
+          // 2. CARGAR CITAS
+          const allApptsRes = await appointmentService.getAppointments();
+          const allAppts = Array.isArray(allApptsRes) ? allApptsRes : (allApptsRes.data || []);
+          
+          const myAppts = allAppts.filter(a => {
+            const matchId = (a.usuarioId || a.userId) && Number(a.usuarioId || a.userId) === Number(currentUser.id);
+            const matchEmail = (a.pacienteEmail || a.email || "").toLowerCase() === (currentUser.email || "").toLowerCase();
+            return matchId || matchEmail;
+          }).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-      const allAppts = appointmentService.getAppointments() || [];
-      setAppointments(
-        allAppts
-          .filter(
-            (a) => a.userId === currentUser.id || a.email === currentUser.email,
-          )
-          .sort((a, b) => new Date(a.fecha) - new Date(b.fecha)),
-      );
-      setDoctors(appointmentService.getDoctors() || []);
-    }
+          setAppointments(myAppts);
+        }
+      } catch (err) {
+        console.error("ERROR CARGANDO DATOS:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    return hour < 12
-      ? "¡Buenos días"
-      : hour < 18
-        ? "¡Buenas tardes"
-        : "¡Buenas noches";
+    if (hour < 12) return "¡Buenas días";
+    if (hour < 18) return "¡Buenas tardes";
+    return "¡Buenas noches";
   };
 
-  const activeOrders = orders.filter(
-    (o) => !["entregado", "pagado"].includes(o.estado?.toLowerCase()),
-  ).length;
-  const upcomingAppts = appointments.filter(
-    (a) => new Date(a.fecha) >= new Date(),
-  ).length;
-  const nextAppt = appointments.find((a) => new Date(a.fecha) >= new Date());
-  const nextDoctor = nextAppt
-    ? doctors.find((d) => d.id === nextAppt.doctorId)
-    : null;
-  const lastOrder = orders[0];
-  const favoriteProducts = products
-    .filter((p) => favorites.includes(p.id))
-    .slice(0, 4);
+  const nextAppt = appointments.find(a => (a.estadoNombre || "").toLowerCase() !== "completada");
+  const lastOrder = orders.length > 0 ? orders[0] : null;
+
+  if (loading) return <div className="h-full flex items-center justify-center p-20 text-emerald-600 font-bold">Cargando datos...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Hero */}
-      <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 pt-12 pb-8 px-8 text-white">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-4xl font-bold">
-            {getGreeting()}, {user?.nombre}!
-          </h1>
-          <p className="text-emerald-100 mt-2">
-            Aquí está tu resumen de actividad
-          </p>
+    <div className="h-full bg-[#f8fafc] font-sans p-6 space-y-6">
+      
+      {/* 1. BANNER PRINCIPAL */}
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+        <div className="relative z-10 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black">
+              {getGreeting()}, {user?.nombre?.split(' ')[0]}! 👋
+            </h1>
+            <p className="text-emerald-50 text-sm opacity-90 mt-2 max-w-md">
+              Bienvenido a tu panel de salud. Aquí puedes gestionar tus pedidos y citas médicas.
+            </p>
+          </div>
+          <button onClick={() => navigate("/client/mi-perfil")} className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/30 text-sm font-bold">
+            Mi Perfil
+          </button>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-8 space-y-8 mt-8">
-        {/* Métricas */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 text-center">
-            <ShoppingBag size={20} className="mx-auto text-emerald-600 mb-2" />
-            <div className="text-2xl font-bold">{activeOrders}</div>
-            <div className="text-xs text-gray-600">Pedidos activos</div>
+      {/* 2. MÉTRICAS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { label: "Mis Pedidos", value: orders.length, icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Mis Citas", value: appointments.length, icon: Calendar, color: "text-purple-600", bg: "bg-purple-50" },
+          { label: "Mis Favoritos", value: favorites.length, icon: Heart, color: "text-rose-600", bg: "bg-rose-50" },
+        ].map((item, i) => (
+          <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div className={`${item.bg} ${item.color} p-3 rounded-xl`}><item.icon size={22} /></div>
+            <div>
+              <p className="text-2xl font-black text-gray-900 leading-none">{item.value}</p>
+              <p className="text-xs text-gray-500 font-bold uppercase mt-1 tracking-tight">{item.label}</p>
+            </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 text-center">
-            <Calendar size={20} className="mx-auto text-emerald-600 mb-2" />
-            <div className="text-2xl font-bold">{upcomingAppts}</div>
-            <div className="text-xs text-gray-600">Citas próximas</div>
+        ))}
+      </div>
+
+      {/* 3. CONTENIDO CENTRAL */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          
+          {/* PRÓXIMA CITA */}
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4 border-b pb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="text-emerald-500" size={18} />
+                <h3 className="text-sm font-black text-gray-800 uppercase">Próxima Cita</h3>
+              </div>
+              <button onClick={() => navigate("/client/mis-citas")} className="text-xs font-bold text-emerald-600">Ver todas</button>
+            </div>
+            {nextAppt ? (
+              <div className="flex justify-between items-center bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                <div>
+                  <p className="text-base font-bold text-gray-900">{nextAppt.servicioNombre || "Consulta Médica"}</p>
+                  <p className="text-xs text-gray-600">{nextAppt.fecha} • {nextAppt.hora}</p>
+                </div>
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase">{nextAppt.estadoNombre}</span>
+              </div>
+            ) : <p className="text-sm text-gray-400 italic text-center py-2">No hay citas próximas.</p>}
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 text-center">
-            <Heart size={20} className="mx-auto text-emerald-600 mb-2" />
-            <div className="text-2xl font-bold">{favorites.length}</div>
-            <div className="text-xs text-gray-600">Favoritos</div>
+
+          {/* ÚLTIMO PEDIDO */}
+          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4 border-b pb-3">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="text-blue-500" size={18} />
+                <h3 className="text-sm font-black text-gray-800 uppercase">Último Pedido</h3>
+              </div>
+              <button onClick={() => navigate("/client/mis-pedidos")} className="text-xs font-bold text-blue-600">Historial</button>
+            </div>
+            {lastOrder ? (
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-50 rounded-xl text-blue-500"><ShoppingBag size={20} /></div>
+                  <div>
+                    <p className="text-sm font-black text-gray-900">{lastOrder.numeroPedido}</p>
+                    <p className="text-xs text-gray-500">{new Date(lastOrder.fechaCreacion).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <p className="text-lg font-black text-blue-600">${(lastOrder.total || 0).toLocaleString()}</p>
+              </div>
+            ) : <p className="text-sm text-gray-400 italic text-center py-2">Sin pedidos recientes.</p>}
           </div>
         </div>
 
-        {/* Próxima Cita */}
-        {nextAppt && (
-          <div className="bg-gradient-to-r from-emerald-100 to-teal-100 border-2 border-emerald-200 rounded-lg p-6">
-            <p className="text-sm font-semibold text-emerald-700 mb-2">
-              PRÓXIMA CITA
-            </p>
-            <h3 className="text-xl font-bold text-gray-900">
-              {nextDoctor?.nombre || "Profesional"}
-            </h3>
-            <div className="mt-4 space-y-2 text-gray-700">
-              <div className="flex items-center gap-2">
-                <Calendar size={18} className="text-emerald-600" />
-                <span>{nextAppt.fecha}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock size={18} className="text-emerald-600" />
-                <span>{nextAppt.hora}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Último Pedido */}
-        {lastOrder && (
-          <div className="bg-white border border-gray-100 rounded-lg p-6 shadow-sm">
-            <p className="text-xs text-gray-500 font-semibold mb-3">
-              ÚLTIMO PEDIDO
-            </p>
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-bold text-gray-900">
-                  Pedido #{lastOrder.id}
-                </h4>
-                <p className="text-sm text-gray-600 mt-1">{lastOrder.fecha}</p>
-              </div>
-              <span
-                className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                  ["entregado", "pagado"].includes(
-                    lastOrder.estado?.toLowerCase(),
-                  )
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-amber-100 text-amber-700"
-                }`}
-              >
-                {lastOrder.estado}
-              </span>
-            </div>
-            <p className="text-lg font-bold text-emerald-600 mt-4">
-              ${lastOrder.total?.toLocaleString() || 0}
-            </p>
-          </div>
-        )}
-
-        {/* Favoritos */}
-        {favoriteProducts.length > 0 && (
-          <section>
-            <h2 className="text-2xl font-bold mb-4 text-gray-900">
-              Tus Favoritos
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {favoriteProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  <div className="h-40 bg-gray-200 flex items-center justify-center">
-                    <img
-                      src={p.imagen || "/src/assets/farmacia.avif"}
-                      alt={p.nombre}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="p-3">
-                    <h4 className="font-semibold text-sm text-gray-900 line-clamp-2">
-                      {p.nombre}
-                    </h4>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {p.laboratorio}
-                    </p>
-                    <p className="text-lg font-bold text-emerald-600 mt-2">
-                      ${p.precio?.toLocaleString() || 0}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* ACCIONES RÁPIDAS */}
+        <div className="space-y-4">
+          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Acciones</h4>
+          <button onClick={() => navigate("/client/productos")} className="w-full group bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-2xl flex justify-between items-center transition-all">
+            <div className="flex items-center gap-3"><PlusCircle size={20} /><span className="text-sm font-bold">Comprar</span></div>
+            <ArrowRight size={18} />
+          </button>
+          <button onClick={() => navigate("/client/mis-citas")} className="w-full group bg-white hover:bg-gray-50 text-gray-800 border p-4 rounded-2xl flex justify-between items-center transition-all shadow-sm">
+            <div className="flex items-center gap-3"><Calendar size={20} className="text-purple-500" /><span className="text-sm font-bold">Agendar</span></div>
+            <ChevronRight size={18} className="text-gray-300" />
+          </button>
+        </div>
       </div>
     </div>
   );

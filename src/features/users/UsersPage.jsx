@@ -14,9 +14,13 @@ export const UsersPage = () => {
   const [loading, setLoading] = useState(true);
   const [roleColorMap, setRoleColorMap] = useState({});
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-  const canCreateUser = permissionService.hasPerm(currentUser.rol, "users.create");
-  const canEditUser = permissionService.hasPerm(currentUser.rol, "users.edit");
-  const canDeleteUser = permissionService.hasPerm(currentUser.rol, "users.delete");
+  const userPerms = currentUser.permisos || [];
+  const userRole = (currentUser.rol || "").toLowerCase();
+  const isAdmin = userRole === "administrador";
+
+  const canCreateUser = isAdmin || userPerms.includes("users.create");
+  const canEditUser   = isAdmin || userPerms.includes("users.edit");
+  const canDeleteUser = isAdmin || userPerms.includes("users.delete");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -25,15 +29,16 @@ export const UsersPage = () => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [detailUser, setDetailUser] = useState(null);
   const [notification, setNotification] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState({ show: false, id: null });
+  const [confirmDelete, setConfirmDelete] = useState({ show: false, user: null });
   const [confirmStatus, setConfirmStatus] = useState({ show: false, user: null });
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 10;
+
+  // ✅ 1. CORRECCIÓN: Paginado a 6 registros
+  const itemsPerPage = 6; 
 
   useEffect(() => {
     loadUsers();
     loadRoleColors();
-
     const onRolesChanged = () => { loadUsers(); loadRoleColors(); };
     window.addEventListener("rolesChanged", onRolesChanged);
     return () => window.removeEventListener("rolesChanged", onRolesChanged);
@@ -45,7 +50,6 @@ export const UsersPage = () => {
       const data = await userService.getAll();
       setUsers(data);
     } catch (error) {
-      console.error("Error cargando usuarios:", error);
       setNotification({ message: "Error al cargar usuarios", type: "error" });
     } finally {
       setLoading(false);
@@ -61,7 +65,7 @@ export const UsersPage = () => {
       const palette = ["#4fd1c5", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#6b7280"];
       roles.forEach((r, i) => {
         const key = (r.nombre || "").toLowerCase();
-        colorMap[key] = savedColors[r.nombre] 
+        colorMap[key] = savedColors[r.nombre]
           ? (["#4fd1c5","#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#6b7280"].includes(savedColors[r.nombre]) ? savedColors[r.nombre] : palette[i % palette.length])
           : (defaultColors[r.nombre] || palette[i % palette.length]);
       });
@@ -74,14 +78,19 @@ export const UsersPage = () => {
   const handleOpenDetail = (user) => { setDetailUser(user); setIsDetailOpen(true); };
 
   const handleSaveUser = async (formData) => {
-    if (editingUser) {
-      await userService.update({ ...formData, id: editingUser.id });
-      setNotification({ message: "Usuario actualizado correctamente", type: "success" });
-    } else {
-      await userService.create(formData);
-      setNotification({ message: "Usuario creado correctamente", type: "success" });
+    try {
+        if (editingUser) {
+          await userService.update({ ...formData, id: editingUser.id });
+          setNotification({ message: "Usuario actualizado correctamente", type: "success" });
+        } else {
+          await userService.create(formData);
+          setNotification({ message: "Usuario creado correctamente", type: "success" });
+        }
+        await loadUsers();
+        setIsModalOpen(false);
+    } catch (error) {
+        setNotification({ message: "Error al guardar usuario", type: "error" });
     }
-    await loadUsers();
   };
 
   const handleToggleStatus = (user) => setConfirmStatus({ show: true, user });
@@ -103,17 +112,21 @@ export const UsersPage = () => {
     }
   };
 
-  const handleDelete = (id) => setConfirmDelete({ show: true, id });
+  const handleDelete = (user) => setConfirmDelete({ show: true, user });
 
+  // ✅ 2. CORRECCIÓN: Borrado real y actualización de interfaz inmediata
   const confirmDeleteUser = async () => {
     try {
-      await userService.delete(confirmDelete.id);
-      await loadUsers();
-      setNotification({ message: "Usuario eliminado correctamente", type: "success" });
-    } catch {
+      await userService.delete(confirmDelete.user.id); 
+      
+      // Actualizamos la lista local para que desaparezca de la tabla al instante
+      setUsers(prev => prev.filter(u => u.id !== confirmDelete.user.id));
+      
+      setNotification({ message: `${confirmDelete.user.nombre} ha sido eliminado permanentemente`, type: "success" });
+    } catch (error) {
       setNotification({ message: "Error al eliminar usuario", type: "error" });
     } finally {
-      setConfirmDelete({ show: false, id: null });
+      setConfirmDelete({ show: false, user: null });
     }
   };
 
@@ -150,7 +163,6 @@ export const UsersPage = () => {
 
   return (
     <div className="h-full flex flex-col gap-3 font-sans">
-      {/* Header */}
       <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-lg font-bold text-gray-800">Usuarios</h1>
@@ -164,15 +176,14 @@ export const UsersPage = () => {
         )}
       </div>
 
-      {/* Buscador */}
       <div className="bg-white p-2.5 rounded-xl shadow-sm border border-gray-100 flex-shrink-0">
         <div className="flex gap-2 items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input type="text" placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            <input type="text" placeholder="Buscar..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(0); }}
               className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-300 text-xs bg-gray-50 focus:bg-white" />
           </div>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+          <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setCurrentPage(0); }}
             className="px-3 py-2 border border-gray-200 rounded-lg text-xs">
             <option value="all">Todos</option>
             <option value="active">Activos</option>
@@ -181,7 +192,6 @@ export const UsersPage = () => {
         </div>
       </div>
 
-      {/* Tabla */}
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
         <div className="overflow-auto no-scrollbar">
           {loading ? (
@@ -234,7 +244,13 @@ export const UsersPage = () => {
                           <div className="flex items-center justify-end gap-1.5">
                             <button onClick={() => handleOpenDetail(user)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200"><Info size={14} /></button>
                             {canEditUser && <button onClick={() => handleOpenEdit(user)} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"><Edit size={14} /></button>}
-                            {canDeleteUser && <button onClick={() => handleDelete(user.id)} className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"><Trash2 size={14} /></button>}
+                            {canDeleteUser && (
+                              <button onClick={() => handleDelete(user)}
+                                className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
+                                title="Eliminar permanentemente">
+                                <Trash2 size={14} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -246,10 +262,11 @@ export const UsersPage = () => {
           )}
         </div>
 
-        {/* Paginación */}
         {filteredUsers.length > 0 && (
           <div className="border-t border-gray-100 p-2.5 bg-gray-50 flex items-center justify-between flex-shrink-0">
-            <span className="text-[10px] text-gray-500 font-medium">Página {currentPage + 1} de {totalPages}</span>
+            <span className="text-[10px] text-gray-500 font-medium">
+              Página {currentPage + 1} de {totalPages} — {filteredUsers.length} usuarios
+            </span>
             <div className="flex gap-2">
               <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}
                 className="p-1 rounded bg-white border border-gray-200 disabled:opacity-50"><ChevronLeft size={14} /></button>
@@ -260,28 +277,30 @@ export const UsersPage = () => {
         )}
       </div>
 
-      {/* Modales */}
       <UserFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveUser} userToEdit={editingUser} />
       <UserDetailModal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} user={detailUser} onUpdate={handleUpdateUser} />
 
       {notification && <StatusNotification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
 
-      {/* Modal Eliminar */}
-      {confirmDelete.show && (
+      {/* ✅ CORRECCIÓN: Estilo del Modal de Eliminar (Rojo/Peligro) */}
+      {confirmDelete.show && confirmDelete.user && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
             <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
-              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2"><AlertCircle size={18} className="text-red-600" />Eliminar Usuario</h3>
-              <button onClick={() => setConfirmDelete({ show: false, id: null })}><X size={18} className="text-gray-400" /></button>
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <AlertCircle size={18} className="text-red-500" />
+                Eliminar Registro
+              </h3>
+              <button onClick={() => setConfirmDelete({ show: false, user: null })}><X size={18} className="text-gray-400" /></button>
             </div>
             <div className="p-5">
-              <p className="text-sm text-gray-700">¿Estás seguro de eliminar este usuario?</p>
-              <p className="text-xs text-gray-500 mt-2">Esta acción no se puede deshacer.</p>
+              <p className="text-sm text-gray-700">¿Estás seguro de eliminar a <strong>{confirmDelete.user.nombre}</strong>?</p>
+              <p className="text-[11px] text-red-500 mt-2 font-medium italic">⚠️ Esta acción borrará al usuario permanentemente de la base de datos.</p>
             </div>
-            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
-              <button onClick={() => setConfirmDelete({ show: false, id: null })} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md">Cancelar</button>
+            <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
+              <button onClick={() => setConfirmDelete({ show: false, user: null })} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md">Cancelar</button>
               <button onClick={confirmDeleteUser} className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-md flex items-center gap-1">
-                <Trash2 size={14} /> Eliminar
+                <Trash2 size={14} /> Eliminar ahora
               </button>
             </div>
           </div>
@@ -301,7 +320,7 @@ export const UsersPage = () => {
             </div>
             <div className="p-5">
               <p className="text-sm text-gray-700">
-                {confirmStatus.user.estado ? `¿Desactivar a "${confirmStatus.user.nombre}"?` : `¿Activar a "${confirmStatus.user.nombre}"?`}
+                {confirmStatus.user.estado ? `¿Deseas desactivar el acceso de "${confirmStatus.user.nombre}"?` : `¿Deseas activar el acceso de "${confirmStatus.user.nombre}"?`}
               </p>
             </div>
             <div className={`px-5 py-3 border-t flex justify-end gap-2 ${confirmStatus.user.estado ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>

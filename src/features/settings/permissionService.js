@@ -23,7 +23,10 @@ export const permissionService = {
   // ── Verificación de permisos (desde memoria, no localStorage) ────────────
   hasPerm: (roleName, permId) => {
     if (!roleName) return false;
-    if (roleName === "Administrador") return true;
+    
+    // Normalizamos el rol para comparar
+    const normalizedRole = roleName.toLowerCase().trim();
+    if (normalizedRole === "administrador") return true;
 
     // Obtener permisos desde memoria (cargados en el login)
     const permisos = authService.getPermisos();

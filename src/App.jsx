@@ -37,9 +37,12 @@ class ErrorBoundary extends React.Component {
 
 function App() {
   useEffect(() => {
-    // Al recargar la página, restaurar permisos desde el backend
     const user = authService.getCurrentUser();
-    if (user?.token || sessionStorage.getItem("syspharma_token")) {
+    const token = sessionStorage.getItem("syspharma_token");
+
+    // Solo recargar permisos para administradores
+    // Los demás roles ya traen sus permisos desde el login
+    if (token && user?.rol === "administrador") {
       authService.recargarPermisos();
     }
   }, []);

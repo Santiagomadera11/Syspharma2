@@ -1,4 +1,4 @@
-import { apiClient } from "../../../../shared/utils/apiClient";
+import { apiClient } from "../../../../shared/utils/apiClient.js";
 
 const ENDPOINT = "Pedido";
 
@@ -23,25 +23,8 @@ export const ordersService = {
   },
 
   create: async (orderData) => {
-    const payload = {
-      usuarioId: orderData.userId || orderData.usuarioId || null,
-      clienteNombre: orderData.cliente || orderData.clienteNombre || "Consumidor Final",
-      clienteDocumento: orderData.documento || orderData.clienteDocumento || null,
-      clienteTelefono: orderData.telefono || orderData.clienteTelefono || null,
-      clienteEmail: orderData.correo || orderData.clienteEmail || null,
-      metodoPagoId: orderData.metodoPagoId || null,
-      porcentajeIva: orderData.porcentajeIva || 0,
-      notas: orderData.notas || null,
-      origen: orderData.origin || orderData.origen || "web",
-      fechaEntrega: orderData.fechaEntrega || null,
-      detalles: (orderData.productos || orderData.detalles || []).map(p => ({
-        productoId: p.id || p.productoId || null,
-        nombre: p.nombre,
-        cantidad: p.cantidad,
-        precioUnitario: p.precio || p.precioUnitario,
-      })),
-    };
-    const res = await apiClient.post(ENDPOINT, payload);
+    console.log("📦 ordersService - Enviando al servidor:", orderData);
+    const res = await apiClient.post(ENDPOINT, orderData);
     notifyChange();
     return res.data;
   },
@@ -49,19 +32,20 @@ export const ordersService = {
   update: async (orderData) => {
     const payload = {
       id: orderData.id,
-      clienteNombre: orderData.cliente || orderData.clienteNombre,
-      clienteDocumento: orderData.documento || orderData.clienteDocumento || null,
-      clienteTelefono: orderData.telefono || orderData.clienteTelefono || null,
-      clienteEmail: orderData.correo || orderData.clienteEmail || null,
+      turnoId: Number(orderData.turnoId),
+      clienteNombre: orderData.clienteNombre,
+      clienteDocumento: orderData.clienteDocumento || null,
+      clienteTelefono: orderData.clienteTelefono || null,
       metodoPagoId: orderData.metodoPagoId || null,
       estadoId: orderData.estadoId,
+      subtotal: orderData.subtotal,
+      total: orderData.total,
       notas: orderData.notas || null,
-      fechaEntrega: orderData.fechaEntrega || null,
-      detalles: orderData.productos ? orderData.productos.map(p => ({
-        productoId: p.id || p.productoId || null,
-        nombre: p.nombre,
+      detalles: orderData.detalles ? orderData.detalles.map(p => ({
+        productoId: p.productoId,
         cantidad: p.cantidad,
-        precioUnitario: p.precio || p.precioUnitario,
+        precioUnitario: p.precioUnitario,
+        subtotal: p.subtotal
       })) : null,
     };
     const res = await apiClient.put(ENDPOINT, payload);
@@ -70,7 +54,7 @@ export const ordersService = {
   },
 
   updateStatus: async (id, estadoId) => {
-    const res = await apiClient.patch(`${ENDPOINT}/${id}/estado`, estadoId);
+    const res = await apiClient.patch(`${ENDPOINT}/${id}/estado`, Number(estadoId));
     notifyChange();
     return res.data;
   },

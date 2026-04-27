@@ -33,22 +33,10 @@ export const authService = {
       const response = await axios.post(`${API_URL}/login`, { email, password });
       const data = response.data;
 
-      const user = {
-        id: data.id,
-        nombre: data.nombre,
-        email: data.email,
-        rol: data.rol,
-        rolId: data.rolId,
-        token: data.token
-      };
-
-      storage.set('syspharma_user', JSON.stringify(user));
-      storage.set('syspharma_token', data.token);
-
-      // Guardar permisos en memoria
+      // Guardar permisos en memoria incluso si el usuario se procesa en el login page
       _permisos = Array.isArray(data.permisos) ? data.permisos : [];
 
-      return user;
+      return data;
     } catch (error) {
       if (error.response?.status === 401)
         return { error: true, message: 'Credenciales incorrectas' };
@@ -78,12 +66,29 @@ export const authService = {
   logout: () => {
     storage.remove('syspharma_user');
     storage.remove('syspharma_token');
+    // Limpiar también localStorage
+    localStorage.removeItem('token');
     _permisos = [];
   },
 
   getCurrentUser: () => {
-    const u = storage.get('syspharma_user');
-    return u ? JSON.parse(u) : null;
+    try {
+      const userStr = storage.get('syspharma_user');
+      console.log("📖 Leyendo usuario de sessionStorage:", userStr ? "✅ Encontrado" : "❌ No encontrado");
+      console.log("📊 Valor almacenado:", userStr);
+      
+      if (!userStr || userStr === "undefined" || userStr === "null") {
+        console.warn("⚠️ Usuario vacío o inválido");
+        return null;
+      }
+      
+      const user = JSON.parse(userStr);
+      console.log("✅ Usuario parseado:", user);
+      return user;
+    } catch (error) {
+      console.error("❌ Error leyendo el usuario de la sesión:", error);
+      return null;
+    }
   },
 
   getToken: () => storage.get('syspharma_token'),

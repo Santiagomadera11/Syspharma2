@@ -1,4 +1,7 @@
 export const PERMISSIONS_CONFIG = [
+  // =====================================================
+  // USUARIOS
+  // =====================================================
   {
     id: "users.view",
     label: "Ver usuarios",
@@ -24,73 +27,89 @@ export const PERMISSIONS_CONFIG = [
     category: "Usuarios",
   },
 
+  // =====================================================
+  // VENTAS
+  // =====================================================
+  {
+    id: "sales.view",
+    label: "Ver ventas",
+    description: "Acceso a historial de ventas y reportes",
+    category: "Ventas",
+  },
+  {
+    id: "sales.create",
+    label: "Nueva venta",
+    description: "Permite generar nuevas ventas/facturas",
+    category: "Ventas",
+  },
+  {
+    id: "sales.orders",
+    label: "Gestionar pedidos",
+    description: "Ver, crear y editar pedidos de clientes",
+    category: "Ventas",
+  },
+
+  // =====================================================
+  // COMPRAS / INVENTARIO
+  // =====================================================
+  {
+    id: "purchase.view",
+    label: "Ver compras",
+    description: "Acceso al historial de compras",
+    category: "Compras/Inventario",
+  },
+  {
+    id: "purchase.create",
+    label: "Nueva compra",
+    description: "Permite registrar nuevas compras",
+    category: "Compras/Inventario",
+  },
   {
     id: "inven.view",
-    label: "Ver inventario",
-    description: "Acceso a la vista de inventario",
-    category: "Inventario",
-  },
-  {
-    id: "inven.create",
-    label: "Agregar productos",
-    description: "Permite agregar productos al inventario",
-    category: "Inventario",
-  },
-  {
-    id: "inven.edit",
-    label: "Editar productos",
-    description: "Permite editar productos existentes",
-    category: "Inventario",
-  },
-  {
-    id: "inven.delete",
-    label: "Eliminar productos",
-    description: "Permite eliminar productos",
-    category: "Inventario",
+    label: "Inventario",
+    description: "Ver stock y gestionar productos",
+    category: "Compras/Inventario",
   },
 
-  {
-    id: "billing.view",
-    label: "Ver facturación",
-    description: "Acceso a facturas y reportes",
-    category: "Facturación",
-  },
-  {
-    id: "billing.create",
-    label: "Crear facturas",
-    description: "Permite generar facturas",
-    category: "Facturación",
-  },
-  {
-    id: "billing.refund",
-    label: "Devoluciones",
-    description: "Gestionar devoluciones y notas de crédito",
-    category: "Facturación",
-  },
-
+  // =====================================================
+  // SERVICIOS
+  // =====================================================
   {
     id: "services.view",
-    label: "Ver servicios",
-    description: "Acceso a la lista de servicios y citas",
+    label: "Ver citas",
+    description: "Acceso a la lista de citas y servicios",
     category: "Servicios",
   },
   {
     id: "services.manage",
-    label: "Gestionar servicios",
-    description: "Programar y editar citas y servicios",
+    label: "Gestionar agenda",
+    description: "Programar, editar y cancelar citas",
     category: "Servicios",
   },
 
+  // =====================================================
+  // REPORTES
+  // =====================================================
   {
-    id: "system.view",
-    label: "Ver configuración",
-    description: "Acceso a la sección de configuración del sistema",
+    id: "reports.view",
+    label: "Ver reportes",
+    description: "Acceso a reportes y análisis del sistema",
+    category: "Reportes",
+  },
+
+  // =====================================================
+  // SISTEMA
+  // =====================================================
+  {
+    id: "system.roles",
+    label: "Gestionar Roles",
+    description: "Crear, editar y eliminar roles de usuario",
     category: "Sistema",
   },
   {
-    id: "system.edit",
-    label: "Editar configuración",
-    description: "Modificar parámetros generales del sistema",
+    id: "system.config",
+    label: "Parámetros",
+    description: "Modificar configuración general del sistema",
     category: "Sistema",
   },
 ];

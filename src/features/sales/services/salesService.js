@@ -20,12 +20,12 @@ export const salesService = {
 
   create: async (saleData) => {
     const payload = {
-      turnoId: saleData.turnoId,
       usuarioId: saleData.usuarioId,
       clienteNombre: saleData.cliente || saleData.clienteNombre || "Consumidor Final",
       clienteDocumento: saleData.documento || saleData.clienteDocumento || null,
       clienteTelefono: saleData.telefono || saleData.clienteTelefono || null,
       metodoPagoId: saleData.metodoPagoId,
+      estadoId: saleData.estadoId || 1, // 1 = Pendiente (estado inicial)
       porcentajeIva: saleData.porcentajeIva || 0,
       notas: saleData.notas || null,
       detalles: (saleData.productos || saleData.detalles || []).map(p => ({
@@ -35,6 +35,12 @@ export const salesService = {
         descuento: p.descuento || 0,
       })),
     };
+
+    const parsedTurnoId = Number(saleData.turnoId);
+    if (!Number.isNaN(parsedTurnoId) && parsedTurnoId > 0) {
+      payload.turnoId = parsedTurnoId;
+    }
+
     const res = await apiClient.post(ENDPOINT, payload);
     return res.data;
   },
@@ -82,5 +88,32 @@ export const salesService = {
     const sales = await salesService.getTodaySales();
     return sales.reduce((sum, s) =>
       sum + (s.detalles || []).reduce((a, d) => a + d.cantidad, 0), 0);
+  },
+
+  // ── Servicios en Venta ────────────────────────────────────────
+  createServiceDetail: async (ventaId, serviceData) => {
+    const payload = {
+      ventaId,
+      servicioId: serviceData.id || serviceData.servicioId,
+      cantidad: serviceData.cantidad || 1,
+      precioUnitario: serviceData.precio || serviceData.precioUnitario || 0,
+      descuento: serviceData.descuento || 0,
+      notas: serviceData.notas || null,
+    };
+    const res = await apiClient.post("VentaDetalleServicio", payload);
+    return res.data;
+  },
+
+  createMultipleServiceDetails: async (ventaId, services) => {
+    const results = [];
+    for (const service of services) {
+      try {
+        const result = await salesService.createServiceDetail(ventaId, service);
+        results.push(result);
+      } catch (err) {
+        console.warn(`Error al crear detalle de servicio: ${err}`);
+      }
+    }
+    return results;
   },
 };

@@ -9,10 +9,15 @@ import axios from "axios";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import loginImage from "../../assets/login.jpg";
 
+const PERMS_ADMIN    = ["users.view","users.create","users.edit","users.delete","system.view","reports.view"];
+const PERMS_EMPLOYEE = ["sales.view","sales.create","sales.orders","inven.view","inven.create","services.view","services.manage"];
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [toast, setToast] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveryStep, setRecoveryStep] = useState(1);
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -96,25 +101,77 @@ const LoginPage = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      const user = await authService.login(credentials.email.trim(), credentials.password);
+    setError("");
+    setLoading(true);
 
-      if (!user || user.error) {
-        setToast({ message: user?.message || "Credenciales inválidas.", type: "error", zIndex: 70 });
+    try {
+      const res = await authService.login(credentials.email.trim(), credentials.password);
+      const data = res.data || res;
+
+      if (!data || !data.token || !data.user) {
+        setError("La respuesta del servidor no contiene datos de usuario.");
         return;
       }
 
-      // Roles fijos conocidos
-      const rutasPorRol = {
-        "Administrador": "/admin/dashboard",
-        "Empleado": "/employee/inicio",
-        "Cliente": "/client/inicio",
+      sessionStorage.setItem("syspharma_token", data.token);
+      localStorage.setItem("token", data.token);
+
+      const normalizedUser = {
+        ...data.user,
+        rol: data.user.rol?.toLowerCase().trim(),
       };
 
-      // Roles nuevos/personalizados van al panel de empleado por defecto
-      navigate(rutasPorRol[user.rol] || "/employee/inicio");
-    } catch {
-      setToast({ message: "Error al conectar con el servidor", type: "error", zIndex: 70 });
+      sessionStorage.setItem("syspharma_user", JSON.stringify(normalizedUser));
+
+      // Sincronizar productos al login
+      try {
+        const response = await axios.get("http://localhost:5055/api/Producto", {
+          headers: { Authorization: `Bearer ${data.token}` },
+        });
+        if (response.data && Array.isArray(response.data)) {
+          const productsForPublic = response.data.map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            precio: p.precio,
+            stock: p.stock || 0,
+            imagen: p.imagen,
+            categoria: p.categoria || "Sin categoría",
+            estado: p.estado !== false,
+          }));
+          localStorage.setItem("syspharma_products", JSON.stringify(productsForPublic));
+          window.dispatchEvent(new Event("syspharma_products_updated"));
+        }
+      } catch (err) {
+        console.warn("⚠️ No se pudieron sincronizar productos:", err.message);
+      }
+
+      const role = normalizedUser.rol;
+      const userPerms = data.user?.permisos || [];
+
+      const rutasPorRol = {
+        "administrador": "/admin/dashboard",
+        "empleado": "/employee/inicio",
+        "cliente": "/client/inicio",
+      };
+
+      // Roles dinámicos — decidir panel según permisos
+      let redirectPath = rutasPorRol[role];
+      if (!redirectPath) {
+        const tienePermisosAdmin    = userPerms.some(p => PERMS_ADMIN.includes(p));
+        const tienePermisosEmpleado = userPerms.some(p => PERMS_EMPLOYEE.includes(p));
+        if (tienePermisosAdmin)    redirectPath = "/admin/dashboard";
+        else if (tienePermisosEmpleado) redirectPath = "/employee/inicio";
+        else redirectPath = "/employee/inicio";
+      }
+
+      console.log("✨ LOGIN EXITOSO - Navegando a:", redirectPath);
+      navigate(redirectPath);
+
+    } catch (err) {
+      console.error("❌ Error al entrar:", err);
+      setError(err.response?.data?.message || "Credenciales inválidas");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,6 +201,10 @@ const LoginPage = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-1">Bienvenido</h2>
             <p className="text-gray-500 text-xs">Ingresa a tu cuenta para continuar.</p>
           </div>
+
+          {error && (
+            <div className="mb-4 text-sm text-red-600 font-bold text-center">{error}</div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
@@ -176,9 +237,9 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <button type="submit"
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 mt-4 text-sm">
-              Iniciar Sesión <ArrowRight size={16} />
+            <button type="submit" disabled={loading}
+              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 mt-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+              {loading ? "Cargando..." : "Iniciar Sesión"} <ArrowRight size={16} />
             </button>
 
             <div className="text-center pt-4 border-t border-gray-100 mt-6">
