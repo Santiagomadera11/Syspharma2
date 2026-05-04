@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
-import { 
-  Shield, Edit, Trash2, Settings, Users, 
-  ShoppingCart, ShoppingBag, Activity, BarChart3, 
-  Lock, CheckCircle2, Search, X, ChevronLeft 
+import {
+  Shield, Edit, Trash2, Settings, Users,
+  ShoppingCart, ShoppingBag, Activity, BarChart3,
+  Lock, CheckCircle2, Search, X, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { rolesService } from "./rolesService";
@@ -28,32 +28,19 @@ const CATEGORIA_ICONS = {
   "Sistema": <Settings size={18} className="text-slate-600" />,
 };
 
+const ROLES_PER_PAGE = 4;
+
 export const SettingsPage = () => {
   const [activeSection, setActiveSection] = useState("roles");
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState("form");
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterText, setFilterText] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [editRole, setEditRole] = useState(null);
   const [toast, setToast] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null, name: "" });
-    // Eliminar rol con confirmación y manejo de errores backend
-    const confirmDelete = async () => {
-      try {
-        // Usamos el ID del rol que guardamos al darle click al basurero
-        await rolesService.delete(deleteConfirm.id);
-        setToast({ message: "Rol eliminado con éxito", type: "success" });
-        await loadRoles(); // Recarga la tabla para que desaparezca el rol
-      } catch (error) {
-        // Aquí el error 400/500 se convierte en un mensaje legible
-        const msg = error?.response?.data?.message || "Error al eliminar el rol";
-        setToast({ message: msg, type: "error" });
-      } finally {
-        setDeleteConfirm({ show: false, id: null, name: "" });
-      }
-    };
-  
+
   // Formulario
   const [roleName, setRoleName] = useState("");
   const [roleDesc, setRoleDesc] = useState("");
@@ -69,10 +56,31 @@ export const SettingsPage = () => {
       setLoading(true);
       const response = await rolesService.getAll();
       setRoles(Array.isArray(response) ? response : (response?.data || []));
+      setCurrentPage(1); // reset al recargar
     } catch (error) {
       setRoles([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Paginado ──────────────────────────────────────────────
+  const totalPages = Math.ceil(roles.length / ROLES_PER_PAGE);
+  const usePagination = roles.length > ROLES_PER_PAGE;
+  const pagedRoles = usePagination
+    ? roles.slice((currentPage - 1) * ROLES_PER_PAGE, currentPage * ROLES_PER_PAGE)
+    : roles;
+
+  const confirmDelete = async () => {
+    try {
+      await rolesService.delete(deleteConfirm.id);
+      setToast({ message: "Rol eliminado con éxito", type: "success" });
+      await loadRoles();
+    } catch (error) {
+      const msg = error?.response?.data?.message || "Error al eliminar el rol";
+      setToast({ message: msg, type: "error" });
+    } finally {
+      setDeleteConfirm({ show: false, id: null, name: "" });
     }
   };
 
@@ -114,19 +122,15 @@ export const SettingsPage = () => {
     };
 
     try {
-      console.log("📝 Guardando rol:", payload);
       await rolesService.save(payload);
-      
       setToast({ message: editRole ? "Rol actualizado correctamente" : "Rol creado correctamente", type: "success" });
       setShowModal(false);
       await loadRoles();
-      // Reset form
       setEditRole(null);
       setRoleName("");
       setRoleDesc("");
       setSelectedPerms({});
     } catch (error) {
-      console.error("❌ Error al guardar rol:", error);
       const errorMsg = error?.response?.data?.message || error?.message || "Error al guardar el rol";
       setToast({ message: errorMsg, type: "error" });
     }
@@ -141,12 +145,14 @@ export const SettingsPage = () => {
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">CONFIGURACIÓN</h1>
           <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Seguridad y Parámetros</p>
         </div>
-        <button 
-          onClick={() => { setEditRole(null); setRoleName(""); setRoleDesc(""); setSelectedPerms({}); setShowModal(true); }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all active:scale-95"
-        >
-          Crear Nuevo Rol
-        </button>
+        {activeSection === "roles" && (
+          <button
+            onClick={() => { setEditRole(null); setRoleName(""); setRoleDesc(""); setSelectedPerms({}); setShowModal(true); }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all active:scale-95"
+          >
+            Crear Nuevo Rol
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -155,56 +161,113 @@ export const SettingsPage = () => {
         <button onClick={() => setActiveSection("params")} className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeSection === "params" ? "border-emerald-600 text-emerald-600" : "border-transparent text-slate-400"}`}>Parámetros</button>
       </div>
 
+      {/* ── SECCIÓN ROLES ── */}
       {activeSection === "roles" && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <table className="w-full text-left">
             <thead className="bg-slate-50">
               <tr>
-                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Rol</th>
-                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Descripción</th>
-                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Acciones</th>
+                <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Rol</th>
+                <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Descripción</th>
+                <th className="px-5 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {roles.map(role => (
-                <tr key={role.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="p-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-xs">{(role.nombre || role.name)[0]}</div>
-                      <span className="font-bold text-slate-700">{role.nombre || role.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-5 text-sm text-slate-400 font-medium">{role.descripcion || role.description}</td>
-                  <td className="p-5">
-                    <div className="flex justify-center gap-2">
-                      <button onClick={() => handleEditRole(role)} className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit size={16}/></button>
-                      <button onClick={() => setDeleteConfirm({ show: true, id: role.id, name: role.nombre || role.name })} className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={16}/></button>
-                          {/* Diálogo de confirmación de borrado */}
-                          {deleteConfirm.show && (
-                            <ConfirmDialog
-                              open={deleteConfirm.show}
-                              title="Eliminar rol"
-                              description={`¿Seguro que deseas eliminar el rol "${deleteConfirm.name}"? Esta acción no se puede deshacer.`}
-                              confirmText="Eliminar"
-                              cancelText="Cancelar"
-                              onConfirm={confirmDelete}
-                              onCancel={() => setDeleteConfirm({ show: false, id: null, name: "" })}
-                            />
-                          )}
-                    </div>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="p-6 text-center text-slate-400 text-sm">Cargando roles...</td>
                 </tr>
-              ))}
+              ) : pagedRoles.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="p-6 text-center text-slate-400 text-sm">No hay roles registrados</td>
+                </tr>
+              ) : (
+                pagedRoles.map(role => (
+                  <tr key={role.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-xs">
+                          {(role.nombre || role.name || "?")[0].toUpperCase()}
+                        </div>
+                        <span className="font-bold text-slate-700 text-sm">{role.nombre || role.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-sm text-slate-400 font-medium">{role.descripcion || role.description}</td>
+                    <td className="px-5 py-3">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => handleEditRole(role)} className="p-1.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit size={14} /></button>
+                        <button onClick={() => setDeleteConfirm({ show: true, id: role.id, name: role.nombre || role.name })} className="p-1.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
+
+          {/* ── Paginación — solo si hay más de 4 roles ── */}
+          {usePagination && (
+            <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-slate-50/50">
+              <span className="text-xs text-slate-400 font-medium">
+                Mostrando {(currentPage - 1) * ROLES_PER_PAGE + 1}–{Math.min(currentPage * ROLES_PER_PAGE, roles.length)} de {roles.length} roles
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-xl text-slate-400 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-xl text-xs font-black transition-all ${
+                      currentPage === page
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "text-slate-400 hover:bg-slate-200"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-xl text-slate-400 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* MODAL REMODELADO */}
+      {/* ── SECCIÓN PARÁMETROS ── */}
+      {activeSection === "params" && (
+        <ParameterManagement user={user} />
+      )}
+
+      {/* ── Confirm Delete ── */}
+      {deleteConfirm.show && (
+        <ConfirmDialog
+          open={deleteConfirm.show}
+          title="Eliminar rol"
+          description={`¿Seguro que deseas eliminar el rol "${deleteConfirm.name}"? Esta acción no se puede deshacer.`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirm({ show: false, id: null, name: "" })}
+        />
+      )}
+
+      {/* ── MODAL CREAR / EDITAR ROL ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
-            
+
             <div className="p-8 border-b border-slate-100 flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{editRole ? "Editar Rol" : "Crear Rol Maestro"}</h2>
@@ -234,7 +297,7 @@ export const SettingsPage = () => {
                   {Object.entries(groupedPermissions).map(([cat, items]) => (
                     <div key={cat} className="bg-white rounded-3xl border border-slate-200/60 p-5 shadow-sm">
                       <div className="flex items-center gap-2 mb-5 border-b border-slate-50 pb-3">
-                        {CATEGORIA_ICONS[cat] || <Lock size={18}/>}
+                        {CATEGORIA_ICONS[cat] || <Lock size={18} />}
                         <h4 className="font-black text-slate-800 text-xs uppercase tracking-wider">{cat}</h4>
                       </div>
                       <div className="space-y-2">
@@ -257,10 +320,18 @@ export const SettingsPage = () => {
             </div>
 
             <div className="p-8 border-t border-slate-100 flex justify-between items-center bg-white">
-              {modalStep === "perms" && <button onClick={() => setModalStep("form")} className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase"><ChevronLeft /> Volver</button>}
+              {modalStep === "perms" && (
+                <button onClick={() => setModalStep("form")} className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase">
+                  <ChevronLeft /> Volver
+                </button>
+              )}
               <div className="ml-auto flex items-center gap-6">
-                <span className="text-xs font-black text-slate-400 uppercase">Seleccionados: <span className="text-emerald-600">{Object.values(selectedPerms).filter(Boolean).length}</span></span>
-                <button onClick={handleSave} className="bg-slate-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">Guardar Cambios</button>
+                <span className="text-xs font-black text-slate-400 uppercase">
+                  Seleccionados: <span className="text-emerald-600">{Object.values(selectedPerms).filter(Boolean).length}</span>
+                </span>
+                <button onClick={handleSave} className="bg-slate-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">
+                  Guardar Cambios
+                </button>
               </div>
             </div>
 
