@@ -63,6 +63,50 @@ export const authService = {
     }
   },
 
+  // NUEVO MÉTODO: Envía los datos modificados al controlador Auth de ASP.NET Core
+  updateProfile: async (userId, data) => {
+    try {
+      const token = storage.get('syspharma_token');
+      
+      // Enviamos el PUT mapeando el ID del usuario en la URL
+      const response = await axios.put(`${API_URL}/${userId}`, {
+        id: userId,
+        nombre: `${data.nombres.trim()} ${data.apellidos.trim()}`.trim(),
+        email: data.email.trim().toLowerCase(),
+        tipoDocumentoId: data.tipoDocumentoId ? Number(data.tipoDocumentoId) : null,
+        documento: data.documento ? data.documento.trim() : null,
+        telefono: data.telefono ? data.telefono.trim() : null,
+        direccion: data.direccion ? data.direccion.trim() : null
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+
+      return { success: true, data: response.data };
+    } catch (error) {
+      if (error.response?.status === 400)
+        return { error: true, message: error.response.data.message || 'Datos inválidos' };
+      return { error: true, message: 'Error al actualizar el perfil en el servidor' };
+    }
+  },
+
+  // NUEVO MÉTODO: Actualiza el objeto dentro de sessionStorage sin perder propiedades viejas
+  updateUserInSession: (updatedFields) => {
+    try {
+      const userStr = storage.get('syspharma_user');
+      if (!userStr) return false;
+
+      const currentUser = JSON.parse(userStr);
+      // Mezclamos los campos existentes con los nuevos valores modificados
+      const updatedUser = { ...currentUser, ...updatedFields };
+      
+      storage.set('syspharma_user', JSON.stringify(updatedUser));
+      return updatedUser;
+    } catch (error) {
+      console.error("Error actualizando usuario en sesión:", error);
+      return false;
+    }
+  },
+
   logout: () => {
     storage.remove('syspharma_user');
     storage.remove('syspharma_token');
@@ -74,19 +118,19 @@ export const authService = {
   getCurrentUser: () => {
     try {
       const userStr = storage.get('syspharma_user');
-      console.log("📖 Leyendo usuario de sessionStorage:", userStr ? "✅ Encontrado" : "❌ No encontrado");
-      console.log("📊 Valor almacenado:", userStr);
+      console.log("Leyendo usuario de sessionStorage:", userStr ? "Encontrado" : "No encontrado");
+      console.log("Valor almacenado:", userStr);
       
       if (!userStr || userStr === "undefined" || userStr === "null") {
-        console.warn("⚠️ Usuario vacío o inválido");
+        console.warn("Usuario vacío o inválido");
         return null;
       }
       
       const user = JSON.parse(userStr);
-      console.log("✅ Usuario parseado:", user);
+      console.log("Usuario parseado:", user);
       return user;
     } catch (error) {
-      console.error("❌ Error leyendo el usuario de la sesión:", error);
+      console.error("Error leyendo el usuario de la sesión:", error);
       return null;
     }
   },
