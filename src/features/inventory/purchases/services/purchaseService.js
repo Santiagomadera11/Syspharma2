@@ -66,9 +66,15 @@ export const purchaseService = {
     return res.data;
   },
 
+  // BUG 3 FIX: sin notifyChange acá — PurchasesPage maneja el estado local directamente
+  // con setCompras(prev => prev.filter(...)), así no hay doble recarga que pise el filtro
   delete: async (id) => {
-    const res = await apiClient.delete(`${ENDPOINT}/${id}`);
-    notifyChange();
-    return res.data;
+    try {
+      const res = await apiClient.delete(`${ENDPOINT}/${id}`);
+      return res.data || { success: true };
+    } catch (error) {
+      console.error("Error en delete:", error);
+      throw error;
+    }
   },
 };
