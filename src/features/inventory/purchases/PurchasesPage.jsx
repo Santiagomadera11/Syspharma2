@@ -21,8 +21,6 @@ export const PurchasesPage = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [purchaseToChangeStatus, setPurchaseToChangeStatus] = useState(null);
-  const [selectedStatusForChange, setSelectedStatusForChange] = useState(null);
-  const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [notification, setNotification] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
@@ -76,21 +74,6 @@ export const PurchasesPage = () => {
     return <span className={`${baseClass} bg-gray-50 text-gray-700 border-gray-200`}>{estado}</span>;
   };
 
-  const openModal = async (compra, mode) => {
-    if ((mode === "view" || mode === "edit") && compra.id) {
-      try {
-        const fullCompra = await purchaseService.getById(compra.id);
-        setSelectedPurchase(fullCompra);
-      } catch {
-        setSelectedPurchase(compra);
-      }
-    } else {
-      setSelectedPurchase(compra || null);
-    }
-    setModalMode(mode);
-    setIsModalOpen(true);
-  };
-
   const handleSave = async (data) => {
     try {
       if (modalMode === "edit") {
@@ -112,40 +95,27 @@ export const PurchasesPage = () => {
   const confirmDelete = async () => {
     if (showDeleteConfirm) {
       try {
-        console.log("Eliminando compra:", showDeleteConfirm.id);
         await purchaseService.delete(showDeleteConfirm.id);
-        console.log("Compra eliminada correctamente");
-        
-        // Eliminar manualmente del estado para actualizar inmediatamente
-        setCompras(prevCompras => prevCompras.filter(c => c.id !== showDeleteConfirm.id));
-        
         setNotification({ message: "Compra eliminada correctamente", type: "success" });
-      } catch (err) {
-        console.error("Error al eliminar:", err);
-        setNotification({ message: err?.response?.data?.message || "Error al eliminar", type: "error" });
-        // Si hay error, recargar para estar seguros
         await loadCompras();
-      } finally {
-        setShowDeleteConfirm(null);
+      } catch (err) {
+        setNotification({ message: err?.response?.data?.message || "Error al eliminar", type: "error" });
       }
+      setShowDeleteConfirm(null);
     }
   };
 
-  const confirmStatusChange = async () => {
-    if (purchaseToChangeStatus && selectedStatusForChange) {
+  const confirmStatusChange = async (estadoId) => {
+    if (purchaseToChangeStatus) {
       try {
-        console.log("Cambiando estado de compra:", purchaseToChangeStatus.id, "a estado:", selectedStatusForChange.id);
-        await purchaseService.changeStatus(purchaseToChangeStatus.id, selectedStatusForChange.id);
+        await purchaseService.changeStatus(purchaseToChangeStatus.id, estadoId);
         setNotification({ message: "Estado actualizado correctamente", type: "success" });
         await loadCompras();
       } catch (err) {
-        console.error("Error al cambiar estado:", err);
         setNotification({ message: err?.response?.data?.message || "Error al cambiar estado", type: "error" });
       }
-      setIsStatusConfirmOpen(false);
       setIsStatusModalOpen(false);
       setPurchaseToChangeStatus(null);
-      setSelectedStatusForChange(null);
     }
   };
 
@@ -225,11 +195,11 @@ export const PurchasesPage = () => {
                           className="p-1 rounded text-gray-600 hover:bg-gray-100" title="Cambiar Estado">
                           <Settings size={14} />
                         </button>
-                        <button onClick={() => openModal(compra, "view")}
+                        <button onClick={() => { setSelectedPurchase(compra); setModalMode("view"); setIsModalOpen(true); }}
                           className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver">
                           <Eye size={14} />
                         </button>
-                        <button onClick={() => openModal(compra, "edit")}
+                        <button onClick={() => { setSelectedPurchase(compra); setModalMode("edit"); setIsModalOpen(true); }}
                           className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar">
                           <Edit size={14} />
                         </button>
@@ -270,11 +240,11 @@ export const PurchasesPage = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="bg-green-50 px-6 py-4 border-b border-green-200 flex justify-between items-center">
               <h3 className="font-bold text-gray-900 text-lg">Cambiar Estado</h3>
-              <button onClick={() => { setIsStatusModalOpen(false); setPurchaseToChangeStatus(null); setSelectedStatusForChange(null); }} className="text-gray-500 hover:text-gray-700"><X size={20} /></button>
+              <button onClick={() => setIsStatusModalOpen(false)} className="text-gray-500 hover:text-gray-700"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-2">
               {estados.map(e => (
-                <button key={e.id} onClick={() => { setSelectedStatusForChange(e); setIsStatusConfirmOpen(true); }}
+                <button key={e.id} onClick={() => confirmStatusChange(e.id)}
                   className={`w-full text-left px-4 py-2 rounded-lg text-sm border transition-all ${
                     purchaseToChangeStatus.estadoId === e.id
                       ? "bg-green-50 border-green-500 text-green-700 font-bold"
@@ -285,31 +255,7 @@ export const PurchasesPage = () => {
               ))}
             </div>
             <div className="bg-green-50 border-t border-green-200 p-4">
-              <button onClick={() => { setIsStatusModalOpen(false); setPurchaseToChangeStatus(null); setSelectedStatusForChange(null); }} className="w-full py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isStatusConfirmOpen && purchaseToChangeStatus && selectedStatusForChange && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className="bg-green-50 px-6 py-4 border-b border-green-200 flex items-center gap-3">
-              <AlertCircle size={24} className="text-green-600" />
-              <h3 className="font-bold text-gray-900 text-lg">Confirmar Cambio de Estado</h3>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-700 text-sm font-medium mb-2">¿Deseas cambiar el estado de la compra</p>
-              <p className="text-gray-900 font-bold text-sm mb-1">{purchaseToChangeStatus.numeroCompra}</p>
-              <p className="text-gray-500 text-xs mb-4">a: <span className="font-bold text-gray-700">{selectedStatusForChange.nombre}</span></p>
-            </div>
-            <div className="bg-green-50 border-t border-green-200 p-4 flex gap-3">
-              <button onClick={() => { setIsStatusConfirmOpen(false); setSelectedStatusForChange(null); }}
-                className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancelar</button>
-              <button onClick={confirmStatusChange}
-                className="flex-1 px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg flex items-center justify-center gap-2">
-                <CheckCircle size={16} /> Confirmar
-              </button>
+              <button onClick={() => setIsStatusModalOpen(false)} className="w-full py-2 text-sm text-gray-500 hover:bg-gray-100 rounded-lg">Cancelar</button>
             </div>
           </div>
         </div>

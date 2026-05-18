@@ -2,15 +2,22 @@ import { apiClient } from "../../../../shared/utils/apiClient";
 
 const ENDPOINT = "Producto";
 
+// Mapea la respuesta del back (categoriaNombre) al nombre que usa el front (categoria)
+const mapProduct = (p) => ({
+  ...p,
+  categoria: p.categoriaNombre || p.categoria || "",
+  proveedor: p.proveedorNombre || p.proveedor || "",
+});
+
 export const productService = {
   getAll: async () => {
     const response = await apiClient.get(ENDPOINT);
-    return response.data || [];
+    return (response.data || []).map(mapProduct);
   },
 
   getById: async (id) => {
     const response = await apiClient.get(`${ENDPOINT}/${id}`);
-    return response.data;
+    return mapProduct(response.data);
   },
 
   create: async (product) => {
@@ -26,7 +33,7 @@ export const productService = {
       imagen: product.imagen || null,
     };
     const response = await apiClient.post(ENDPOINT, payload);
-    return response.data;
+    return mapProduct(response.data);
   },
 
   update: async (product) => {
@@ -43,7 +50,7 @@ export const productService = {
       imagen: product.imagen || null,
     };
     const response = await apiClient.put(ENDPOINT, payload);
-    return response.data;
+    return mapProduct(response.data);
   },
 
   delete: async (id) => {
