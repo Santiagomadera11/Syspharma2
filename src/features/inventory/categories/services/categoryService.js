@@ -2,8 +2,15 @@ import { apiClient } from "../../../../shared/utils/apiClient";
 
 const ENDPOINT = "Categoria";
 
+// Solo activas — para dropdowns de productos, compras, etc.
 const getAll = async () => {
   const response = await apiClient.get(ENDPOINT);
+  return response.data;
+};
+
+// Activas + inactivas — para la página de gestión de categorías
+const getAllIncludingInactive = async () => {
+  const response = await apiClient.get(`${ENDPOINT}/todas`);
   return response.data;
 };
 
@@ -27,11 +34,11 @@ const remove = async (id) => {
   return response.data;
 };
 
-// Exportamos todas las funciones como un objeto
 export const categoryService = {
   getAll,
+  getAllIncludingInactive,
   create,
   update,
   toggleStatus,
-  remove
+  remove,
 };

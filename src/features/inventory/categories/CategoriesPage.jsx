@@ -28,7 +28,7 @@ export const CategoriesPage = () => {
     try {
       setLoading(true);
       const [cats, prods] = await Promise.all([
-        categoryService.getAll(),
+        categoryService.getAllIncludingInactive(),
         productService.getAll(),
       ]);
       const enriched = cats.map((cat) => ({
