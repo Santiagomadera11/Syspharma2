@@ -18,7 +18,7 @@ const getAuthHeaders = () => ({
 
 export const AppointmentsPage = () => {
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-  const currentUserRole = currentUser.rol || "Empleado";
+  const currentUserRole = (currentUser.rol || "Empleado").toLowerCase();
 
   const [activeTab, setActiveTab] = useState("calendario");
   const [appointments, setAppointments] = useState([]);
@@ -27,16 +27,13 @@ export const AppointmentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
 
-  // --- FILTROS ---
   const [searchTerm, setSearchTerm] = useState("");
-  // Rango amplio por defecto (Todo el año actual) para que NO se oculten las citas
-  const [range, setRange] = useState({ 
-    start: `${new Date().getFullYear()}-01-01`, 
-    end: `${new Date().getFullYear()}-12-31` 
+  const [range, setRange] = useState({
+    start: `${new Date().getFullYear()}-01-01`,
+    end: `${new Date().getFullYear()}-12-31`
   });
-  const [currentDate, setCurrentDate] = useState(new Date()); // Para el calendario mensual
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  // --- MODALES ---
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [isAppointmentModalOpen, setIsAppointmentModalOpen] = useState(false);
@@ -64,7 +61,13 @@ export const AppointmentsPage = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // --- LÓGICA DE FILTRADO PARA LA LISTA ---
+  // Escuchar cambios en médicos para refrescar el selector del modal
+  useEffect(() => {
+    const refresh = () => loadData();
+    window.addEventListener("doctors:changed", refresh);
+    return () => window.removeEventListener("doctors:changed", refresh);
+  }, [loadData]);
+
   const filteredAppointments = useMemo(() => {
     return appointments.filter(apt => {
       const matchRange = apt.fecha >= range.start && apt.fecha <= range.end;
@@ -101,13 +104,12 @@ export const AppointmentsPage = () => {
     }
   };
 
-  // --- VISTA DE LISTA (CORREGIDA) ---
   const renderList = () => (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="p-4 border-b border-gray-50 bg-gray-50/30">
-         <input type="text" placeholder="Buscar paciente o servicio..." 
-           className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
-           value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        <input type="text" placeholder="Buscar paciente o servicio..."
+          className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+          value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
       <table className="w-full text-left">
         <thead className="bg-gray-50 text-gray-400">
@@ -142,7 +144,7 @@ export const AppointmentsPage = () => {
                   </span>
                 </td>
                 <td className="p-4 text-center">
-                   <button onClick={() => { setSelectedAppointment(apt); setIsDetailModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Eye size={16}/></button>
+                  <button onClick={() => { setSelectedAppointment(apt); setIsDetailModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Eye size={16} /></button>
                 </td>
               </tr>
             ))
@@ -152,7 +154,6 @@ export const AppointmentsPage = () => {
     </div>
   );
 
-  // --- VISTA DE CALENDARIO ---
   const renderCalendar = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -162,7 +163,7 @@ export const AppointmentsPage = () => {
     startDate.setDate(startDate.getDate() - firstDay.getDay());
     const endDate = new Date(lastDay);
     endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
-    
+
     const days = [];
     let day = new Date(startDate);
     while (day <= endDate) {
@@ -182,8 +183,8 @@ export const AppointmentsPage = () => {
             {currentDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
           </h2>
           <div className="flex gap-2">
-            <button onClick={() => setCurrentDate(new Date(year, month - 1))} className="p-2 hover:bg-gray-100 rounded-xl"><ChevronLeft size={20}/></button>
-            <button onClick={() => setCurrentDate(new Date(year, month + 1))} className="p-2 hover:bg-gray-100 rounded-xl"><ChevronRight size={20}/></button>
+            <button onClick={() => setCurrentDate(new Date(year, month - 1))} className="p-2 hover:bg-gray-100 rounded-xl"><ChevronLeft size={20} /></button>
+            <button onClick={() => setCurrentDate(new Date(year, month + 1))} className="p-2 hover:bg-gray-100 rounded-xl"><ChevronRight size={20} /></button>
           </div>
         </div>
         <div className="grid grid-cols-7 gap-2">
@@ -206,7 +207,7 @@ export const AppointmentsPage = () => {
 
   return (
     <div className="flex flex-col gap-6 font-sans p-6 min-h-screen bg-[#f8fafc]">
-      
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -227,7 +228,7 @@ export const AppointmentsPage = () => {
           { id: "disponibilidad", icon: Settings, label: "Disponibilidad", adminOnly: true },
           { id: "medicos", icon: Users, label: "Médicos", adminOnly: true },
         ].map(tab => {
-          if (tab.adminOnly && currentUserRole !== "Administrador") return null;
+          if (tab.adminOnly && currentUserRole !== "administrador") return null;
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? "text-emerald-600 border-emerald-600" : "text-gray-400 border-transparent hover:text-gray-600"}`}>
@@ -237,7 +238,7 @@ export const AppointmentsPage = () => {
         })}
       </div>
 
-      {/* Lógica de Filtro por Rango (Solo para Citas y Calendario) */}
+      {/* Filtro por Rango */}
       {(activeTab === "calendario" || activeTab === "citas") && (
         <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -245,14 +246,14 @@ export const AppointmentsPage = () => {
             <span className="font-black text-gray-800 text-[10px] uppercase">Rango de datos</span>
           </div>
           <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-2xl border">
-            <input type="date" value={range.start} onChange={(e) => setRange(p => ({...p, start: e.target.value}))} className="bg-transparent text-xs font-bold outline-none p-1" />
+            <input type="date" value={range.start} onChange={(e) => setRange(p => ({ ...p, start: e.target.value }))} className="bg-transparent text-xs font-bold outline-none p-1" />
             <div className="h-4 w-[1px] bg-gray-300"></div>
-            <input type="date" value={range.end} onChange={(e) => setRange(p => ({...p, end: e.target.value}))} className="bg-transparent text-xs font-bold outline-none p-1" />
+            <input type="date" value={range.end} onChange={(e) => setRange(p => ({ ...p, end: e.target.value }))} className="bg-transparent text-xs font-bold outline-none p-1" />
           </div>
         </div>
       )}
 
-      {/* Renderizado de Vistas */}
+      {/* Vistas */}
       <div className="flex-1">
         {activeTab === "calendario" && renderCalendar()}
         {activeTab === "citas" && renderList()}
@@ -260,7 +261,7 @@ export const AppointmentsPage = () => {
         {activeTab === "medicos" && <DoctorsPage />}
       </div>
 
-      {/* Modales y Notificaciones */}
+      {/* Modales */}
       {isAppointmentModalOpen && (
         <AppointmentFormModal isOpen={isAppointmentModalOpen} onClose={() => setIsAppointmentModalOpen(false)} onSave={() => loadData()} appointment={editingAppointment} doctors={doctors} />
       )}

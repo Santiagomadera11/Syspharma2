@@ -46,14 +46,16 @@ const mapFromApiFormat = (apiData) => ({
 export const appointmentService = {
   // --- MÉDICOS ---
   getDoctors: async () => {
-    try {
-      const res = await apiClient.get(DOCTORS_ENDPOINT);
-      return Array.isArray(res.data) ? res.data : [];
-    } catch (error) {
-      console.error("Error obteniendo médicos:", error);
-      return [];
-    }
-  },
+  try {
+    const res = await apiClient.get(DOCTORS_ENDPOINT);
+    // apiClient puede devolver res directamente o res.data
+    const data = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : []);
+    return data;
+  } catch (error) {
+    console.error("Error obteniendo médicos:", error);
+    return [];
+  }
+},
 
   updateDoctorSchedule: async (doctor) => {
     try {

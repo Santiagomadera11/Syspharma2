@@ -60,6 +60,7 @@ export const DoctorsPage = () => {
       setNotification({ message: "Médico creado correctamente", type: "success" });
     }
     await loadDoctors();
+    window.dispatchEvent(new Event("doctors:changed")); // ← notifica al selector del modal
     setIsModalOpen(false);
     setEditingDoctor(null);
   };
@@ -71,6 +72,7 @@ export const DoctorsPage = () => {
     try {
       await doctorService.toggleStatus(doctorToToggle.id, doctorToToggle.estado);
       await loadDoctors();
+      window.dispatchEvent(new Event("doctors:changed")); // ← notifica al selector del modal
       const newStatus = !doctorToToggle.estado;
       setNotification({
         message: `Médico ${doctorToToggle.nombre} ${newStatus ? "activado" : "desactivado"}`,
@@ -91,6 +93,7 @@ export const DoctorsPage = () => {
     try {
       await doctorService.delete(showDeleteConfirm.id);
       await loadDoctors();
+      window.dispatchEvent(new Event("doctors:changed")); // ← notifica al selector del modal
       setNotification({ message: "Médico eliminado correctamente", type: "success" });
     } catch {
       setNotification({ message: "Error al eliminar médico", type: "error" });

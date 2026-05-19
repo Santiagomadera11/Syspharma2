@@ -14,10 +14,10 @@ import {
   DollarSign,
 } from "lucide-react";
 import { appointmentService } from "../services/appointmentService";
+import { apiClient } from "../../../../shared/utils/apiClient";
 import CalendarPicker from "./CalendarPicker";
 import { turnService } from "../../../sales/services/turnService";
 
-// Helper para obtener fecha en formato YYYY-MM-DD
 const getDateString = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -25,7 +25,6 @@ const getDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-// Helper para obtener fecha local "YYYY-MM-DD" sin restar días por zona horaria
 const getLocalToday = () => {
   const d = new Date();
   const year = d.getFullYear();
@@ -36,7 +35,6 @@ const getLocalToday = () => {
 
 const formatDateDisplay = (isoDate) => {
   if (!isoDate) return "";
-  // espera YYYY-MM-DD
   const parts = isoDate.split("-");
   if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
   return isoDate;
@@ -56,22 +54,20 @@ const AppointmentFormModal = ({
     telefono: "",
     email: "",
     doctorId: "",
-    fecha: getLocalToday(), // Usamos fecha local por defecto
+    fecha: getLocalToday(),
     hora: "",
     servicio: "",
+    servicioId: "",
     precio: "",
     notas: "",
-    userId: "", // Agregamos userId al estado
+    userId: "",
   };
 
-  // Obtener el rol actual para cambiar colores
   const currentUser = JSON.parse(
     sessionStorage.getItem("syspharma_user") || "{}",
   );
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployee = currentUserRole === "Empleado";
-
-  // Colores dinámicos basados en el rol
   const headerBgColor = isEmployee ? "bg-blue-600" : "bg-emerald-600";
 
   const [formData, setFormData] = useState(initialFormState);
@@ -81,7 +77,6 @@ const AppointmentFormModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
 
-  // 1. CARGAR DATOS
   useEffect(() => {
     if (appointment) {
       setFormData({
@@ -93,54 +88,66 @@ const AppointmentFormModal = ({
         fecha: appointment.fecha || getLocalToday(),
         hora: appointment.hora || "",
         servicio: appointment.servicio || appointment.motivo || "",
+        servicioId: appointment.servicioId || "",
         precio: appointment.precio || "",
         notas: appointment.notas || "",
         userId: appointment.userId || "",
       });
     } else {
-      // Prefill paciente, documento, telefono y userId from current user when available
       setFormData({
         ...initialFormState,
-        paciente: currentUser.nombre || initialFormState.paciente,
+        paciente: currentUser.nombre || "",
         documento:
           currentUser.documento ||
           currentUser.cedula ||
-          (currentUser.id
-            ? String(currentUser.id)
-            : initialFormState.documento),
-        telefono:
-          currentUser.telefono ||
-          currentUser.phone ||
-          initialFormState.telefono,
-        email: currentUser.email || initialFormState.email,
-        userId: currentUser.id || "", // Capturar userId del usuario actual
+          (currentUser.id ? String(currentUser.id) : ""),
+        telefono: currentUser.telefono || currentUser.phone || "",
+        email: currentUser.email || "",
+        userId: currentUser.id || "",
       });
     }
     setErrors({});
 
-    // Cargar servicios
     const loadServices = async () => {
       try {
-        const storedServices = localStorage.getItem("sys_services");
-        if (storedServices) {
-          const parsedServices = JSON.parse(storedServices);
-          const activeServices = parsedServices.filter(
-            (s) => s.estado === "Activo",
+        const response = await apiClient.get("Servicio");
+        // apiClient devuelve objeto axios: la data está en response.data
+        const raw = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response)
+            ? response
+            : [];
+
+        const activeServices = raw.filter((s) => {
+          if (s.estado === undefined || s.estado === null) return true;
+          if (typeof s.estado === "boolean") return s.estado === true;
+          if (typeof s.estado === "number") return s.estado === 1;
+          return String(s.estado).toLowerCase() === "activo";
+        });
+
+        setServicesList(activeServices);
+
+        if (appointment && !appointment.servicioId && appointment.servicio) {
+          const matchedService = activeServices.find(
+            (s) =>
+              s.nombre.toLowerCase() ===
+              (appointment.servicio || "").toLowerCase(),
           );
-          setServicesList(activeServices);
+          if (matchedService) {
+            setFormData((prev) => ({ ...prev, servicioId: matchedService.id }));
+          }
         }
       } catch (error) {
         console.error("Error cargando servicios:", error);
+        setServicesList([]);
       }
     };
+
     loadServices();
-    const onServicesChange = () => loadServices();
-    window.addEventListener("services:changed", onServicesChange);
-    return () =>
-      window.removeEventListener("services:changed", onServicesChange);
+    window.addEventListener("services:changed", loadServices);
+    return () => window.removeEventListener("services:changed", loadServices);
   }, [appointment, isOpen]);
 
-  // Generador de horas de respaldo
   const generateTimeSlots = () => {
     const slots = [];
     for (let i = 8; i < 18; i++) {
@@ -150,21 +157,24 @@ const AppointmentFormModal = ({
     return slots;
   };
 
-  // Obtener fechas no disponibles del médico seleccionado
-  // Obtener fechas no disponibles del médico seleccionado
-  // Retornamos un array de objetos { date, reason } donde reason puede ser 'farmacia'|'doctor'|'global' (fallback)
   const getDisabledDatesForDoctor = (doctorId) => {
     if (!availabilityService || !doctorId) return [];
-
     try {
       const doctorAvailability = availabilityService.getAvailabilityByDoctor(
         parseInt(doctorId),
       );
       const unavailableDays = availabilityService.getUnavailableDays() || [];
-
       const disabled = [];
+      const dayNames = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ];
 
-      // Agregar días globalmente no disponibles (asumimos cierre de farmacia / sistema)
       unavailableDays.forEach((day) => {
         disabled.push({
           date: day.date,
@@ -172,34 +182,20 @@ const AppointmentFormModal = ({
         });
       });
 
-      // Agregar días que no están programados para el médico (ej. fines de semana) como 'doctor'
       if (doctorAvailability) {
         const today = new Date();
-        const maxDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 días adelante
-
+        const maxDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
         for (
           let d = new Date(today);
           d <= maxDate;
           d.setDate(d.getDate() + 1)
         ) {
-          const dayOfWeek = d.getDay();
-          const dayNames = [
-            "sunday",
-            "monday",
-            "tuesday",
-            "wednesday",
-            "thursday",
-            "friday",
-            "saturday",
-          ];
-          const dayName = dayNames[dayOfWeek];
-
+          const dayName = dayNames[d.getDay()];
           if (!doctorAvailability.schedule[dayName]) {
             disabled.push({ date: getDateString(d), reason: "doctor" });
           }
         }
       }
-
       return disabled;
     } catch (error) {
       console.warn("Error getting disabled dates:", error);
@@ -207,7 +203,6 @@ const AppointmentFormModal = ({
     }
   };
 
-  // 2. BUSCAR HORARIOS
   useEffect(() => {
     if (formData.doctorId && formData.fecha) {
       let slots = [];
@@ -220,26 +215,18 @@ const AppointmentFormModal = ({
             parseInt(formData.doctorId),
             formData.fecha,
           );
-          // Si el servicio devuelve null/undefined convertimos a array vacío.
           if (!Array.isArray(slots)) slots = [];
         }
-
-        // Si no hay slots del servicio O el servicio no existe, usar el generador de respaldo
-        if (slots.length === 0) {
-          slots = generateTimeSlots();
-        }
-      } catch (error) {
-        console.warn("Error slots servicio", error);
-        slots = generateTimeSlots(); // Fallback en caso de error
+        if (slots.length === 0) slots = generateTimeSlots();
+      } catch {
+        slots = generateTimeSlots();
       }
-
       setAvailableSlots(slots);
     } else {
       setAvailableSlots([]);
     }
   }, [formData.doctorId, formData.fecha, availabilityService]);
 
-  // --- HANDLERS ---
   const handleGenericInput = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -247,19 +234,19 @@ const AppointmentFormModal = ({
   };
 
   const handleDoctorChange = (e) => {
-    const doctorId = e.target.value;
-    setFormData((prev) => ({ ...prev, doctorId: doctorId, hora: "" }));
+    setFormData((prev) => ({ ...prev, doctorId: e.target.value, hora: "" }));
     if (errors.doctorId) setErrors((prev) => ({ ...prev, doctorId: null }));
   };
 
   const handleServiceChange = (e) => {
-    const selectedServiceName = e.target.value;
+    const selectedServiceId = e.target.value;
     const selectedServiceData = servicesList.find(
-      (s) => s.nombre === selectedServiceName,
+      (s) => s.id == selectedServiceId,
     );
     setFormData((prev) => ({
       ...prev,
-      servicio: selectedServiceName,
+      servicioId: selectedServiceId,
+      servicio: selectedServiceData ? selectedServiceData.nombre : "",
       precio: selectedServiceData ? selectedServiceData.precio : "",
     }));
     if (errors.servicio) setErrors((prev) => ({ ...prev, servicio: null }));
@@ -272,17 +259,8 @@ const AppointmentFormModal = ({
       newErrors.documento = "Documento obligatorio";
     if (!formData.doctorId) newErrors.doctorId = "Seleccione médico";
     if (!formData.fecha) newErrors.fecha = "Seleccione fecha";
-
-    // Validar que la fecha no esté en la lista de días no disponibles
-    if (formData.fecha && formData.doctorId) {
-      const disabledDates = getDisabledDatesForDoctor(formData.doctorId);
-      if (disabledDates.includes(formData.fecha)) {
-        newErrors.fecha = "El médico no está disponible este día";
-      }
-    }
-
     if (!formData.hora) newErrors.hora = "Seleccione hora";
-    if (!formData.servicio) newErrors.servicio = "Seleccione servicio";
+    if (!formData.servicioId) newErrors.servicio = "Seleccione servicio";
     if (!formData.precio) newErrors.precio = "Precio requerido";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -290,11 +268,10 @@ const AppointmentFormModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const isValid = validateForm();
-    if (!isValid) return;
+    if (!validateForm()) return;
 
-    // Validar turno activo - Administrador y Cliente no necesitan turno
-    const turnValidation = await turnService.validateOperationAllowed(currentUser);
+    const turnValidation =
+      await turnService.validateOperationAllowed(currentUser);
     if (!turnValidation.valid) {
       alert(turnValidation.message);
       return;
@@ -307,51 +284,29 @@ const AppointmentFormModal = ({
         doctorId: parseInt(formData.doctorId),
       };
 
-      // Priorizar userId de formData (si fue pre-cargado), sino obtener del usuario actual
-      if (!appointmentData.userId) {
-        const currentUser = JSON.parse(
-          sessionStorage.getItem("syspharma_user") || "{}",
-        );
-        if (currentUser && currentUser.id)
-          appointmentData.userId = currentUser.id;
+      if (!appointmentData.userId && currentUser?.id) {
+        appointmentData.userId = currentUser.id;
       }
 
       if (appointment && appointment.id) {
-        // Es una edición
         await appointmentService.updateAppointment(
           appointment.id,
           appointmentData,
         );
         onSave && onSave(null);
       } else {
-        // Es una creación
-        try {
-          console.log("📤 Enviando cita a API:", appointmentData);
-          const created =
-            await appointmentService.createAppointment(appointmentData);
-          console.log("✅ Cita creada:", created);
-
-          // Registrar venta de servicio en el turno actual
-          const currentUser = JSON.parse(
-            sessionStorage.getItem("syspharma_user") || "{}",
-          );
-          turnService.recordSale({
-            userId: appointmentData.userId || currentUser.id,
-            userName: currentUser.nombre || "Usuario",
-            tipo: "servicio",
-            monto: parseFloat(formData.precio) || 0,
-            descripcion: formData.servicio,
-            categoria: "servicio",
-            referencia: created?.id || "CITA",
-            paciente: formData.paciente,
-          });
-
-          // El evento appointments:changed ya se disparó en appointmentService
-          // No se necesita llamar a onSave ni onClose aquí
-        } catch (err) {
-          console.error("❌ Error creando cita:", err);
-          throw err;
-        }
+        const created =
+          await appointmentService.createAppointment(appointmentData);
+        turnService.recordSale({
+          userId: appointmentData.userId || currentUser.id,
+          userName: currentUser.nombre || "Usuario",
+          tipo: "servicio",
+          monto: parseFloat(formData.precio) || 0,
+          descripcion: formData.servicio,
+          categoria: "servicio",
+          referencia: created?.id || "CITA",
+          paciente: formData.paciente,
+        });
       }
       onClose();
     } catch (error) {
@@ -389,11 +344,12 @@ const AppointmentFormModal = ({
           className="p-6 overflow-y-auto max-h-[75vh]"
         >
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            {/* COLUMNA IZQUIERDA: DATOS PACIENTE */}
+            {/* COLUMNA IZQUIERDA */}
             <div className="md:col-span-5 space-y-5 md:border-r md:border-gray-100 md:pr-6">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 border-b pb-2 mb-3">
                 <User size={14} /> Información Paciente
               </h3>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Nombre Completo *
@@ -417,6 +373,7 @@ const AppointmentFormModal = ({
                   </p>
                 )}
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Documento ID *
@@ -440,6 +397,7 @@ const AppointmentFormModal = ({
                   </p>
                 )}
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Teléfono
@@ -460,11 +418,12 @@ const AppointmentFormModal = ({
               </div>
             </div>
 
-            {/* COLUMNA DERECHA: DATOS CITA */}
+            {/* COLUMNA DERECHA */}
             <div className="md:col-span-7 space-y-5">
               <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5 border-b pb-2 mb-3">
                 <Stethoscope size={14} /> Detalle Atención
               </h3>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Médico / Especialista *
@@ -476,16 +435,15 @@ const AppointmentFormModal = ({
                   onChange={handleDoctorChange}
                 >
                   <option value="">Seleccione especialista...</option>
-                  {/* ✅ LÓGICA DE FILTRADO: Solo mostrar médicos con estado "Activo" */}
                   {doctors &&
                     doctors
                       .filter((d) => {
-                        // Mostrar médicos activos; si no existe campo 'estado', incluir por defecto
                         if (d.estado === undefined || d.estado === null)
                           return true;
-                        if (d.estado === true || d.estado === "Activo")
-                          return true;
-                        return false;
+                        if (typeof d.estado === "boolean")
+                          return d.estado === true;
+                        if (typeof d.estado === "number") return d.estado === 1;
+                        return String(d.estado).toLowerCase() === "activo";
                       })
                       .map((d) => (
                         <option key={d.id} value={d.id}>
@@ -499,6 +457,7 @@ const AppointmentFormModal = ({
                   </p>
                 )}
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">
@@ -544,13 +503,10 @@ const AppointmentFormModal = ({
                         );
                       return found ? (
                         <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                          <AlertCircle size={12} />
-                          El médico no está disponible
+                          <AlertCircle size={12} /> El médico no está disponible
                         </p>
                       ) : null;
                     })()}
-
-                  {/* Calendar Picker Expandible */}
                   {showCalendarPicker && formData.doctorId && (
                     <div className="mt-3 absolute z-10 bg-white p-3 rounded-lg border border-gray-200 shadow-xl">
                       <CalendarPicker
@@ -573,6 +529,7 @@ const AppointmentFormModal = ({
                     </div>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Hora *
@@ -600,41 +557,32 @@ const AppointmentFormModal = ({
                   )}
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Servicio *
                   </label>
-                  {servicesList.length > 0 ? (
-                    <select
-                      name="servicio"
-                      className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.servicio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
-                      value={formData.servicio}
-                      onChange={handleServiceChange}
-                    >
-                      <option value="">Seleccione...</option>
-                      {servicesList.map((srv) => (
-                        <option key={srv.id} value={srv.nombre}>
-                          {srv.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      name="servicio"
-                      type="text"
-                      placeholder="Describa el servicio..."
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${errors.servicio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
-                      value={formData.servicio}
-                      onChange={handleGenericInput}
-                    />
-                  )}
+                  <select
+                    name="servicioId"
+                    className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.servicio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                    value={formData.servicioId}
+                    onChange={handleServiceChange}
+                  >
+                    <option value="">Seleccione servicio...</option>
+                    {servicesList.map((srv) => (
+                      <option key={srv.id} value={srv.id}>
+                        {srv.nombre}
+                      </option>
+                    ))}
+                  </select>
                   {errors.servicio && (
                     <p className="text-[10px] text-red-500 mt-1">
                       {errors.servicio}
                     </p>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Costo ($) *
@@ -644,7 +592,6 @@ const AppointmentFormModal = ({
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                       size={16}
                     />
-                    {/* Si la lista de servicios existe mostramos el precio asignado en un input NO editable. Si no, permitimos edición libre. */}
                     <input
                       name="precio"
                       type="number"
@@ -662,6 +609,7 @@ const AppointmentFormModal = ({
                   )}
                 </div>
               </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Notas
