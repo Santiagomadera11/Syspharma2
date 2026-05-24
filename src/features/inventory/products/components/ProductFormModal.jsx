@@ -11,6 +11,7 @@ const ProductModal = ({
 }) => {
   const emptyForm = {
     nombre: "",
+    descripcion: "", // <-- AGREGADO
     tipoProducto: "Producto General",
     categoriaId: "",
     proveedorId: "",
@@ -100,7 +101,7 @@ const ProductModal = ({
               <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center">
                 {imagePreview ? (
                   <>
-                    <img src={imagePreview} alt="Preview" className="max-h-32 max-w-full object-contain mb-2 rounded" />
+                    <img src={imagePreview} alt="Preview" className="max-h-32 max-w-full object-contain mb-2 rounded shadow-sm" />
                     <p className="text-xs text-gray-500">Haz clic para cambiar imagen</p>
                   </>
                 ) : (
@@ -118,6 +119,13 @@ const ProductModal = ({
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">Nombre *</label>
             <input type="text" className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-emerald-500" {...field("nombre")} />
+          </div>
+
+          {/* Descripción (AGREGADO) */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1">Descripción</label>
+            <textarea className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-emerald-500" rows="2" 
+              placeholder="Ingresa una descripción para el producto..." {...field("descripcion")} />
           </div>
 
           {/* Tipo */}

@@ -3,10 +3,20 @@ import { apiClient } from "../../../../shared/utils/apiClient";
 const ENDPOINT = "Producto";
 
 // Mapea la respuesta del back (categoriaNombre) al nombre que usa el front (categoria)
+// Además aplana los campos del objeto anidado medicamento para que los use el formulario
 const mapProduct = (p) => ({
   ...p,
   categoria: p.categoriaNombre || p.categoria || "",
   proveedor: p.proveedorNombre || p.proveedor || "",
+  
+  // --- NUEVA LÓGICA: Aplanar campos de medicamento para el frontend ---
+  tipoProducto: p.medicamento ? "Medicamento" : "Producto General",
+  composicion: p.medicamento?.composicion || "",
+  concentracion: p.medicamento?.concentracion || "",
+  presentacion: p.medicamento?.presentacion || "",
+  viaAdministracion: p.medicamento?.viaAdministracion || "",
+  registroSanitario: p.medicamento?.registroSanitario || "",
+  requiereFormula: p.medicamento?.requiereFormula || false,
 });
 
 export const productService = {
@@ -21,6 +31,8 @@ export const productService = {
   },
 
   create: async (product) => {
+    const esMedicamento = product.tipoProducto === "Medicamento";
+    
     const payload = {
       nombre: product.nombre,
       descripcion: product.descripcion || null,
@@ -31,12 +43,26 @@ export const productService = {
       stock: product.stock || 0,
       codigoBarras: product.codigoBarras || null,
       imagen: product.imagen || null,
+      
+      // --- NUEVO: Estructura DTO de medicamento ---
+      esMedicamento: esMedicamento,
+      medicamento: esMedicamento ? {
+        composicion: product.composicion || null,
+        concentracion: product.concentracion || null,
+        presentacion: product.presentacion || null,
+        viaAdministracion: product.viaAdministracion || null,
+        registroSanitario: product.registroSanitario || null,
+        requiereFormula: !!product.requiereFormula
+      } : null
     };
+    
     const response = await apiClient.post(ENDPOINT, payload);
     return mapProduct(response.data);
   },
 
   update: async (product) => {
+    const esMedicamento = product.tipoProducto === "Medicamento";
+
     const payload = {
       id: product.id,
       nombre: product.nombre,
@@ -48,7 +74,19 @@ export const productService = {
       stock: product.stock,
       codigoBarras: product.codigoBarras || null,
       imagen: product.imagen || null,
+
+      // --- NUEVO: Estructura DTO de medicamento ---
+      esMedicamento: esMedicamento,
+      medicamento: esMedicamento ? {
+        composicion: product.composicion || null,
+        concentracion: product.concentracion || null,
+        presentacion: product.presentacion || null,
+        viaAdministracion: product.viaAdministracion || null,
+        registroSanitario: product.registroSanitario || null,
+        requiereFormula: !!product.requiereFormula
+      } : null
     };
+
     const response = await apiClient.put(ENDPOINT, payload);
     return mapProduct(response.data);
   },

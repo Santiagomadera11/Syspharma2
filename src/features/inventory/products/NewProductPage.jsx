@@ -13,6 +13,7 @@ const NewProductPage = () => {
   const [editingProductId, setEditingProductId] = useState(null);
   const [formData, setFormData] = useState({
     nombre: "",
+    descripcion: "", // <-- AGREGADO
     tipoProducto: "Producto General",
     categoriaId: "",
     proveedorId: "",
@@ -58,6 +59,7 @@ const NewProductPage = () => {
         setEditingProductId(product.id);
         setFormData({
           nombre: product.nombre || "",
+          descripcion: product.descripcion || "", // <-- AGREGADO
           tipoProducto: product.tipoProducto || "Producto General",
           categoriaId: product.categoriaId || "",
           proveedorId: product.proveedorId || "",
@@ -121,15 +123,29 @@ const NewProductPage = () => {
 
     const payload = {
       nombre: formData.nombre.trim(),
+      tipoProducto: formData.tipoProducto,
       categoriaId: Number(formData.categoriaId),
       proveedorId: formData.proveedorId ? Number(formData.proveedorId) : null,
       precio: Number(formData.precio),
       precioCompra: null,
       stock: Number(formData.stock) || 0,
       imagen: formData.imagen || null,
-      descripcion: null,
+      descripcion: formData.descripcion ? formData.descripcion.trim() : null, // <-- MODIFICADO (Antes null)
       sku: null,
       codigoBarras: null,
+      
+      // Detalles del medicamento
+      composicion: formData.composicion,
+      concentracion: formData.concentracion,
+      presentacion: formData.presentacion,
+      viaAdministracion: formData.viaAdministracion,
+      registroSanitario: formData.registroSanitario,
+      requiereFormula: formData.requiereFormula,
+
+      esDestacado: formData.esDestacado,
+      enOferta: formData.enOferta,
+      porcentajeDescuento: Number(formData.porcentajeDescuento) || 0,
+      esRecomendado: formData.esRecomendado,
     };
 
     try {
@@ -169,7 +185,7 @@ const NewProductPage = () => {
           onConfirm: () => {
             setShowConfirmModal(false);
             setFormData({
-              nombre: "", tipoProducto: "Producto General", categoriaId: "", proveedorId: "",
+              nombre: "", descripcion: "", tipoProducto: "Producto General", categoriaId: "", proveedorId: "",
               precio: "", stock: "", estado: true, esDestacado: false, enOferta: false,
               porcentajeDescuento: 0, esRecomendado: false, composicion: "", concentracion: "",
               presentacion: "", viaAdministracion: "", registroSanitario: "", requiereFormula: false, imagen: null,
@@ -238,6 +254,14 @@ const NewProductPage = () => {
                 <label className="block text-xs font-bold text-gray-700 mb-1">Nombre</label>
                 <input type="text" className="w-full text-sm border border-gray-300 rounded px-3 py-2"
                   value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} />
+              </div>
+
+              {/* Descripción (AGREGADO) */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Descripción</label>
+                <textarea className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-emerald-500" rows={2}
+                  placeholder="Ingresa una descripción para el producto..."
+                  value={formData.descripcion} onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })} />
               </div>
 
               {/* Tipo */}
