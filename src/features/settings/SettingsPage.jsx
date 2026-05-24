@@ -5,7 +5,7 @@ import {
   ShoppingCart, ShoppingBag, Activity, BarChart3,
   Lock, CheckCircle2, Search, X, ChevronLeft, ChevronRight,
   LayoutDashboard, Package, Tags, Truck, DollarSign,
-  ClipboardList, Stethoscope, Calendar
+  ClipboardList, Stethoscope, Calendar, TrendingUp
 } from "lucide-react";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { rolesService } from "./rolesService";
@@ -21,20 +21,122 @@ const COLOR_OPTIONS = [
   { id: "slate",     name: "Oscuro",   hex: "#1e293b" },
 ];
 
-const CATEGORIA_ICONS = {
-  "Inicio":         <LayoutDashboard size={18} className="text-emerald-600" />,
-  "Usuarios":       <Users size={18} className="text-blue-600" />,
-  "Compras":        <ShoppingBag size={18} className="text-orange-600" />,
-  "Productos":      <Package size={18} className="text-yellow-600" />,
-  "Categorías":     <Tags size={18} className="text-pink-600" />,
-  "Proveedores":    <Truck size={18} className="text-cyan-600" />,
-  "Ventas":         <DollarSign size={18} className="text-emerald-600" />,
-  "Pedidos":        <ClipboardList size={18} className="text-indigo-600" />,
-  "Servicios":      <Activity size={18} className="text-purple-600" />,
-  "Citas Médicas":  <Calendar size={18} className="text-teal-600" />,
-  "Reportes":       <BarChart3 size={18} className="text-rose-600" />,
-  "Configuración":  <Settings size={18} className="text-slate-600" />,
-};
+const PERMISSION_GROUPS = [
+  {
+    title: "Inicio",
+    icon: <LayoutDashboard size={20} className="text-emerald-600" />,
+    subsections: [
+      {
+        title: "Inicio / Dashboard",
+        perms: ["dashboard.view"]
+      }
+    ]
+  },
+  {
+    title: "Usuarios",
+    icon: <Users size={20} className="text-blue-600" />,
+    subsections: [
+      {
+        title: "Gestión de Usuarios",
+        perms: ["users.view", "users.create", "users.edit", "users.delete", "users.status"]
+      }
+    ]
+  },
+  {
+    title: "Compras",
+    icon: <ShoppingBag size={20} className="text-orange-600" />,
+    subsections: [
+      {
+        title: "Registro de Compras",
+        perms: ["purchase.view", "purchase.create", "purchase.edit", "purchase.delete", "purchase.status"]
+      },
+      {
+        title: "Submódulo: Productos",
+        perms: ["products.view", "products.create", "products.edit", "products.delete", "products.status"]
+      },
+      {
+        title: "Submódulo: Categorías",
+        perms: ["categories.view", "categories.create", "categories.edit", "categories.delete", "categories.status"]
+      },
+      {
+        title: "Submódulo: Proveedores",
+        perms: ["suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", "suppliers.status"]
+      }
+    ]
+  },
+  {
+    title: "Ventas",
+    icon: <DollarSign size={20} className="text-emerald-600" />,
+    subsections: [
+      {
+        title: "Registro de Ventas",
+        perms: ["sales.view", "sales.create", "sales.cancel", "sales.return", "sales.invoice", "sales.export"]
+      },
+      {
+        title: "Submódulo: Pedidos",
+        perms: ["orders.view", "orders.create", "orders.edit", "orders.delete", "orders.status", "orders.export"]
+      }
+    ]
+  },
+  {
+    title: "Servicios y Citas",
+    icon: <Activity size={20} className="text-purple-600" />,
+    subsections: [
+      {
+        title: "Registro de Servicios",
+        perms: ["services.view", "services.create", "services.edit", "services.delete", "services.status"]
+      },
+      {
+        title: "Submódulo: Citas Médicas",
+        perms: ["appointments.create", "appointments.calendar", "appointments.list", "appointments.status"]
+      },
+      {
+        title: "Submódulo: Disponibilidad de Médicos",
+        perms: ["appointments.availability"]
+      },
+      {
+        title: "Submódulo: Médicos",
+        perms: ["appointments.doctors.view", "appointments.doctors.create", "appointments.doctors.edit", "appointments.doctors.delete", "appointments.doctors.status"]
+      }
+    ]
+  },
+  {
+    title: "Reportes",
+    icon: <BarChart3 size={20} className="text-rose-600" />,
+    subsections: [
+      {
+        title: "Submódulo: Historial de Turnos",
+        perms: ["reports.shifts"]
+      },
+      {
+        title: "Submódulo: Desempeño de Empleados",
+        perms: ["reports.performance"]
+      }
+    ]
+  },
+  {
+    title: "Configuración y Sistema",
+    icon: <Settings size={20} className="text-slate-600" />,
+    subsections: [
+      {
+        title: "Roles del Sistema",
+        perms: ["system.roles"]
+      },
+      {
+        title: "Configuración: Categorías de Servicio",
+        perms: ["config.service_categories.create", "config.service_categories.edit", "config.service_categories.delete"]
+      },
+      {
+        title: "Configuración: Métodos de Pago",
+        perms: ["config.payment_methods.create", "config.payment_methods.edit", "config.payment_methods.delete"]
+      },
+      {
+        title: "Configuración: Tipos de Documento",
+        perms: ["config.document_types.create", "config.document_types.edit", "config.document_types.delete"]
+      }
+    ]
+  }
+];
 
 const ROLES_PER_PAGE = 4;
 
@@ -90,19 +192,10 @@ export const SettingsPage = () => {
     }
   };
 
-  const groupedPermissions = useMemo(() => {
-    const map = {};
-    PERMISSIONS_CONFIG.forEach((p) => {
-      if (!map[p.category]) map[p.category] = [];
-      map[p.category].push(p);
-    });
-    return map;
-  }, []);
-
   const togglePerm = (id) =>
     setSelectedPerms((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Selecciona/deselecciona todos los permisos de un módulo
+  // Selecciona/deselecciona todos los permisos pasados por argumento
   const toggleAllPerms = (items) => {
     const allSelected = items.every((p) => selectedPerms[p.id]);
     const newPerms = { ...selectedPerms };
@@ -391,18 +484,23 @@ export const SettingsPage = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Object.entries(groupedPermissions).map(([cat, items]) => {
-                    const allSelected = items.every((p) => selectedPerms[p.id]);
-                    const someSelected = items.some((p) => selectedPerms[p.id]);
-                    return (
-                      <div key={cat} className="bg-white rounded-3xl border border-slate-200/60 p-5 shadow-sm">
+                  {PERMISSION_GROUPS.map((group) => {
+                    // Obtener todos los permisos configurados para este grupo en base a los IDs de permisos declarados
+                    const allGroupPermIds = group.subsections.flatMap(sub => sub.perms);
+                    const groupPerms = PERMISSIONS_CONFIG.filter(p => allGroupPermIds.includes(p.id));
+                    
+                    const allSelected = groupPerms.length > 0 && groupPerms.every((p) => selectedPerms[p.id]);
+                    const someSelected = groupPerms.some((p) => selectedPerms[p.id]);
 
+                    return (
+                      <div key={group.title} className="bg-white rounded-3xl border border-slate-200/60 p-5 shadow-sm flex flex-col h-fit">
+                        
                         {/* Header del módulo con checkbox general */}
                         <div
-                          className="flex items-center gap-2 mb-5 border-b border-slate-100 pb-3 cursor-pointer group"
-                          onClick={() => toggleAllPerms(items)}
+                          className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3 cursor-pointer group"
+                          onClick={() => toggleAllPerms(groupPerms)}
                         >
-                          {/* Checkbox general — 3 estados */}
+                          {/* Checkbox general */}
                           <div
                             className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all
                               ${allSelected
@@ -418,48 +516,77 @@ export const SettingsPage = () => {
                             )}
                           </div>
 
-                          {CATEGORIA_ICONS[cat] || <Lock size={18} />}
+                          {group.icon}
 
                           <h4 className="font-black text-slate-800 text-xs uppercase tracking-wider flex-1">
-                            {cat}
+                            {group.title}
                           </h4>
                         </div>
 
-                        {/* Permisos individuales */}
-                        <div className="space-y-2">
-                          {items.map((p) => (
-                            <div
-                              key={p.id}
-                              onClick={() => togglePerm(p.id)}
-                              className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer ${
-                                selectedPerms[p.id]
-                                  ? "border-emerald-500 bg-emerald-50/30"
-                                  : "border-transparent bg-slate-50 hover:border-slate-200"
-                              }`}
-                            >
-                              <div
-                                className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 ${
-                                  selectedPerms[p.id]
-                                    ? "bg-emerald-500 border-emerald-500 text-white"
-                                    : "bg-white border-slate-300"
-                                }`}
-                              >
-                                {selectedPerms[p.id] && <CheckCircle2 size={12} strokeWidth={4} />}
+                        {/* Subsecciones */}
+                        <div className="space-y-4">
+                          {group.subsections.map((sub) => {
+                            const subPerms = PERMISSIONS_CONFIG.filter(p => sub.perms.includes(p.id));
+                            if (subPerms.length === 0) return null;
+
+                            return (
+                              <div key={sub.title} className="space-y-2">
+                                {/* Título del apartado / sección */}
+                                <div className="flex items-center justify-between px-1">
+                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                    {sub.title}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      toggleAllPerms(subPerms);
+                                    }}
+                                    className="text-[9px] text-emerald-600 hover:text-emerald-800 font-bold uppercase hover:underline"
+                                  >
+                                    Todos
+                                  </button>
+                                </div>
+
+                                {/* Permisos individuales dentro de este apartado */}
+                                <div className="space-y-1.5">
+                                  {subPerms.map((p) => (
+                                    <div
+                                      key={p.id}
+                                      onClick={() => togglePerm(p.id)}
+                                      className={`flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all cursor-pointer ${
+                                        selectedPerms[p.id]
+                                          ? "border-emerald-500 bg-emerald-50/20"
+                                          : "border-transparent bg-slate-50 hover:border-slate-200"
+                                      }`}
+                                    >
+                                      <div
+                                        className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                                          selectedPerms[p.id]
+                                            ? "bg-emerald-500 border-emerald-500 text-white"
+                                            : "bg-white border-slate-300"
+                                        }`}
+                                      >
+                                        {selectedPerms[p.id] && <CheckCircle2 size={10} strokeWidth={4} />}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <p
+                                          className={`text-[9px] font-black uppercase truncate ${
+                                            selectedPerms[p.id] ? "text-emerald-900" : "text-slate-600"
+                                          }`}
+                                        >
+                                          {p.label}
+                                        </p>
+                                        <p className="text-[8px] text-slate-400 font-medium leading-tight truncate">
+                                          {p.description}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                              <div>
-                                <p
-                                  className={`text-[10px] font-black uppercase ${
-                                    selectedPerms[p.id] ? "text-emerald-900" : "text-slate-600"
-                                  }`}
-                                >
-                                  {p.label}
-                                </p>
-                                <p className="text-[9px] text-slate-400 font-medium leading-none">
-                                  {p.description}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );

@@ -1,16 +1,25 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, ShoppingCart, DollarSign, Package,
   ClipboardList, Calendar, Stethoscope, User, LogOut, X, Tags, Truck,
-  BarChart3, TrendingUp, Settings,
+  BarChart3, TrendingUp, Settings, ChevronDown, ChevronRight,
 } from "lucide-react";
 
 const normalizePerm = (perm) => String(perm || "").toLowerCase().trim();
 
 const EmployeeSidebar = ({ isOpen, onClose, onShowLogoutModal }) => {
   const location = useLocation();
+  const [openMenus, setOpenMenus] = useState({
+    compras: false,
+    ventas: false,
+    servicios: false,
+    reportes: false,
+  });
+
+  const toggleMenu = (menu) => setOpenMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
   const isActive = (path) => location.pathname === path;
+  const isGroupActive = (path) => location.pathname.startsWith(path);
 
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
   const userRole = (currentUser.rol || "").toLowerCase().trim();
@@ -40,101 +49,137 @@ const EmployeeSidebar = ({ isOpen, onClose, onShowLogoutModal }) => {
               <p className="text-[9px] text-gray-400 uppercase tracking-wider">Panel</p>
             </div>
           </div>
-          <button onClick={onClose} className="md:hidden text-gray-400 hover:text-white">
+          <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-4 space-y-0.5 px-2 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto py-3 sm:py-4 space-y-0.5 px-1 sm:px-2 no-scrollbar">
 
           {/* Inicio — siempre visible */}
           <MenuItem to="/employee/inicio" icon={LayoutDashboard} label="Inicio" active={isActive("/employee/inicio")} />
 
-          {/* ── Operaciones ── solo si tiene al menos un permiso de operaciones */}
+          {/* ── Operaciones ── */}
           {has(
-            "users.view","users.create","users.edit","users.delete","users.status",
-            "purchase.view","purchase.create","purchase.edit","purchase.delete","purchase.status",
-            "products.view","products.create","products.edit","products.delete","products.status",
-            "categories.view","categories.create","categories.edit","categories.delete","categories.status",
-            "suppliers.view","suppliers.create","suppliers.edit","suppliers.delete","suppliers.status",
-            "sales.view","sales.create","sales.cancel","sales.return","sales.invoice","sales.export",
-            "orders.view","orders.create","orders.edit","orders.delete","orders.status","orders.export",
-            "services.view","services.create","services.edit","services.delete","services.status",
-            "appointments.create","appointments.calendar","appointments.list","appointments.status",
-            "appointments.availability","appointments.doctors.view",
-            "reports.shifts","reports.performance",
-            "system.roles",
-            "config.service_categories.create","config.service_categories.edit","config.service_categories.delete",
-            "config.payment_methods.create","config.payment_methods.edit","config.payment_methods.delete",
-            "config.document_types.create","config.document_types.edit","config.document_types.delete"
+            "users.view", "users.create", "users.edit", "users.delete", "users.status",
+            "purchase.view", "purchase.create", "purchase.edit", "purchase.delete", "purchase.status",
+            "products.view", "products.create", "products.edit", "products.delete", "products.status",
+            "categories.view", "categories.create", "categories.edit", "categories.delete", "categories.status",
+            "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", "suppliers.status",
+            "sales.view", "sales.create", "sales.cancel", "sales.return", "sales.invoice", "sales.export",
+            "orders.view", "orders.create", "orders.edit", "orders.delete", "orders.status", "orders.export",
+            "services.view", "services.create", "services.edit", "services.delete", "services.status",
+            "appointments.create", "appointments.calendar", "appointments.list", "appointments.status",
+            "appointments.availability", "appointments.doctors.view", "appointments.doctors.create",
+            "appointments.doctors.edit", "appointments.doctors.delete", "appointments.doctors.status",
+            "reports.shifts", "reports.performance"
           ) && (
             <div className="pt-3 pb-1">
               <p className="px-3 text-[9px] font-bold text-gray-400 uppercase tracking-wider">Operaciones</p>
             </div>
           )}
 
-          {has("users.view","users.create","users.edit","users.delete","users.status") && (
+          {/* Usuarios */}
+          {has("users.view", "users.create", "users.edit", "users.delete", "users.status") && (
             <MenuItem to="/employee/usuarios" icon={Users} label="Usuarios" active={isActive("/employee/usuarios")} />
           )}
 
-          {has("purchase.view","purchase.create","purchase.edit","purchase.delete","purchase.status") && (
-            <MenuItem to="/employee/compras" icon={ShoppingCart} label="Compras" active={isActive("/employee/compras")} />
-          )}
-
-          {has("sales.view","sales.create","sales.cancel","sales.return","sales.invoice","sales.export") && (
-            <MenuItem to="/employee/ventas" icon={DollarSign} label="Ventas" active={isActive("/employee/ventas")} />
-          )}
-
-          {has("products.view","products.create","products.edit","products.delete","products.status") && (
-            <MenuItem to="/employee/productos" icon={Package} label="Productos" active={isActive("/employee/productos")} />
-          )}
-
-          {has("categories.view","categories.create","categories.edit","categories.delete","categories.status") && (
-            <MenuItem to="/employee/categorias" icon={Tags} label="Categorías" active={isActive("/employee/categorias")} />
-          )}
-
-          {has("suppliers.view","suppliers.create","suppliers.edit","suppliers.delete","suppliers.status") && (
-            <MenuItem to="/employee/proveedores" icon={Truck} label="Proveedores" active={isActive("/employee/proveedores")} />
-          )}
-
-          {has("orders.view","orders.create","orders.edit","orders.delete","orders.status","orders.export") && (
-            <MenuItem to="/employee/pedidos" icon={ClipboardList} label="Pedidos" active={isActive("/employee/pedidos")} />
-          )}
-
-          {has("services.view","services.create","services.edit","services.delete","services.status") && (
-            <MenuItem to="/employee/servicios" icon={Stethoscope} label="Servicios" active={isActive("/employee/servicios")} />
-          )}
-
+          {/* Compras (Grupo) */}
           {has(
-            "appointments.create","appointments.calendar","appointments.list","appointments.status"
+            "purchase.view", "purchase.create", "purchase.edit", "purchase.delete", "purchase.status",
+            "products.view", "products.create", "products.edit", "products.delete", "products.status",
+            "categories.view", "categories.create", "categories.edit", "categories.delete", "categories.status",
+            "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", "suppliers.status"
           ) && (
-            <MenuItem to="/employee/citas" icon={Calendar} label="Citas" active={isActive("/employee/citas")} />
+            <MenuGroup
+              to="/employee/compras"
+              title="Compras"
+              icon={ShoppingCart}
+              isOpen={openMenus.compras}
+              onToggle={() => toggleMenu("compras")}
+              active={isActive("/employee/compras")}
+            >
+              {has("products.view", "products.create", "products.edit", "products.delete", "products.status") && (
+                <SubMenuItem to="/employee/productos" label="Productos" icon={Package} active={isActive("/employee/productos")} />
+              )}
+              {has("categories.view", "categories.create", "categories.edit", "categories.delete", "categories.status") && (
+                <SubMenuItem to="/employee/categorias" label="Categorías" icon={Tags} active={isActive("/employee/categorias")} />
+              )}
+              {has("suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", "suppliers.status") && (
+                <SubMenuItem to="/employee/proveedores" label="Proveedores" icon={Truck} active={isActive("/employee/proveedores")} />
+              )}
+            </MenuGroup>
           )}
 
-          {has("appointments.availability") && (
-            <MenuItem to="/employee/citas/disponibilidad" icon={Calendar} label="Disponibilidad" active={isActive("/employee/citas/disponibilidad")} />
+          {/* Ventas (Grupo) */}
+          {has(
+            "sales.view", "sales.create", "sales.cancel", "sales.return", "sales.invoice", "sales.export",
+            "orders.view", "orders.create", "orders.edit", "orders.delete", "orders.status", "orders.export"
+          ) && (
+            <MenuGroup
+              to="/employee/ventas"
+              title="Ventas"
+              icon={DollarSign}
+              isOpen={openMenus.ventas}
+              onToggle={() => toggleMenu("ventas")}
+              active={isActive("/employee/ventas")}
+            >
+              {has("orders.view", "orders.create", "orders.edit", "orders.delete", "orders.status", "orders.export") && (
+                <SubMenuItem to="/employee/pedidos" label="Pedidos" icon={ClipboardList} active={isActive("/employee/pedidos")} />
+              )}
+            </MenuGroup>
           )}
 
-          {has("appointments.doctors.view","appointments.doctors.create","appointments.doctors.edit","appointments.doctors.delete","appointments.doctors.status") && (
-            <MenuItem to="/employee/medicos" icon={Stethoscope} label="Médicos" active={isActive("/employee/medicos")} />
+          {/* Servicios (Grupo) */}
+          {has(
+            "services.view", "services.create", "services.edit", "services.delete", "services.status",
+            "appointments.create", "appointments.calendar", "appointments.list", "appointments.status",
+            "appointments.availability", "appointments.doctors.view", "appointments.doctors.create",
+            "appointments.doctors.edit", "appointments.doctors.delete", "appointments.doctors.status"
+          ) && (
+            <MenuGroup
+              to="/employee/servicios"
+              title="Servicios"
+              icon={Stethoscope}
+              isOpen={openMenus.servicios}
+              onToggle={() => toggleMenu("servicios")}
+              active={isActive("/employee/servicios")}
+            >
+              {has("appointments.create", "appointments.calendar", "appointments.list", "appointments.status",
+                    "appointments.availability", "appointments.doctors.view", "appointments.doctors.create",
+                    "appointments.doctors.edit", "appointments.doctors.delete", "appointments.doctors.status") && (
+                <SubMenuItem to="/employee/citas" label="Citas" icon={Calendar} active={isActive("/employee/citas")} />
+              )}
+            </MenuGroup>
           )}
 
-          {has("reports.shifts") && (
-            <MenuItem to="/employee/reportes/turnos" icon={BarChart3} label="Historial de Turnos" active={isActive("/employee/reportes/turnos")} />
-          )}
-
-          {has("reports.performance") && (
-            <MenuItem to="/employee/reportes/desempeño" icon={TrendingUp} label="Desempeño de Empleados" active={isActive("/employee/reportes/desempeño")} />
+          {/* Reportes (Grupo) */}
+          {has("reports.shifts", "reports.performance") && (
+            <MenuGroup
+              title="Reportes"
+              icon={BarChart3}
+              isOpen={openMenus.reportes}
+              onToggle={() => toggleMenu("reportes")}
+              active={isGroupActive("/employee/reportes")}
+            >
+              {has("reports.shifts") && (
+                <SubMenuItem to="/employee/reportes/turnos" label="Historial de Turnos" icon={Calendar} active={isActive("/employee/reportes/turnos")} />
+              )}
+              {has("reports.performance") && (
+                <SubMenuItem to="/employee/reportes/desempeño" label="Desempeño de Empleados" icon={TrendingUp} active={isActive("/employee/reportes/desempeño")} />
+              )}
+            </MenuGroup>
           )}
 
           {/* Mi Perfil — siempre visible */}
           <MenuItem to="/employee/mi-perfil" icon={User} label="Mi Perfil" active={isActive("/employee/mi-perfil")} />
 
+          {/* Sistema / Configuración */}
           {has(
             "system.roles",
-            "config.service_categories.create","config.service_categories.edit","config.service_categories.delete",
-            "config.payment_methods.create","config.payment_methods.edit","config.payment_methods.delete",
-            "config.document_types.create","config.document_types.edit","config.document_types.delete"
+            "config.service_categories.create", "config.service_categories.edit", "config.service_categories.delete",
+            "config.payment_methods.create", "config.payment_methods.edit", "config.payment_methods.delete",
+            "config.document_types.create", "config.document_types.edit", "config.document_types.delete"
           ) && (
             <>
               <div className="pt-3 pb-1 border-t border-gray-700 mt-2">
@@ -158,13 +203,54 @@ const EmployeeSidebar = ({ isOpen, onClose, onShowLogoutModal }) => {
   );
 };
 
-const MenuItem = ({ to, icon, label, active }) => (
-  <Link to={to} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-    active ? "bg-blue-600/80 text-white font-semibold shadow-md" : "text-gray-300 hover:text-white hover:bg-white/10"
+const MenuItem = ({ to, icon: Icon, label, active }) => (
+  <Link to={to} className={`flex items-center px-3 py-2 rounded-md transition-all duration-200 group ${
+    active ? "bg-blue-600 text-white shadow-sm font-medium" : "text-gray-300 hover:bg-white/5 hover:text-white"
   }`}>
-    {React.createElement(icon, { size: 18 })}
-    <span className="text-sm">{label}</span>
+    <Icon size={18} className={`mr-3 transition-colors ${active ? "text-white" : "text-gray-400 group-hover:text-white"}`} />
+    <span className="text-xs font-medium">{label}</span>
   </Link>
 );
+
+const SubMenuItem = ({ to, label, icon: Icon, active }) => (
+  <Link to={to} className={`flex items-center pl-10 pr-3 py-1.5 text-xs transition-colors rounded-md mb-0.5 ${
+    active ? "text-blue-400 font-bold bg-white/5" : "text-gray-400 hover:text-white hover:bg-white/5"
+  }`}>
+    {Icon && <Icon size={14} className="mr-2 opacity-70" />}
+    {label}
+  </Link>
+);
+
+const MenuGroup = ({ to, title, icon: Icon, isOpen, onToggle, children, active }) => {
+  const content = (
+    <>
+      <Icon size={18} className={`mr-3 ${active ? "text-white" : "text-gray-400"}`} />
+      <span className="text-xs font-medium">{title}</span>
+    </>
+  );
+
+  return (
+    <div className="mb-0.5">
+      <div className={`flex items-center rounded-md transition-colors ${
+        active ? "bg-blue-600 text-white" : "text-gray-300 hover:bg-white/5 hover:text-white"
+      }`}>
+        {to ? (
+          <Link to={to} className="flex-1 flex items-center px-3 py-2 cursor-pointer outline-none">{content}</Link>
+        ) : (
+          <div className="flex-1 flex items-center px-3 py-2">{content}</div>
+        )}
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
+          className="p-2 hover:bg-white/10 rounded-r-md transition-colors cursor-pointer"
+        >
+          {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+      </div>
+      <div className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
+        <div className="mt-0.5 space-y-0.5">{children}</div>
+      </div>
+    </div>
+  );
+};
 
 export default EmployeeSidebar;

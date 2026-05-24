@@ -23,6 +23,8 @@ import { appointmentService } from "../services/appointments/services/appointmen
 import { availabilityService } from "../services/appointments/services/availabilityService";
 import AppointmentFormModal from "../services/appointments/components/AppointmentFormModal";
 import AppointmentDetailModal from "../services/appointments/components/AppointmentDetailModal";
+import { AvailabilityConfigPage } from "../services/appointments/AvailabilityConfigPage";
+import DoctorsPage from "../services/doctors/DoctorsPage";
 
 export const EmployeeAppointmentsPage = () => {
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
@@ -546,6 +548,32 @@ export const EmployeeAppointmentsPage = () => {
               Lista de Citas
             </button>
           )}
+          {hasPerm("appointments.availability") && (
+            <button
+              onClick={() => setActiveTab("disponibilidad")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === "disponibilidad"
+                  ? "text-blue-600 border-blue-600"
+                  : "text-gray-600 border-transparent hover:text-gray-800"
+              }`}
+            >
+              <Settings size={16} />
+              Disponibilidad
+            </button>
+          )}
+          {hasPerm("appointments.doctors.view") && (
+            <button
+              onClick={() => setActiveTab("medicos")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === "medicos"
+                  ? "text-blue-600 border-blue-600"
+                  : "text-gray-600 border-transparent hover:text-gray-800"
+              }`}
+            >
+              <User size={16} />
+              Médicos
+            </button>
+          )}
         </div>
 
         {(activeTab === "calendario" || activeTab === "citas") && canCreate && (
@@ -566,6 +594,8 @@ export const EmployeeAppointmentsPage = () => {
       <div className="flex-1 overflow-auto">
         {activeTab === "calendario" && canCalendar && renderCalendar()}
         {activeTab === "citas" && canList && renderAppointmentsList()}
+        {activeTab === "disponibilidad" && hasPerm("appointments.availability") && <AvailabilityConfigPage />}
+        {activeTab === "medicos" && hasPerm("appointments.doctors.view") && <DoctorsPage />}
       </div>
 
       {/* Modales */}
