@@ -40,9 +40,8 @@ function App() {
     const user = authService.getCurrentUser();
     const token = sessionStorage.getItem("syspharma_token");
 
-    // Solo recargar permisos para administradores
-    // Los demás roles ya traen sus permisos desde el login
-    if (token && user?.rol === "administrador") {
+    // Recargar permisos para mantener la sesión sincronizada con la base de datos
+    if (token && user) {
       authService.recargarPermisos();
     }
   }, []);

@@ -267,7 +267,7 @@ export const AppRouter = () => {
 
           <Route path="compras" element={
             <ProtectedRoute requiredPerm="purchase.view">
-              <EmployeeCompras />
+              <PurchasesPage />
             </ProtectedRoute>
           } />
           <Route path="ventas" element={
@@ -287,7 +287,7 @@ export const AppRouter = () => {
           } />
           <Route path="productos" element={
             <ProtectedRoute requiredPerm="products.view">
-              <EmployeeProductos />
+              <ProductsPage />
             </ProtectedRoute>
           } />
           <Route path="productos/nuevo" element={
@@ -317,7 +317,7 @@ export const AppRouter = () => {
           } />
           <Route path="servicios" element={
             <ProtectedRoute requiredPerm="services.view">
-              <EmployeeServicesPage />
+              <ServicesPage />
             </ProtectedRoute>
           } />
           <Route path="citas" element={
