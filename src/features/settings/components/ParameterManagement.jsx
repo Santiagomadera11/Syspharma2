@@ -16,14 +16,13 @@ const TABS = [
 const ParameterManagement = ({ user }) => {
   // ✅ Comparación case-insensitive — admite "administrador", "Administrador", "ADMINISTRADOR"
   const isAdmin = user?.rol?.toLowerCase() === "administrador";
-
-  if (!isAdmin) {
-    return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-yellow-800 text-sm">⚠️ Solo administradores pueden gestionar parámetros.</p>
-      </div>
-    );
-  }
+  const userPerms = (user?.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+  const canManageParameters = isAdmin || userPerms.some((perm) => (
+    perm.startsWith("config.service_categories.") ||
+    perm.startsWith("config.payment_methods.") ||
+    perm.startsWith("config.document_types.")
+  ));
 
   const [activeTab, setActiveTab]   = useState("categories");
   const [data, setData]             = useState({ serviceCategories: [], paymentMethods: [], documentTypes: [] });
@@ -50,7 +49,9 @@ const ParameterManagement = ({ user }) => {
         fetchDocumentTypes(),
       ]);
       setData({ serviceCategories: cats, paymentMethods: payments, documentTypes: docs });
-    } catch {}
+    } catch {
+      setData({ serviceCategories: [], paymentMethods: [], documentTypes: [] });
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -67,7 +68,16 @@ const ParameterManagement = ({ user }) => {
     }
   }, [notification]);
 
+  if (!canManageParameters) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-yellow-800 text-sm">No tienes permisos para gestionar parámetros.</p>
+      </div>
+    );
+  }
+
   const openAddModal = (type) => {
+    if (!canCreateType(type)) return;
     setCurrentType(type);
     setModalMode("add");
     setInputValue("");
@@ -77,6 +87,7 @@ const ParameterManagement = ({ user }) => {
   };
 
   const openEditModal = (type, item) => {
+    if (!canEditType(type)) return;
     setCurrentType(type);
     setModalMode("edit");
     setEditingItem(item);
@@ -86,6 +97,15 @@ const ParameterManagement = ({ user }) => {
   };
 
   const handleSave = async () => {
+    if (modalMode === "add" && !canCreateType(currentType)) {
+      setError("No tienes permiso para crear este parámetro");
+      return;
+    }
+    if (modalMode === "edit" && !canEditType(currentType)) {
+      setError("No tienes permiso para editar este parámetro");
+      return;
+    }
+
     if (!inputValue.trim()) { setError("El valor no puede estar vacío"); return; }
     const current = data[currentType] || [];
     const isDuplicate = current.some(
@@ -118,6 +138,11 @@ const ParameterManagement = ({ user }) => {
   };
 
   const handleDelete = (type, item) => {
+    if (!canDeleteType(type)) {
+      setNotification({ message: "No tienes permiso para eliminar este parámetro", type: "error" });
+      return;
+    }
+
     setConfirmConfig({
       open: true,
       title: "Eliminar parámetro",
@@ -142,12 +167,14 @@ const ParameterManagement = ({ user }) => {
       <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-slate-50/50">
           <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest">{label}</h3>
-          <button
-            onClick={() => openAddModal(type)}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 text-xs font-black uppercase tracking-widest transition-all active:scale-95"
-          >
-            <Plus size={14} /> Agregar
-          </button>
+          {canCreateType(type) && (
+            <button
+              onClick={() => openAddModal(type)}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+            >
+              <Plus size={14} /> Agregar
+            </button>
+          )}
         </div>
         {loading ? (
           <div className="p-8 text-center text-slate-400 text-sm">Cargando...</div>
@@ -169,8 +196,12 @@ const ParameterManagement = ({ user }) => {
                   <td className="px-5 py-3 text-sm font-bold text-slate-700">{item.value}</td>
                   <td className="px-5 py-3">
                     <div className="flex justify-center gap-2">
-                      <button onClick={() => openEditModal(type, item)} className="p-1.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 size={14} /></button>
-                      <button onClick={() => handleDelete(type, item)} className="p-1.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={14} /></button>
+                      {canEditType(type) && (
+                        <button onClick={() => openEditModal(type, item)} className="p-1.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 size={14} /></button>
+                      )}
+                      {canDeleteType(type) && (
+                        <button onClick={() => handleDelete(type, item)} className="p-1.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={14} /></button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -183,6 +214,27 @@ const ParameterManagement = ({ user }) => {
   };
 
   const activeTabData = TABS.find(t => t.id === activeTab);
+  const PERMS_BY_TYPE = {
+    serviceCategories: {
+      create: "config.service_categories.create",
+      edit: "config.service_categories.edit",
+      delete: "config.service_categories.delete",
+    },
+    paymentMethods: {
+      create: "config.payment_methods.create",
+      edit: "config.payment_methods.edit",
+      delete: "config.payment_methods.delete",
+    },
+    documentTypes: {
+      create: "config.document_types.create",
+      edit: "config.document_types.edit",
+      delete: "config.document_types.delete",
+    },
+  };
+
+  const canCreateType = (type) => hasPerm(PERMS_BY_TYPE[type]?.create);
+  const canEditType = (type) => hasPerm(PERMS_BY_TYPE[type]?.edit);
+  const canDeleteType = (type) => hasPerm(PERMS_BY_TYPE[type]?.delete);
 
   return (
     <div className="space-y-6">

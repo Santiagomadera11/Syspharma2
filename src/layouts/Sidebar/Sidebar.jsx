@@ -10,7 +10,7 @@ import {
 const Sidebar = ({ onClose, onShowLogoutModal }) => {
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState({
-    compras: true, ventas: false, servicios: false, reportes: false,
+    compras: false, ventas: false, servicios: false, reportes: false,
   });
 
   const toggleMenu = (menu) => setOpenMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
@@ -21,10 +21,9 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
   const userRole = (user?.rol || "").toLowerCase().trim();
   const userPerms = user?.permisos || [];
 
-  // ✅ Corregido: valida por permisos reales del token, no por nombre de rol
-  const has = (perm) => {
+  const has = (...perms) => {
     if (userRole === "administrador") return true;
-    return userPerms.includes(perm);
+    return perms.some((p) => userPerms.includes(p));
   };
 
   return (
@@ -45,17 +44,34 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 sm:py-4 space-y-0.5 px-1 sm:px-2 no-scrollbar">
-        <MenuItem to="/admin/dashboard" icon={LayoutDashboard} label="Inicio" active={isActive("/admin/dashboard")} />
 
-        <div className="pt-3 pb-1">
-          <p className="px-3 text-[9px] font-bold text-gray-500 uppercase tracking-wider">Gestión</p>
-        </div>
+        {/* Inicio — requiere dashboard.view */}
+        {has("dashboard.view") && (
+          <MenuItem to="/admin/dashboard" icon={LayoutDashboard} label="Inicio" active={isActive("/admin/dashboard")} />
+        )}
 
-        {has("users.view") && (
+        {/* ── Gestión ── */}
+        {has("users.view", "users.create", "users.edit", "users.delete", "users.status",
+              "purchase.view", "purchase.create", "purchase.edit", "purchase.delete",
+              "products.view", "categories.view", "suppliers.view",
+              "sales.view", "sales.create", "orders.view",
+              "services.view", "appointments.view", "appointments.calendar",
+              "appointments.list", "reports.shifts", "reports.performance") && (
+          <div className="pt-3 pb-1">
+            <p className="px-3 text-[9px] font-bold text-gray-500 uppercase tracking-wider">Gestión</p>
+          </div>
+        )}
+
+        {/* Usuarios */}
+        {has("users.view", "users.create", "users.edit", "users.delete", "users.status") && (
           <MenuItem to="/admin/usuarios" icon={Users} label="Usuarios" active={isActive("/admin/usuarios")} />
         )}
 
-        {has("inven.view") && (
+        {/* Compras — visible si tiene cualquier permiso de compras, productos, categorías o proveedores */}
+        {has("purchase.view", "purchase.create", "purchase.edit", "purchase.delete", "purchase.status",
+              "products.view", "products.create", "products.edit", "products.delete", "products.status",
+              "categories.view", "categories.create", "categories.edit", "categories.delete", "categories.status",
+              "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", "suppliers.status") && (
           <MenuGroup
             to="/admin/compras"
             title="Compras"
@@ -64,13 +80,21 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
             onToggle={() => toggleMenu("compras")}
             active={isActive("/admin/compras")}
           >
-            <SubMenuItem to="/admin/productos" label="Productos" icon={Package} active={isActive("/admin/productos")} />
-            <SubMenuItem to="/admin/categorias" label="Categorías" icon={Tags} active={isActive("/admin/categorias")} />
-            <SubMenuItem to="/admin/proveedores" label="Proveedores" icon={Truck} active={isActive("/admin/proveedores")} />
+            {has("products.view", "products.create", "products.edit", "products.delete", "products.status") && (
+              <SubMenuItem to="/admin/productos" label="Productos" icon={Package} active={isActive("/admin/productos")} />
+            )}
+            {has("categories.view", "categories.create", "categories.edit", "categories.delete", "categories.status") && (
+              <SubMenuItem to="/admin/categorias" label="Categorías" icon={Tags} active={isActive("/admin/categorias")} />
+            )}
+            {has("suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", "suppliers.status") && (
+              <SubMenuItem to="/admin/proveedores" label="Proveedores" icon={Truck} active={isActive("/admin/proveedores")} />
+            )}
           </MenuGroup>
         )}
 
-        {has("sales.view") && (
+        {/* Ventas — visible si tiene cualquier permiso de ventas o pedidos */}
+        {has("sales.view", "sales.create", "sales.cancel", "sales.return", "sales.invoice", "sales.export",
+              "orders.view", "orders.create", "orders.edit", "orders.delete", "orders.status", "orders.export") && (
           <MenuGroup
             to="/admin/ventas"
             title="Ventas"
@@ -79,11 +103,17 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
             onToggle={() => toggleMenu("ventas")}
             active={isActive("/admin/ventas")}
           >
-            <SubMenuItem to="/admin/pedidos" label="Pedidos" icon={ClipboardList} active={isActive("/admin/pedidos")} />
+            {has("orders.view", "orders.create", "orders.edit", "orders.delete", "orders.status", "orders.export") && (
+              <SubMenuItem to="/admin/pedidos" label="Pedidos" icon={ClipboardList} active={isActive("/admin/pedidos")} />
+            )}
           </MenuGroup>
         )}
 
-        {has("services.view") && (
+        {/* Servicios — visible si tiene cualquier permiso de servicios o citas */}
+        {has("services.view", "services.create", "services.edit", "services.delete", "services.status",
+              "appointments.create", "appointments.calendar", "appointments.list", "appointments.status",
+              "appointments.availability", "appointments.doctors.view", "appointments.doctors.create",
+              "appointments.doctors.edit", "appointments.doctors.delete", "appointments.doctors.status") && (
           <MenuGroup
             to="/admin/servicios"
             title="Servicios"
@@ -92,11 +122,16 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
             onToggle={() => toggleMenu("servicios")}
             active={isActive("/admin/servicios")}
           >
-            <SubMenuItem to="/admin/citas" label="Citas Médicas" icon={Calendar} active={isActive("/admin/citas")} />
+            {has("appointments.create", "appointments.calendar", "appointments.list", "appointments.status",
+                  "appointments.availability", "appointments.doctors.view", "appointments.doctors.create",
+                  "appointments.doctors.edit", "appointments.doctors.delete", "appointments.doctors.status") && (
+              <SubMenuItem to="/admin/citas" label="Citas Médicas" icon={Calendar} active={isActive("/admin/citas")} />
+            )}
           </MenuGroup>
         )}
 
-        {has("reports.view") && (
+        {/* Reportes */}
+        {has("reports.shifts", "reports.performance") && (
           <MenuGroup
             title="Reportes"
             icon={BarChart3}
@@ -104,14 +139,23 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
             onToggle={() => toggleMenu("reportes")}
             active={isGroupActive("/admin/reportes")}
           >
-            <SubMenuItem to="/admin/reportes/turnos" label="Historial de Turnos" icon={Calendar} active={isActive("/admin/reportes/turnos")} />
-            <SubMenuItem to="/admin/reportes/desempeño" label="Desempeño de Vendedores" icon={TrendingUp} active={isActive("/admin/reportes/desempeño")} />
+            {has("reports.shifts") && (
+              <SubMenuItem to="/admin/reportes/turnos" label="Historial de Turnos" icon={Calendar} active={isActive("/admin/reportes/turnos")} />
+            )}
+            {has("reports.performance") && (
+              <SubMenuItem to="/admin/reportes/desempeño" label="Desempeño de Empleados" icon={TrendingUp} active={isActive("/admin/reportes/desempeño")} />
+            )}
           </MenuGroup>
         )}
 
+        {/* Mi Perfil — siempre visible */}
         <MenuItem to="/admin/mi-perfil" icon={User} label="Mi Perfil" active={isActive("/admin/mi-perfil")} />
 
-        {has("system.view") && (
+        {/* Configuración */}
+        {has("system.roles", "config.service_categories.create", "config.service_categories.edit",
+              "config.service_categories.delete", "config.payment_methods.create", "config.payment_methods.edit",
+              "config.payment_methods.delete", "config.document_types.create", "config.document_types.edit",
+              "config.document_types.delete") && (
           <>
             <div className="pt-3 pb-1 border-t border-gray-700 mt-2">
               <p className="px-3 text-[9px] font-bold text-gray-500 uppercase tracking-wider">Sistema</p>
@@ -119,11 +163,14 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
             <MenuItem to="/admin/configuracion" icon={Settings} label="Configuración" active={isActive("/admin/configuracion")} />
           </>
         )}
+
       </nav>
 
       <div className="p-3 border-t border-gray-700 bg-[#243342]">
-        <button onClick={onShowLogoutModal}
-          className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+        <button
+          onClick={onShowLogoutModal}
+          className="flex items-center justify-center gap-2 w-full py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+        >
           <LogOut size={16} />
           Cerrar Sesión
         </button>
@@ -168,8 +215,10 @@ const MenuGroup = ({ to, title, icon: Icon, isOpen, onToggle, children, active }
         ) : (
           <div className="flex-1 flex items-center px-3 py-2">{content}</div>
         )}
-        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
-          className="p-2 hover:bg-white/10 rounded-r-md transition-colors cursor-pointer">
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
+          className="p-2 hover:bg-white/10 rounded-r-md transition-colors cursor-pointer"
+        >
           {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
       </div>

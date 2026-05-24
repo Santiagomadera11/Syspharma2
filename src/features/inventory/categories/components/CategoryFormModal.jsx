@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, Tag, FileText, Activity } from "lucide-react";
 
-const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave }) => {
+const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave, accentColor = "emerald" }) => {
   const [formData, setFormData] = useState({ nombre: '', descripcion: '', estado: true });
 
   useEffect(() => {
@@ -18,6 +18,21 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
   if (!isOpen) return null;
 
   const isView = mode === 'view';
+  const accent = accentColor === "blue"
+    ? {
+        header: "bg-blue-50 border-blue-200",
+        text: "text-blue-600",
+        hoverText: "hover:text-blue-600",
+        focus: "focus:border-blue-500 focus:ring-blue-500",
+        button: "bg-blue-600 hover:bg-blue-700",
+      }
+    : {
+        header: "bg-green-50 border-green-200",
+        text: "text-emerald-600",
+        hoverText: "hover:text-green-600",
+        focus: "focus:border-emerald-500 focus:ring-emerald-500",
+        button: "bg-emerald-600 hover:bg-emerald-700",
+      };
 
   const handleSubmit = () => {
     if (onSave) {
@@ -35,11 +50,11 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
         
         {/* Header */}
-        <div className="bg-green-50 px-5 py-3 border-b border-green-200 flex justify-between items-center">
+        <div className={`${accent.header} px-5 py-3 border-b flex justify-between items-center`}>
           <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-            <Tag size={16} className="text-emerald-600"/> {title}
+            <Tag size={16} className={accent.text}/> {title}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-green-600 transition-colors">
+          <button onClick={onClose} className={`text-gray-400 ${accent.hoverText} transition-colors`}>
             <X size={18} />
           </button>
         </div>
@@ -55,7 +70,7 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
               <input 
                 disabled={isView}
                 type="text" 
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" 
+                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none ${accent.focus} focus:ring-1`} 
                 placeholder="Ej: Antibióticos" 
                 value={formData.nombre}
                 onChange={(e) => setFormData({...formData, nombre: e.target.value})}
@@ -70,7 +85,7 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
               <FileText className="absolute left-3 top-3 text-gray-400" size={16} />
               <textarea 
                 disabled={isView}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 h-24 resize-none" 
+                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none ${accent.focus} h-24 resize-none`} 
                 placeholder="Descripción breve de la categoría..." 
                 value={formData.descripcion}
                 onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
@@ -85,7 +100,7 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
               <Activity className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <select 
                 disabled={isView}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-emerald-500 bg-white appearance-none cursor-pointer"
+                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none ${accent.focus} bg-white appearance-none cursor-pointer`}
                 value={formData.estado ? 'true' : 'false'}
                 onChange={(e) => setFormData({...formData, estado: e.target.value === 'true'})}
               >
@@ -98,9 +113,9 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
         </div>
 
         {/* Footer */}
-        <div className="bg-green-50 px-5 py-3 border-t border-green-200 flex justify-end gap-2">
+        <div className={`${accent.header} px-5 py-3 border-t flex justify-end gap-2`}>
           {!isView && (
-            <button onClick={handleSubmit} className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md flex items-center gap-1 shadow-sm transition-colors">
+            <button onClick={handleSubmit} className={`px-4 py-2 text-xs font-bold text-white ${accent.button} rounded-md flex items-center gap-1 shadow-sm transition-colors`}>
               <Save size={16} /> Guardar
             </button>
           )}

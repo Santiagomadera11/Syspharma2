@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
 import { productService } from "./services/productService";
-import { permissionService } from "../../settings/permissionService";
 import { categoryService } from "../categories/services/categoryService";
 import { providerService } from "../providers/services/providerService";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
@@ -31,8 +30,42 @@ export const ProductsPage = () => {
   const itemsPerPage = 6;
   const navigate = useNavigate();
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-  const canEdit = permissionService.hasPerm(user.rol, "inven.edit");
-  const canDelete = permissionService.hasPerm(user.rol, "inven.delete");
+  const userRole = (user.rol || "").toLowerCase().trim();
+  const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const isAdmin = userRole === "administrador";
+  const isEmployeePanel = userRole !== "administrador";
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+  const canCreate = hasPerm("products.create");
+  const canEdit = hasPerm("products.edit");
+  const canDelete = hasPerm("products.delete");
+  const canToggleStatus = hasPerm("products.status");
+  const theme = isEmployeePanel
+    ? {
+        main: "bg-blue-600",
+        mainHover: "hover:bg-blue-700",
+        text: "text-blue-600",
+        icon: "text-blue-500",
+        lightBg: "bg-blue-50",
+        hoverRow: "hover:bg-blue-50/50",
+        border: "border-blue-200",
+        hoverLight: "hover:bg-blue-50",
+        focus: "focus:border-blue-500 focus:ring-blue-500",
+        spinner: "border-blue-600",
+        shadow: "shadow-blue-200",
+      }
+    : {
+        main: "bg-emerald-600",
+        mainHover: "hover:bg-emerald-700",
+        text: "text-emerald-600",
+        icon: "text-emerald-500",
+        lightBg: "bg-emerald-50",
+        hoverRow: "hover:bg-emerald-50/50",
+        border: "border-emerald-200",
+        hoverLight: "hover:bg-emerald-50",
+        focus: "focus:border-emerald-500 focus:ring-emerald-500",
+        spinner: "border-emerald-600",
+        shadow: "shadow-emerald-200",
+      };
 
   const loadData = async () => {
     try {
@@ -84,11 +117,15 @@ export const ProductsPage = () => {
     };
   }, []);
 
-  const handleCreate = () => navigate("/admin/productos/nuevo");
+  const handleCreate = () => {
+    if (!canCreate) return;
+    navigate(isEmployeePanel ? "/employee/productos/nuevo" : "/admin/productos/nuevo");
+  };
 
   const handleEdit = (item) => {
+    if (!canEdit) return;
     localStorage.setItem("syspharma_editing_product", JSON.stringify(item));
-    navigate("/admin/productos/nuevo");
+    navigate(isEmployeePanel ? "/employee/productos/nuevo" : "/admin/productos/nuevo");
   };
 
   const handleSave = async (data) => {
@@ -111,6 +148,7 @@ export const ProductsPage = () => {
   };
 
   const handleStatusToggle = (product) => {
+    if (!canToggleStatus) return;
     setProductToToggle(product);
     setIsStatusConfirmOpen(true);
   };
@@ -131,6 +169,11 @@ export const ProductsPage = () => {
   };
 
   const handleDelete = async (prod) => {
+    if (!canDelete) {
+      setNotification({ message: "No tienes permiso para eliminar productos.", type: "error", duration: 3000 });
+      setShowDeleteConfirm(null);
+      return;
+    }
     try {
       await productService.delete(prod.id);
       setNotification({ message: `${prod.nombre} eliminado correctamente`, type: "success", duration: 3000 });
@@ -166,8 +209,9 @@ export const ProductsPage = () => {
     <button
       onClick={() => handleStatusToggle(product)}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
-        estado ? "bg-emerald-500 shadow-md shadow-emerald-200" : "bg-gray-300 shadow-md shadow-gray-200"
-      }`}
+        estado ? `${theme.main} shadow-md ${theme.shadow}` : "bg-gray-300 shadow-md shadow-gray-200"
+      } ${!canToggleStatus ? "opacity-50 cursor-not-allowed" : ""}`}
+      disabled={!canToggleStatus}
       role="switch"
       aria-checked={estado}
     >
@@ -185,12 +229,14 @@ export const ProductsPage = () => {
           <h1 className="text-lg sm:text-xl font-bold">Productos</h1>
           <p className="text-xs text-gray-500">Inventario</p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 sm:py-1.5 rounded-md text-sm font-medium w-full sm:w-auto justify-center sm:justify-start shadow-sm transition-colors"
-        >
-          <Plus size={16} /> Nuevo
-        </button>
+        {canCreate && (
+          <button
+            onClick={handleCreate}
+            className={`flex items-center gap-1.5 ${theme.main} ${theme.mainHover} text-white px-3 py-2 sm:py-1.5 rounded-md text-sm font-medium w-full sm:w-auto justify-center sm:justify-start shadow-sm transition-colors`}
+          >
+            <Plus size={16} /> Nuevo
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -200,7 +246,7 @@ export const ProductsPage = () => {
           <input
             type="text"
             placeholder="Buscar..."
-            className="w-full pl-9 pr-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+            className={`w-full pl-9 pr-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none ${theme.focus} focus:ring-1 transition-colors`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -208,7 +254,7 @@ export const ProductsPage = () => {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="px-3 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 w-full sm:w-auto"
+          className={`px-3 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 ${theme.focus} w-full sm:w-auto`}
         >
           <option value="todos">Todos</option>
           <option value="Activo">Activos</option>
@@ -219,7 +265,7 @@ export const ProductsPage = () => {
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+          <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${theme.spinner}`} />
         </div>
       )}
 
@@ -228,7 +274,7 @@ export const ProductsPage = () => {
         <div className="hidden sm:flex flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto no-scrollbar">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-emerald-600 text-white sticky top-0 z-10">
+              <thead className={`${theme.main} text-white sticky top-0 z-10`}>
                 <tr>
                   <th className="py-2.5 px-3 sm:px-4 text-[11px] font-semibold tracking-wider uppercase">ID</th>
                   <th className="py-2.5 px-3 sm:px-4 text-[11px] font-semibold tracking-wider uppercase">Nombre</th>
@@ -241,23 +287,23 @@ export const ProductsPage = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {currentItems.length > 0 ? currentItems.map((prod) => (
-                  <tr key={prod.id} className="hover:bg-emerald-50/50 transition-colors">
+                  <tr key={prod.id} className={`${theme.hoverRow} transition-colors`}>
                     <td className="py-2.5 px-3 sm:px-4 text-xs font-medium text-gray-900">{prod.id}</td>
                     <td className="py-2.5 px-3 sm:px-4">
                       <div className="flex items-center gap-2">
-                        <Package size={14} className="text-emerald-500 flex-shrink-0" />
+                        <Package size={14} className={`${theme.icon} flex-shrink-0`} />
                         <span className="text-xs font-semibold text-gray-900 truncate">{prod.nombre}</span>
                       </div>
                     </td>
                     <td className="py-2.5 px-3 sm:px-4 text-xs text-gray-600 hidden md:table-cell">{prod.categoria}</td>
                     <td className="py-2.5 px-3 sm:px-4 text-xs text-center font-semibold text-gray-900">{prod.stock}</td>
-                    <td className="py-2.5 px-3 sm:px-4 text-xs text-right font-semibold text-emerald-600 hidden lg:table-cell">$ {Number(prod.precio).toLocaleString()}</td>
+                    <td className={`py-2.5 px-3 sm:px-4 text-xs text-right font-semibold ${theme.text} hidden lg:table-cell`}>$ {Number(prod.precio).toLocaleString()}</td>
                     <td className="py-2.5 px-3 sm:px-4 text-center">
                       <StatusToggle estado={prod.estado} product={prod} />
                     </td>
                     <td className="py-2.5 px-3 sm:px-4">
                       <div className="flex justify-center gap-1.5">
-                        <button onClick={() => setDetailProduct(prod)} className="p-1.5 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors" title="Ver detalle">
+                        <button onClick={() => setDetailProduct(prod)} className={`p-1.5 rounded-lg border ${theme.border} ${theme.text} ${theme.hoverLight} transition-colors`} title="Ver detalle">
                           <Eye size={14} />
                         </button>
                         {canEdit && (
@@ -293,7 +339,7 @@ export const ProductsPage = () => {
               </button>
               <div className="hidden md:flex gap-1">
                 {pages.map((p) => (
-                  <button key={p} onClick={() => setCurrentPage(p)} className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors ${p === currentPage ? "bg-emerald-600 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+                  <button key={p} onClick={() => setCurrentPage(p)} className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors ${p === currentPage ? `${theme.main} text-white shadow-sm` : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
                     {p}
                   </button>
                 ))}
@@ -313,7 +359,7 @@ export const ProductsPage = () => {
             <div key={prod.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <Package size={18} className="text-emerald-500 flex-shrink-0 mt-1" />
+                  <Package size={18} className={`${theme.icon} flex-shrink-0 mt-1`} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-gray-900 truncate">{prod.nombre}</p>
                     <p className="text-xs text-gray-600">ID: {prod.id}</p>
@@ -324,10 +370,10 @@ export const ProductsPage = () => {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div><p className="text-gray-500 font-medium">Categoría</p><p className="text-gray-900 font-semibold">{prod.categoria}</p></div>
                 <div><p className="text-gray-500 font-medium">Stock</p><p className="text-gray-900 font-semibold">{prod.stock}</p></div>
-                <div className="col-span-2"><p className="text-gray-500 font-medium">Precio</p><p className="text-emerald-600 font-bold">$ {Number(prod.precio).toLocaleString()}</p></div>
+                <div className="col-span-2"><p className="text-gray-500 font-medium">Precio</p><p className={`${theme.text} font-bold`}>$ {Number(prod.precio).toLocaleString()}</p></div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setDetailProduct(prod)} className="flex-1 py-1.5 px-3 rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors text-xs font-medium">Ver</button>
+                <button onClick={() => setDetailProduct(prod)} className={`flex-1 py-1.5 px-3 rounded-lg border ${theme.border} ${theme.text} ${theme.hoverLight} transition-colors text-xs font-medium`}>Ver</button>
                 {canEdit && <button onClick={() => handleEdit(prod)} className="flex-1 py-1.5 px-3 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors text-xs font-medium">Editar</button>}
                 {canDelete && <button onClick={() => setShowDeleteConfirm(prod)} className="flex-1 py-1.5 px-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-xs font-medium">Borrar</button>}
               </div>
@@ -356,9 +402,9 @@ export const ProductsPage = () => {
       {detailProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] shadow-2xl flex flex-col">
-            <div className="px-6 py-4 flex items-center justify-between border-b border-emerald-100 bg-emerald-50 flex-shrink-0">
-              <h2 className="text-lg font-semibold text-emerald-900">Detalle del Producto</h2>
-              <button onClick={() => setDetailProduct(null)} className="p-1 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-600"><X size={20} /></button>
+            <div className={`px-6 py-4 flex items-center justify-between border-b ${theme.border} ${theme.lightBg} flex-shrink-0`}>
+              <h2 className={`text-lg font-semibold ${theme.text}`}>Detalle del Producto</h2>
+              <button onClick={() => setDetailProduct(null)} className={`p-1 ${theme.hoverLight} rounded-lg transition-colors ${theme.text}`}><X size={20} /></button>
             </div>
             <div className="flex-1 p-4 sm:p-6 overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
@@ -380,10 +426,10 @@ export const ProductsPage = () => {
                     {detailProduct.enOferta && detailProduct.porcentajeDescuento > 0 ? (
                       <div>
                         <p className="text-xs text-gray-500 line-through">$ {Number(detailProduct.precio).toLocaleString()}</p>
-                        <p className="text-xs text-emerald-600 font-bold">${Number(Math.round(detailProduct.precio * (1 - detailProduct.porcentajeDescuento / 100))).toLocaleString()}<span className="text-red-500 ml-1">-{detailProduct.porcentajeDescuento}%</span></p>
+                        <p className={`text-xs ${theme.text} font-bold`}>${Number(Math.round(detailProduct.precio * (1 - detailProduct.porcentajeDescuento / 100))).toLocaleString()}<span className="text-red-500 ml-1">-{detailProduct.porcentajeDescuento}%</span></p>
                       </div>
                     ) : (
-                      <p className="text-xs text-emerald-600 font-bold">$ {Number(detailProduct.precio).toLocaleString()}</p>
+                      <p className={`text-xs ${theme.text} font-bold`}>$ {Number(detailProduct.precio).toLocaleString()}</p>
                     )}
                   </div>
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">Estado</label><p className="text-xs text-gray-900 font-medium">{detailProduct.estado ? "Activo" : "Inactivo"}</p></div>
@@ -403,7 +449,7 @@ export const ProductsPage = () => {
             </div>
             <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end gap-2 flex-shrink-0">
               <button onClick={() => setDetailProduct(null)} className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">Cerrar</button>
-              {canEdit && <button onClick={() => { setDetailProduct(null); handleEdit(detailProduct); }} className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">Editar Producto</button>}
+              {canEdit && <button onClick={() => { setDetailProduct(null); handleEdit(detailProduct); }} className={`px-4 py-2 text-xs font-bold text-white ${theme.main} ${theme.mainHover} rounded-lg transition-colors`}>Editar Producto</button>}
             </div>
           </div>
         </div>
@@ -435,9 +481,9 @@ export const ProductsPage = () => {
       {isStatusConfirmOpen && productToToggle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden">
-            <div className={`px-5 py-4 border-b flex justify-between items-center ${productToToggle.estado ? "bg-red-50 border-red-100" : "bg-emerald-50 border-emerald-100"}`}>
+            <div className={`px-5 py-4 border-b flex justify-between items-center ${productToToggle.estado ? "bg-red-50 border-red-100" : `${theme.lightBg} ${theme.border}`}`}>
               <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                {productToToggle.estado ? <AlertCircle size={18} className="text-red-600" /> : <CheckCircle size={18} className="text-emerald-600" />}
+                {productToToggle.estado ? <AlertCircle size={18} className="text-red-600" /> : <CheckCircle size={18} className={theme.text} />}
                 {productToToggle.estado ? "Desactivar Producto" : "Activar Producto"}
               </h3>
               <button onClick={() => setIsStatusConfirmOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={18} /></button>
@@ -448,7 +494,7 @@ export const ProductsPage = () => {
             </div>
             <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
               <button onClick={() => setIsStatusConfirmOpen(false)} className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">Cancelar</button>
-              <button onClick={confirmToggleStatus} className={`px-4 py-2 text-xs font-bold text-white rounded-lg transition-colors flex items-center gap-1 shadow-sm ${productToToggle.estado ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>
+              <button onClick={confirmToggleStatus} className={`px-4 py-2 text-xs font-bold text-white rounded-lg transition-colors flex items-center gap-1 shadow-sm ${productToToggle.estado ? "bg-red-600 hover:bg-red-700" : `${theme.main} ${theme.mainHover}`}`}>
                 {productToToggle.estado ? "Desactivar" : "Activar"}
               </button>
             </div>

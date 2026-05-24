@@ -29,20 +29,18 @@ export const authService = {
   init: () => {},
 
   login: async (email, password) => {
-    try {
-      const response = await axios.post(`${API_URL}/login`, { email, password });
-      const data = response.data;
-
-      // Guardar permisos en memoria incluso si el usuario se procesa en el login page
-      _permisos = Array.isArray(data.permisos) ? data.permisos : [];
-
-      return data;
-    } catch (error) {
-      if (error.response?.status === 401)
-        return { error: true, message: 'Credenciales incorrectas' };
-      return { error: true, message: 'Error al conectar con el servidor' };
-    }
-  },
+  try {
+    const response = await axios.post(`${API_URL}/login`, { email, password });
+    const data = response.data;
+    // Los permisos vienen dentro de data.user, no en data directamente
+    _permisos = Array.isArray(data.user?.permisos) ? data.user.permisos : [];
+    return data;
+  } catch (error) {
+    if (error.response?.status === 401)
+      return { error: true, message: 'Credenciales incorrectas' };
+    return { error: true, message: 'Error al conectar con el servidor' };
+  }
+},
 
   register: async (data) => {
     try {
@@ -151,8 +149,10 @@ export const authService = {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const roles = res.data;
-      const miRol = roles.find(r => r.nombre === user.rol);
+      const currentRole = (user.rol || "").toLowerCase().trim();
+      const miRol = roles.find(r => (r.nombre || "").toLowerCase().trim() === currentRole);
       _permisos = miRol?.permisos || [];
+      storage.set('syspharma_user', JSON.stringify({ ...user, permisos: _permisos }));
       return _permisos;
     } catch {
       return [];

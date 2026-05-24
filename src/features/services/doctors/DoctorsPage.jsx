@@ -24,6 +24,15 @@ export const DoctorsPage = () => {
   const [notification, setNotification] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 5;
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (currentUser.rol || "").toLowerCase().trim();
+  const userPerms = (currentUser.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const isAdmin = userRole === "administrador";
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+  const canCreate = hasPerm("appointments.doctors.create");
+  const canEdit = hasPerm("appointments.doctors.edit");
+  const canDelete = hasPerm("appointments.doctors.delete");
+  const canChangeStatus = hasPerm("appointments.doctors.status");
 
   useEffect(() => { loadDoctors(); }, []);
 
@@ -47,11 +56,20 @@ export const DoctorsPage = () => {
     }
   };
 
-  const handleOpenCreate = () => { setEditingDoctor(null); setIsModalOpen(true); };
-  const handleOpenEdit = (doctor) => { setEditingDoctor(doctor); setIsModalOpen(true); };
+  const handleOpenCreate = () => { if (canCreate) { setEditingDoctor(null); setIsModalOpen(true); } };
+  const handleOpenEdit = (doctor) => { if (canEdit) { setEditingDoctor(doctor); setIsModalOpen(true); } };
   const handleViewDetail = (doctor) => { setSelectedDoctor(doctor); setIsDetailModalOpen(true); };
 
   const handleSaveDoctor = async (formData) => {
+    if (editingDoctor && !canEdit) {
+      setNotification({ message: "No tienes permiso para editar médicos", type: "error" });
+      return;
+    }
+    if (!editingDoctor && !canCreate) {
+      setNotification({ message: "No tienes permiso para crear médicos", type: "error" });
+      return;
+    }
+
     if (editingDoctor) {
       await doctorService.update({ ...editingDoctor, ...formData });
       setNotification({ message: "Médico actualizado correctamente", type: "success" });
@@ -65,10 +83,11 @@ export const DoctorsPage = () => {
     setEditingDoctor(null);
   };
 
-  const handleToggleStatus = (doctor) => { setDoctorToToggle(doctor); setIsToggleConfirmOpen(true); };
+  const handleToggleStatus = (doctor) => { if (canChangeStatus) { setDoctorToToggle(doctor); setIsToggleConfirmOpen(true); } };
 
   const confirmToggleStatus = async () => {
     if (!doctorToToggle) return;
+    if (!canChangeStatus) return;
     try {
       await doctorService.toggleStatus(doctorToToggle.id, doctorToToggle.estado);
       await loadDoctors();
@@ -86,10 +105,21 @@ export const DoctorsPage = () => {
     }
   };
 
-  const handleDeleteDoctor = (doctor) => setShowDeleteConfirm(doctor);
+  const handleDeleteDoctor = (doctor) => {
+    if (!canDelete) {
+      setNotification({ message: "No tienes permiso para eliminar médicos", type: "error" });
+      return;
+    }
+    setShowDeleteConfirm(doctor);
+  };
 
   const confirmDelete = async () => {
     if (!showDeleteConfirm) return;
+    if (!canDelete) {
+      setNotification({ message: "No tienes permiso para eliminar médicos", type: "error" });
+      setShowDeleteConfirm(null);
+      return;
+    }
     try {
       await doctorService.delete(showDeleteConfirm.id);
       await loadDoctors();
@@ -119,7 +149,8 @@ export const DoctorsPage = () => {
 
   const StatusToggle = ({ doctor }) => (
     <button onClick={() => handleToggleStatus(doctor)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${doctor.estado ? "bg-emerald-500 shadow-md shadow-emerald-200" : "bg-gray-300"}`}>
+      disabled={!canChangeStatus}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${doctor.estado ? "bg-blue-600 shadow-md" : "bg-gray-300"} ${!canChangeStatus ? "opacity-50 cursor-not-allowed" : ""}`}>
       <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${doctor.estado ? "translate-x-6" : "translate-x-0.5"}`} />
     </button>
   );
@@ -148,10 +179,12 @@ export const DoctorsPage = () => {
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
         </select>
-        <button onClick={handleOpenCreate}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2">
-          <Plus size={16} /> Nuevo Médico
-        </button>
+        {canCreate && (
+          <button onClick={handleOpenCreate}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm flex items-center gap-2">
+            <Plus size={16} /> Nuevo Médico
+          </button>
+        )}
       </div>
 
       {/* Tabla */}
@@ -160,7 +193,7 @@ export const DoctorsPage = () => {
           <div className="flex items-center justify-center h-48 text-gray-500">Cargando médicos...</div>
         ) : (
           <table className="w-full">
-            <thead className="bg-emerald-600 text-white sticky top-0">
+            <thead className="bg-blue-600 text-white sticky top-0">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold">Nombre</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold">Especialidad</th>
@@ -196,9 +229,9 @@ export const DoctorsPage = () => {
                     <td className="px-4 py-3"><StatusToggle doctor={doctor} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => handleViewDetail(doctor)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Ver detalles"><Eye size={16} /></button>
-                        <button onClick={() => handleOpenEdit(doctor)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Editar"><Edit size={16} /></button>
-                        <button onClick={() => handleDeleteDoctor(doctor)} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Eliminar"><Trash2 size={16} /></button>
+                        <button onClick={() => handleViewDetail(doctor)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Ver detalles"><Eye size={16} /></button>
+                        {canEdit && <button onClick={() => handleOpenEdit(doctor)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Editar"><Edit size={16} /></button>}
+                        {canDelete && <button onClick={() => handleDeleteDoctor(doctor)} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Eliminar"><Trash2 size={16} /></button>}
                       </div>
                     </td>
                   </tr>
@@ -220,7 +253,7 @@ export const DoctorsPage = () => {
               className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50"><ChevronLeft size={20} /></button>
             {Array.from({ length: totalPages }).map((_, i) => (
               <button key={i} onClick={() => setCurrentPage(i)}
-                className={`px-3 py-1 rounded text-sm font-medium ${currentPage === i ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
+                className={`px-3 py-1 rounded text-sm font-medium ${currentPage === i ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>
                 {i + 1}
               </button>
             ))}

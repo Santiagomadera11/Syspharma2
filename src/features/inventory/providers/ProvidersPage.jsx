@@ -22,6 +22,45 @@ export const ProvidersPage = () => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [providerToDelete, setProviderToDelete] = useState(null);
   const [notification, setNotification] = useState(null);
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (currentUser.rol || "").toLowerCase().trim();
+  const userPerms = (currentUser.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const isAdmin = userRole === "administrador";
+  const isEmployeePanel = userRole !== "administrador";
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+
+  const canCreate = hasPerm("suppliers.create");
+  const canEdit = hasPerm("suppliers.edit");
+  const canDelete = hasPerm("suppliers.delete");
+  const canToggleStatus = hasPerm("suppliers.status");
+
+  const theme = isEmployeePanel
+    ? {
+        main: "bg-blue-600",
+        mainHover: "hover:bg-blue-700",
+        text: "text-blue-600",
+        lightBg: "bg-blue-50",
+        hoverLight: "hover:bg-blue-50",
+        border: "border-blue-200",
+        focus: "focus:border-blue-400",
+        spinner: "border-blue-600",
+        successText: "text-blue-800",
+        successIcon: "text-blue-600",
+        successBg: "bg-blue-50 border-blue-200",
+      }
+    : {
+        main: "bg-emerald-600",
+        mainHover: "hover:bg-emerald-700",
+        text: "text-emerald-600",
+        lightBg: "bg-emerald-50",
+        hoverLight: "hover:bg-emerald-50",
+        border: "border-emerald-200",
+        focus: "focus:border-emerald-400",
+        spinner: "border-emerald-600",
+        successText: "text-green-800",
+        successIcon: "text-green-600",
+        successBg: "bg-green-50 border-green-200",
+      };
 
   const loadProviders = async () => {
     setLoading(true);
@@ -71,17 +110,29 @@ export const ProvidersPage = () => {
   };
 
   const handleEdit = (prov) => {
+    if (!canEdit) return;
     setSelectedProvider(prov);
     setModalMode("edit");
     setIsModalOpen(true);
   };
 
   const handleDelete = (prov) => {
+    if (!canDelete) {
+      setNotification({ message: "No tienes permiso para eliminar proveedores", type: "error" });
+      return;
+    }
     setProviderToDelete(prov);
     setIsDeleteConfirmOpen(true);
   };
 
   const confirmDelete = async () => {
+    if (!canDelete) {
+      setNotification({ message: "No tienes permiso para eliminar proveedores", type: "error" });
+      setIsDeleteConfirmOpen(false);
+      setProviderToDelete(null);
+      return;
+    }
+
     try {
       await providerService.delete(providerToDelete.id);
       setNotification({
@@ -123,6 +174,7 @@ export const ProvidersPage = () => {
   };
 
   const handleToggleStatus = (prov) => {
+    if (!canToggleStatus) return;
     setProviderToToggle(prov);
     setIsStatusConfirmOpen(true);
   };
@@ -152,12 +204,14 @@ export const ProvidersPage = () => {
           <h1 className="text-lg font-bold text-gray-800">Proveedores</h1>
           <p className="text-xs text-gray-500">Gestión de socios comerciales</p>
         </div>
-        <button
-          onClick={() => { setSelectedProvider(null); setModalMode("create"); setIsModalOpen(true); }}
-          className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
-        >
-          <Plus size={16} /> Nuevo
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => { setSelectedProvider(null); setModalMode("create"); setIsModalOpen(true); }}
+            className={`flex items-center gap-1.5 ${theme.main} ${theme.mainHover} text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm`}
+          >
+            <Plus size={16} /> Nuevo
+          </button>
+        )}
       </div>
 
       {/* FILTROS */}
@@ -167,14 +221,14 @@ export const ProvidersPage = () => {
           <input
             type="text"
             placeholder="Buscar proveedor o contacto..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white"
+            className={`w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none ${theme.focus} text-sm bg-white`}
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
           />
         </div>
         <div className="relative w-36">
           <select
-            className="w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white appearance-none cursor-pointer"
+            className={`w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 focus:outline-none ${theme.focus} text-sm bg-white appearance-none cursor-pointer`}
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
           >
@@ -189,7 +243,7 @@ export const ProvidersPage = () => {
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+          <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${theme.spinner}`} />
         </div>
       )}
 
@@ -198,7 +252,7 @@ export const ProvidersPage = () => {
         <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-emerald-600 text-white sticky top-0 z-10">
+              <thead className={`${theme.main} text-white sticky top-0 z-10`}>
                 <tr>
                   <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">ID</th>
                   <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">Nombre</th>
@@ -214,7 +268,7 @@ export const ProvidersPage = () => {
                     <td className="py-1.5 px-3 text-xs font-medium text-gray-900">{prov.id}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                        <div className={`w-5 h-5 rounded ${theme.lightBg} flex items-center justify-center ${theme.text} flex-shrink-0`}>
                           <Building2 size={12} />
                         </div>
                         <span className="text-xs font-bold text-gray-700 truncate max-w-[180px]">{prov.nombre}</span>
@@ -234,16 +288,21 @@ export const ProvidersPage = () => {
                     <td className="py-1.5 px-3 text-center">
                       <button
                         onClick={() => handleToggleStatus(prov)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${prov.estado ? "bg-emerald-600" : "bg-gray-400"}`}
+                        disabled={!canToggleStatus}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${prov.estado ? theme.main : "bg-gray-400"} ${!canToggleStatus ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${prov.estado ? "translate-x-5" : "translate-x-0.5"}`} />
                       </button>
                     </td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => handleView(prov)} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver"><Eye size={14} /></button>
-                        <button onClick={() => handleEdit(prov)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
-                        <button onClick={() => handleDelete(prov)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                        <button onClick={() => handleView(prov)} className={`p-1 rounded border ${theme.border} ${theme.text} ${theme.hoverLight}`} title="Ver"><Eye size={14} /></button>
+                        {canEdit && (
+                          <button onClick={() => handleEdit(prov)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(prov)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -278,17 +337,19 @@ export const ProvidersPage = () => {
         mode={modalMode}
         onSave={handleSave}
         onDelete={handleDelete}
+        canDelete={canDelete}
+        accentColor={isEmployeePanel ? "blue" : "emerald"}
       />
 
       {/* Modal Estado */}
       {isStatusConfirmOpen && providerToToggle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden">
-            <div className={`px-6 py-4 border-b flex justify-between items-center ${providerToToggle.estado ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+            <div className={`px-6 py-4 border-b flex justify-between items-center ${providerToToggle.estado ? "bg-red-50 border-red-200" : theme.successBg}`}>
               <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
                 {providerToToggle.estado
                   ? <><AlertCircle size={18} className="text-red-600" /> Desactivar Proveedor</>
-                  : <><CheckCircle size={18} className="text-green-600" /> Activar Proveedor</>}
+                  : <><CheckCircle size={18} className={theme.successIcon} /> Activar Proveedor</>}
               </h3>
               <button onClick={() => setIsStatusConfirmOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
@@ -299,9 +360,9 @@ export const ProvidersPage = () => {
                   : `¿Activar el proveedor "${providerToToggle.nombre}"?`}
               </p>
             </div>
-            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${providerToToggle.estado ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${providerToToggle.estado ? "bg-red-50 border-red-200" : theme.successBg}`}>
               <button onClick={() => setIsStatusConfirmOpen(false)} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md">Cancelar</button>
-              <button onClick={confirmStatusChange} className={`px-4 py-2 text-xs font-bold text-white rounded-md ${providerToToggle.estado ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}>
+              <button onClick={confirmStatusChange} className={`px-4 py-2 text-xs font-bold text-white rounded-md ${providerToToggle.estado ? "bg-red-600 hover:bg-red-700" : `${theme.main} ${theme.mainHover}`}`}>
                 {providerToToggle.estado ? "Desactivar" : "Activar"}
               </button>
             </div>
@@ -332,9 +393,9 @@ export const ProvidersPage = () => {
       {/* Notificación */}
       {notification && (
         <div className="fixed bottom-4 left-4 z-40">
-          <div className={`px-4 py-3 rounded-lg shadow-lg border flex items-center gap-3 max-w-xs ${notification.type === "success" ? "bg-green-50 border-green-200 text-green-800" : "bg-red-50 border-red-200 text-red-800"}`}>
+          <div className={`px-4 py-3 rounded-lg shadow-lg border flex items-center gap-3 max-w-xs ${notification.type === "success" ? `${theme.successBg} ${theme.successText}` : "bg-red-50 border-red-200 text-red-800"}`}>
             {notification.type === "success"
-              ? <CheckCircle size={18} className="text-green-600 flex-shrink-0" />
+              ? <CheckCircle size={18} className={`${theme.successIcon} flex-shrink-0`} />
               : <AlertCircle size={18} className="text-red-600 flex-shrink-0" />}
             <p className="text-sm font-medium">{notification.message}</p>
             <button onClick={() => setNotification(null)} className="ml-2 text-gray-400 hover:text-gray-600"><X size={16} /></button>

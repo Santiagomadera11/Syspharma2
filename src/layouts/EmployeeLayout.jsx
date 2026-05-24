@@ -8,10 +8,15 @@ import { authService } from "../features/auth/authService";
 const EmployeeLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showConfirmLogout, setShowConfirmLogout] = useState(false);
+  const [, setPermissionsVersion] = useState(0);
   const navigate = useNavigate();
 
   // Listener para cambios de turno (propagar evento a componentes hijos)
   useEffect(() => {
+    authService.recargarPermisos()
+      .then(() => setPermissionsVersion((version) => version + 1))
+      .catch(() => {});
+
     const handleTurnOpened = () => {
       // Cuando se abre un turno, propagar a all listeners
       window.dispatchEvent(new CustomEvent("turn:changed"));

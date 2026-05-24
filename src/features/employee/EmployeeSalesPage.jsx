@@ -17,6 +17,8 @@ const fmt = (v) =>
 export const EmployeeSalesPage = () => {
   const navigate = useNavigate();
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const canCreateSale = (user.rol || "").toLowerCase().trim() === "administrador" || userPerms.includes("sales.create");
 
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +82,7 @@ export const EmployeeSalesPage = () => {
   };
 
   const handleNewSale = () => {
+    if (!canCreateSale) return;
     if (!currentTurn) { setShowOpenShiftModal(true); return; }
     navigate("/employee/ventas/nueva");
   };
@@ -182,10 +185,12 @@ export const EmployeeSalesPage = () => {
           <option value="devolucion">Devoluciones</option>
           <option value="anulada">Anuladas</option>
         </select>
-        <button onClick={handleNewSale}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all">
-          <Plus size={16} /> Nueva venta
-        </button>
+        {canCreateSale && (
+          <button onClick={handleNewSale}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all">
+            <Plus size={16} /> Nueva venta
+          </button>
+        )}
       </div>
 
       {/* Tabla */}

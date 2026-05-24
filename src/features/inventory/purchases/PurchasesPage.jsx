@@ -23,6 +23,19 @@ export const PurchasesPage = () => {
   const [purchaseToChangeStatus, setPurchaseToChangeStatus] = useState(null);
   const [notification, setNotification] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (currentUser.rol || "").toLowerCase().trim();
+  const userPerms = (currentUser.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const isAdmin = userRole === "administrador";
+  const isEmployeePanel = userRole !== "administrador";
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+  const canCreate = hasPerm("purchase.create");
+  const canEdit = hasPerm("purchase.edit");
+  const canDelete = hasPerm("purchase.delete");
+  const canChangeStatus = hasPerm("purchase.status");
+  const theme = isEmployeePanel
+    ? { main: "bg-blue-600", hover: "hover:bg-blue-700", text: "text-blue-600", light: "bg-blue-50", hoverLight: "hover:bg-blue-50", border: "border-blue-200", focus: "focus:border-blue-400" }
+    : { main: "bg-emerald-600", hover: "hover:bg-emerald-700", text: "text-emerald-600", light: "bg-emerald-50", hoverLight: "hover:bg-emerald-50", border: "border-emerald-200", focus: "focus:border-emerald-400" };
 
   const loadCompras = useCallback(async () => {
     try {
@@ -75,6 +88,15 @@ export const PurchasesPage = () => {
   };
 
   const handleSave = async (data) => {
+    if (modalMode === "edit" && !canEdit) {
+      setNotification({ message: "No tienes permiso para editar compras", type: "error" });
+      return;
+    }
+    if (modalMode !== "edit" && !canCreate) {
+      setNotification({ message: "No tienes permiso para crear compras", type: "error" });
+      return;
+    }
+
     try {
       if (modalMode === "edit") {
         await purchaseService.update(data);
@@ -94,6 +116,11 @@ export const PurchasesPage = () => {
 
   const confirmDelete = async () => {
     if (showDeleteConfirm) {
+      if (!canDelete) {
+        setNotification({ message: "No tienes permiso para eliminar compras", type: "error" });
+        setShowDeleteConfirm(null);
+        return;
+      }
       try {
         await purchaseService.delete(showDeleteConfirm.id);
         setNotification({ message: "Compra eliminada correctamente", type: "success" });
@@ -107,6 +134,12 @@ export const PurchasesPage = () => {
 
   const confirmStatusChange = async (estadoId) => {
     if (purchaseToChangeStatus) {
+      if (!canChangeStatus) {
+        setNotification({ message: "No tienes permiso para cambiar estados de compras", type: "error" });
+        setIsStatusModalOpen(false);
+        setPurchaseToChangeStatus(null);
+        return;
+      }
       try {
         await purchaseService.changeStatus(purchaseToChangeStatus.id, estadoId);
         setNotification({ message: "Estado actualizado correctamente", type: "success" });
@@ -126,24 +159,26 @@ export const PurchasesPage = () => {
           <h1 className="text-lg font-bold text-gray-800">Compras</h1>
           <p className="text-xs text-gray-500">Gestión de adquisiciones</p>
         </div>
-        <button onClick={() => { setSelectedPurchase(null); setModalMode("create"); setIsModalOpen(true); }}
-          className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm">
-          <Plus size={16} /> Nueva
-        </button>
+        {canCreate && (
+          <button onClick={() => { setSelectedPurchase(null); setModalMode("create"); setIsModalOpen(true); }}
+            className={`flex items-center gap-1.5 ${theme.main} ${theme.hover} text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm`}>
+            <Plus size={16} /> Nueva
+          </button>
+        )}
       </div>
 
       <div className="flex gap-3 mb-3 flex-shrink-0">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input type="text" placeholder="Buscar compra..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white"
+            className={`w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none ${theme.focus} text-sm bg-white`}
             value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
         </div>
         <input type="date"
-          className="w-40 pl-3 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white"
+          className={`w-40 pl-3 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none ${theme.focus} text-sm bg-white`}
           value={dateFilter} onChange={(e) => { setDateFilter(e.target.value); setCurrentPage(1); }} />
         <div className="relative w-36">
-          <select className="w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white appearance-none cursor-pointer"
+          <select className={`w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 focus:outline-none ${theme.focus} text-sm bg-white appearance-none cursor-pointer`}
             value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
             <option value="Todos">Todos</option>
             {estados.map(e => <option key={e.id} value={e.nombre}>{e.nombre}</option>)}
@@ -155,7 +190,7 @@ export const PurchasesPage = () => {
       <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-emerald-600 text-white sticky top-0 z-10">
+            <thead className={`${theme.main} text-white sticky top-0 z-10`}>
               <tr>
                 {["#", "Proveedor", "Fecha", "Total", "Items", "Estado", "Acciones"].map(h => (
                   <th key={h} className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">{h}</th>
@@ -173,7 +208,7 @@ export const PurchasesPage = () => {
                     <td className="py-1.5 px-3 text-xs font-medium text-gray-900">{compra.numeroCompra}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                        <div className={`w-5 h-5 rounded ${theme.light} flex items-center justify-center ${theme.text} flex-shrink-0`}>
                           <ShoppingBag size={12} />
                         </div>
                         <span className="text-xs font-bold text-gray-700 truncate max-w-[150px]">{compra.proveedorNombre}</span>
@@ -182,7 +217,7 @@ export const PurchasesPage = () => {
                     <td className="py-1.5 px-3 text-xs text-gray-500">
                       {compra.fechaCompra ? new Date(compra.fechaCompra).toLocaleDateString("es-CO") : "-"}
                     </td>
-                    <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">
+                    <td className={`py-1.5 px-3 text-xs font-bold ${theme.text} text-right`}>
                       ${compra.total?.toLocaleString()}
                     </td>
                     <td className="py-1.5 px-3 text-xs text-center text-gray-600 font-medium">
@@ -191,22 +226,28 @@ export const PurchasesPage = () => {
                     <td className="py-1.5 px-3 text-center">{getStatusBadge(compra.estadoNombre)}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => { setPurchaseToChangeStatus(compra); setIsStatusModalOpen(true); }}
-                          className="p-1 rounded text-gray-600 hover:bg-gray-100" title="Cambiar Estado">
-                          <Settings size={14} />
-                        </button>
+                        {canChangeStatus && (
+                          <button onClick={() => { setPurchaseToChangeStatus(compra); setIsStatusModalOpen(true); }}
+                            className="p-1 rounded text-gray-600 hover:bg-gray-100" title="Cambiar Estado">
+                            <Settings size={14} />
+                          </button>
+                        )}
                         <button onClick={() => { setSelectedPurchase(compra); setModalMode("view"); setIsModalOpen(true); }}
-                          className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver">
+                          className={`p-1 rounded border ${theme.border} ${theme.text} ${theme.hoverLight}`} title="Ver">
                           <Eye size={14} />
                         </button>
-                        <button onClick={() => { setSelectedPurchase(compra); setModalMode("edit"); setIsModalOpen(true); }}
-                          className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50" title="Editar">
-                          <Edit size={14} />
-                        </button>
-                        <button onClick={() => setShowDeleteConfirm(compra)}
-                          className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar">
-                          <Trash2 size={14} />
-                        </button>
+                        {canEdit && (
+                          <button onClick={() => { setSelectedPurchase(compra); setModalMode("edit"); setIsModalOpen(true); }}
+                            className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar">
+                            <Edit size={14} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => setShowDeleteConfirm(compra)}
+                            className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
