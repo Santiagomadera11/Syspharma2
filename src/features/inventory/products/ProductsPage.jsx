@@ -79,8 +79,7 @@ export const ProductsPage = () => {
       setCategories(cats);
       setProviders(provs);
 
-      // Sincronizar productos a localStorage para que se vean en landing pública
-      // Simplificar: solo guardar los campos necesarios para la landing
+      // Sincronizar productos a localStorage para la landing pública
       const productsForPublic = prods.map(p => ({
         id: p.id,
         nombre: p.nombre,
@@ -88,14 +87,12 @@ export const ProductsPage = () => {
         stock: p.stock || 0,
         imagen: p.imagen,
         categoria: p.categoria || "Sin categoría",
-        estado: p.estado !== false, // Por defecto true si no está definido
+        estado: p.estado !== false,
       }));
 
       localStorage.setItem("syspharma_products", JSON.stringify(productsForPublic));
       console.log("✅ Productos sincronizados a localStorage:", productsForPublic.length);
-      console.log("📦 Primer producto guardado:", productsForPublic[0]);
 
-      // Disparar evento para que el catálogo público se actualice
       window.dispatchEvent(new Event("syspharma_products_updated"));
     } catch (err) {
       console.error("Error cargando datos:", err);
@@ -418,6 +415,13 @@ export const ProductsPage = () => {
                 <div className={`${detailProduct.imagen ? "md:col-span-2" : "md:col-span-3"} grid grid-cols-2 gap-2 sm:gap-3 text-sm overflow-y-auto`}>
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">ID</label><p className="text-xs text-gray-900 font-medium truncate">{detailProduct.id}</p></div>
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">Nombre</label><p className="text-xs text-gray-900 font-medium line-clamp-2">{detailProduct.nombre}</p></div>
+                  
+                  {/* Descripción (NUEVA FILA - OCUPA DOS COLUMNAS) */}
+                  <div className="col-span-2">
+                    <label className="text-xs font-semibold text-gray-500 uppercase block">Descripción</label>
+                    <p className="text-xs text-gray-900 font-medium whitespace-pre-line">{detailProduct.descripcion || "Sin descripción disponible."}</p>
+                  </div>
+
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">Categoría</label><p className="text-xs text-gray-900 font-medium truncate">{detailProduct.categoria}</p></div>
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">Tipo</label><p className="text-xs text-gray-900 font-medium truncate">{detailProduct.tipoProducto}</p></div>
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">Stock</label><p className="text-xs text-gray-900 font-bold">{detailProduct.stock}</p></div>
@@ -469,6 +473,8 @@ export const ProductsPage = () => {
             </div>
             <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
               <button onClick={() => setShowDeleteConfirm(null)} className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">Cancelar</button>
+              
+              {/* === CORREGIDO: SE AGREGÓ LA FUNCIÓN DE FLECHA () => EN EL ONCLICK === */}
               <button onClick={() => handleDelete(showDeleteConfirm)} className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1 shadow-sm">
                 <Trash2 size={14} /> Eliminar
               </button>
