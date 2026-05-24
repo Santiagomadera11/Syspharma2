@@ -75,6 +75,28 @@ import ClientMiPerfil from "../features/client/ClientMiPerfil";
 import FavoritosPage from "../features/client/FavoritosPage";
 import CarritoPage from "../features/client/CarritoPage";
 
+const CONFIG_PERMS = [
+  "system.roles",
+  "config.service_categories.create",
+  "config.service_categories.edit",
+  "config.service_categories.delete",
+  "config.payment_methods.create",
+  "config.payment_methods.edit",
+  "config.payment_methods.delete",
+  "config.document_types.create",
+  "config.document_types.edit",
+  "config.document_types.delete",
+];
+
+const APPOINTMENT_ACCESS_PERMS = [
+  "appointments.create",
+  "appointments.calendar",
+  "appointments.list",
+  "appointments.status",
+];
+
+const PRODUCT_FORM_PERMS = ["products.create", "products.edit"];
+
 export const AppRouter = () => {
   return (
     <BrowserRouter>
@@ -106,51 +128,130 @@ export const AppRouter = () => {
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
-          <Route
-            path="usuarios"
-            element={
-              <ProtectedRoute requiredPerm="users.view">
-                <UsersPage />
-              </ProtectedRoute>
-            }
-          />
 
-          {/* MÓDULO DE COMPRAS & INVENTARIO */}
-          <Route path="compras" element={<ProtectedRoute requiredPerm="inven.view"><PurchasesPage /></ProtectedRoute>} />
-          <Route path="productos" element={<ProtectedRoute requiredPerm="inven.view"><ProductsPage /></ProtectedRoute>} />
-          <Route path="productos/nuevo" element={<ProtectedRoute requiredPerm="inven.create"><NewProductPage /></ProtectedRoute>} />
-          <Route path="categorias" element={<ProtectedRoute requiredPerm="inven.view"><CategoriesPage /></ProtectedRoute>} />
-          <Route path="proveedores" element={<ProtectedRoute requiredPerm="inven.view"><ProvidersPage /></ProtectedRoute>} />
+          {/* USUARIOS */}
+          <Route path="usuarios" element={
+            <ProtectedRoute requiredPerm="users.view">
+              <UsersPage />
+            </ProtectedRoute>
+          } />
 
-          {/* MÓDULO DE VENTAS */}
-          <Route path="ventas" element={<ProtectedRoute requiredPerm="sales.view"><SalesPage /></ProtectedRoute>} />
-          <Route path="ventas/nueva" element={<ProtectedRoute requiredPerm="sales.create"><CreateOrderPage /></ProtectedRoute>} />
-          <Route path="ventas/nueva/productos" element={<ProtectedRoute requiredPerm="sales.create"><CartProductsPage /></ProtectedRoute>} />
-          <Route path="pedidos" element={<ProtectedRoute requiredPerm="sales.orders"><AdminPedidos /></ProtectedRoute>} />
-          <Route path="pedidos/crear" element={<ProtectedRoute requiredPerm="sales.create"><CreateOrderPage /></ProtectedRoute>} />
+          {/* COMPRAS */}
+          <Route path="compras" element={
+            <ProtectedRoute requiredPerm="purchase.view">
+              <PurchasesPage />
+            </ProtectedRoute>
+          } />
 
-          {/* MÓDULO DE SERVICIOS & CITAS */}
-          <Route path="servicios" element={<ProtectedRoute requiredPerm="services.view"><ServicesPage /></ProtectedRoute>} />
-          <Route path="citas" element={<ProtectedRoute requiredPerm="services.view"><AppointmentsPage /></ProtectedRoute>} />
-          <Route path="citas/disponibilidad" element={<ProtectedRoute requiredPerm="services.manage"><AvailabilityConfigPage /></ProtectedRoute>} />
-          <Route path="medicos" element={<ProtectedRoute requiredPerm="services.manage"><DoctorsPage /></ProtectedRoute>} />
+          {/* PRODUCTOS */}
+          <Route path="productos" element={
+            <ProtectedRoute requiredPerm="products.view">
+              <ProductsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="productos/nuevo" element={
+            <ProtectedRoute requiredAnyPerm={PRODUCT_FORM_PERMS}>
+              <NewProductPage />
+            </ProtectedRoute>
+          } />
 
-          {/* MÓDULO DE REPORTES & PERFIL */}
-          <Route path="reportes/turnos" element={<ShiftHistoryReportsPage />} />
-          <Route path="reportes/desempeño" element={<SalesPerformanceReportsPage />} />
+          {/* CATEGORÍAS */}
+          <Route path="categorias" element={
+            <ProtectedRoute requiredPerm="categories.view">
+              <CategoriesPage />
+            </ProtectedRoute>
+          } />
+
+          {/* PROVEEDORES */}
+          <Route path="proveedores" element={
+            <ProtectedRoute requiredPerm="suppliers.view">
+              <ProvidersPage />
+            </ProtectedRoute>
+          } />
+
+          {/* VENTAS */}
+          <Route path="ventas" element={
+            <ProtectedRoute requiredPerm="sales.view">
+              <SalesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas/nueva" element={
+            <ProtectedRoute requiredPerm="sales.create">
+              <CreateOrderPage />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas/nueva/productos" element={
+            <ProtectedRoute requiredPerm="sales.create">
+              <CartProductsPage />
+            </ProtectedRoute>
+          } />
+
+          {/* PEDIDOS */}
+          <Route path="pedidos" element={
+            <ProtectedRoute requiredPerm="orders.view">
+              <AdminPedidos />
+            </ProtectedRoute>
+          } />
+          <Route path="pedidos/crear" element={
+            <ProtectedRoute requiredPerm="orders.create">
+              <CreateOrderPage />
+            </ProtectedRoute>
+          } />
+
+          {/* SERVICIOS */}
+          <Route path="servicios" element={
+            <ProtectedRoute requiredPerm="services.view">
+              <ServicesPage />
+            </ProtectedRoute>
+          } />
+
+          {/* CITAS */}
+          <Route path="citas" element={
+            <ProtectedRoute requiredPerm="appointments.calendar">
+              <AppointmentsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="citas/disponibilidad" element={
+            <ProtectedRoute requiredPerm="appointments.availability">
+              <AvailabilityConfigPage />
+            </ProtectedRoute>
+          } />
+          <Route path="medicos" element={
+            <ProtectedRoute requiredPerm="appointments.doctors.view">
+              <DoctorsPage />
+            </ProtectedRoute>
+          } />
+
+          {/* REPORTES */}
+          <Route path="reportes/turnos" element={
+            <ProtectedRoute requiredPerm="reports.shifts">
+              <ShiftHistoryReportsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="reportes/desempeño" element={
+            <ProtectedRoute requiredPerm="reports.performance">
+              <SalesPerformanceReportsPage />
+            </ProtectedRoute>
+          } />
+
+          {/* PERFIL */}
           <Route path="mi-perfil" element={<ClientMiPerfil />} />
 
-          {/* SISTEMA */}
-          <Route path="configuracion" element={<ProtectedRoute requiredPerm="system.view"><SettingsPage /></ProtectedRoute>} />
+          {/* CONFIGURACIÓN */}
+          <Route path="configuracion" element={
+            <ProtectedRoute requiredAnyPerm={CONFIG_PERMS}>
+              <SettingsPage />
+            </ProtectedRoute>
+          } />
         </Route>
 
         {/* =================================================================
-            ZONA PRIVADA (Panel Empleado)
+            ZONA PRIVADA (Panel Empleado + Roles Dinámicos)
         ================================================================= */}
         <Route
           path="/employee"
           element={
-            <ProtectedRoute requiredRole="Empleado">
+            <ProtectedRoute requiredRole="empleado">
               <EmployeeLayout />
             </ProtectedRoute>
           }
@@ -158,42 +259,98 @@ export const AppRouter = () => {
           <Route index element={<Navigate to="inicio" replace />} />
           <Route path="inicio" element={<EmployeeInicio />} />
 
-          {/* Operaciones del Empleado protegidas por permiso */}
-          <Route 
-            path="compras" 
-            element={<ProtectedRoute requiredPerm="inven.view"><EmployeeCompras /></ProtectedRoute>} 
-          />
-          <Route 
-            path="ventas" 
-            element={<ProtectedRoute requiredPerm="sales.view"><EmployeeSalesPage /></ProtectedRoute>} 
-          />
-          <Route 
-            path="ventas/nueva" 
-            element={<ProtectedRoute requiredPerm="sales.create"><CreateOrderPage /></ProtectedRoute>} 
-          />
-          <Route 
-            path="ventas/nueva/productos" 
-            element={<ProtectedRoute requiredPerm="sales.create"><CartProductsPage /></ProtectedRoute>} 
-          />
-          <Route 
-            path="productos" 
-            element={<ProtectedRoute requiredPerm="inven.view"><EmployeeProductos /></ProtectedRoute>} 
-          />
-          
-          {/* ✅ RUTA CORREGIDA: Ahora existe 'pedidos' y usa un permiso que Blanca tiene */}
-          <Route 
-            path="pedidos" 
-            element={<ProtectedRoute requiredPerm="sales.view"><EmployeePedidos /></ProtectedRoute>} 
-          />
+          <Route path="usuarios" element={
+            <ProtectedRoute requiredPerm="users.view">
+              <UsersPage />
+            </ProtectedRoute>
+          } />
 
-          <Route 
-            path="pedidos/crear" 
-            element={<ProtectedRoute requiredPerm="sales.create"><CreateOrderPage /></ProtectedRoute>} 
-          />
-
-          <Route path="servicios" element={<EmployeeServicesPage />} />
-          <Route path="citas" element={<EmployeeAppointmentsPage />} />
+          <Route path="compras" element={
+            <ProtectedRoute requiredPerm="purchase.view">
+              <EmployeeCompras />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas" element={
+            <ProtectedRoute requiredPerm="sales.view">
+              <EmployeeSalesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas/nueva" element={
+            <ProtectedRoute requiredPerm="sales.create">
+              <CreateOrderPage />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas/nueva/productos" element={
+            <ProtectedRoute requiredPerm="sales.create">
+              <CartProductsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="productos" element={
+            <ProtectedRoute requiredPerm="products.view">
+              <EmployeeProductos />
+            </ProtectedRoute>
+          } />
+          <Route path="productos/nuevo" element={
+            <ProtectedRoute requiredAnyPerm={PRODUCT_FORM_PERMS}>
+              <NewProductPage />
+            </ProtectedRoute>
+          } />
+          <Route path="categorias" element={
+            <ProtectedRoute requiredPerm="categories.view">
+              <CategoriesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="proveedores" element={
+            <ProtectedRoute requiredPerm="suppliers.view">
+              <ProvidersPage />
+            </ProtectedRoute>
+          } />
+          <Route path="pedidos" element={
+            <ProtectedRoute requiredPerm="orders.view">
+              <EmployeePedidos />
+            </ProtectedRoute>
+          } />
+          <Route path="pedidos/crear" element={
+            <ProtectedRoute requiredPerm="orders.create">
+              <CreateOrderPage />
+            </ProtectedRoute>
+          } />
+          <Route path="servicios" element={
+            <ProtectedRoute requiredPerm="services.view">
+              <EmployeeServicesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="citas" element={
+            <ProtectedRoute requiredAnyPerm={APPOINTMENT_ACCESS_PERMS}>
+              <EmployeeAppointmentsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="citas/disponibilidad" element={
+            <ProtectedRoute requiredPerm="appointments.availability">
+              <AvailabilityConfigPage />
+            </ProtectedRoute>
+          } />
+          <Route path="medicos" element={
+            <ProtectedRoute requiredPerm="appointments.doctors.view">
+              <DoctorsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="reportes/turnos" element={
+            <ProtectedRoute requiredPerm="reports.shifts">
+              <ShiftHistoryReportsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="reportes/desempeño" element={
+            <ProtectedRoute requiredPerm="reports.performance">
+              <SalesPerformanceReportsPage />
+            </ProtectedRoute>
+          } />
           <Route path="mi-perfil" element={<ClientMiPerfil />} />
+          <Route path="configuracion" element={
+            <ProtectedRoute requiredAnyPerm={CONFIG_PERMS}>
+              <SettingsPage />
+            </ProtectedRoute>
+          } />
         </Route>
 
         {/* =================================================================

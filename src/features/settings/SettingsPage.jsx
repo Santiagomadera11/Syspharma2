@@ -1,9 +1,11 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
 import {
   Shield, Edit, Trash2, Settings, Users,
   ShoppingCart, ShoppingBag, Activity, BarChart3,
-  Lock, CheckCircle2, Search, X, ChevronLeft, ChevronRight
+  Lock, CheckCircle2, Search, X, ChevronLeft, ChevronRight,
+  LayoutDashboard, Package, Tags, Truck, DollarSign,
+  ClipboardList, Stethoscope, Calendar
 } from "lucide-react";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { rolesService } from "./rolesService";
@@ -20,12 +22,18 @@ const COLOR_OPTIONS = [
 ];
 
 const CATEGORIA_ICONS = {
-  "Usuarios": <Users size={18} className="text-blue-600" />,
-  "Ventas": <ShoppingCart size={18} className="text-emerald-600" />,
-  "Compras/Inventario": <ShoppingBag size={18} className="text-orange-600" />,
-  "Servicios": <Activity size={18} className="text-purple-600" />,
-  "Reportes": <BarChart3 size={18} className="text-rose-600" />,
-  "Sistema": <Settings size={18} className="text-slate-600" />,
+  "Inicio":         <LayoutDashboard size={18} className="text-emerald-600" />,
+  "Usuarios":       <Users size={18} className="text-blue-600" />,
+  "Compras":        <ShoppingBag size={18} className="text-orange-600" />,
+  "Productos":      <Package size={18} className="text-yellow-600" />,
+  "Categorías":     <Tags size={18} className="text-pink-600" />,
+  "Proveedores":    <Truck size={18} className="text-cyan-600" />,
+  "Ventas":         <DollarSign size={18} className="text-emerald-600" />,
+  "Pedidos":        <ClipboardList size={18} className="text-indigo-600" />,
+  "Servicios":      <Activity size={18} className="text-purple-600" />,
+  "Citas Médicas":  <Calendar size={18} className="text-teal-600" />,
+  "Reportes":       <BarChart3 size={18} className="text-rose-600" />,
+  "Configuración":  <Settings size={18} className="text-slate-600" />,
 };
 
 const ROLES_PER_PAGE = 4;
@@ -41,7 +49,6 @@ export const SettingsPage = () => {
   const [toast, setToast] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null, name: "" });
 
-  // Formulario
   const [roleName, setRoleName] = useState("");
   const [roleDesc, setRoleDesc] = useState("");
   const [roleColor, setRoleColor] = useState(COLOR_OPTIONS[0].id);
@@ -49,14 +56,14 @@ export const SettingsPage = () => {
 
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
 
-  useEffect(() => { loadRoles(); }, []);
+  React.useEffect(() => { loadRoles(); }, []);
 
   const loadRoles = async () => {
     try {
       setLoading(true);
       const response = await rolesService.getAll();
       setRoles(Array.isArray(response) ? response : (response?.data || []));
-      setCurrentPage(1); // reset al recargar
+      setCurrentPage(1);
     } catch (error) {
       setRoles([]);
     } finally {
@@ -64,7 +71,6 @@ export const SettingsPage = () => {
     }
   };
 
-  // ── Paginado ──────────────────────────────────────────────
   const totalPages = Math.ceil(roles.length / ROLES_PER_PAGE);
   const usePagination = roles.length > ROLES_PER_PAGE;
   const pagedRoles = usePagination
@@ -84,7 +90,6 @@ export const SettingsPage = () => {
     }
   };
 
-  // Agrupación dinámica de permisos por categoría
   const groupedPermissions = useMemo(() => {
     const map = {};
     PERMISSIONS_CONFIG.forEach((p) => {
@@ -94,14 +99,23 @@ export const SettingsPage = () => {
     return map;
   }, []);
 
-  const togglePerm = (id) => setSelectedPerms((prev) => ({ ...prev, [id]: !prev[id] }));
+  const togglePerm = (id) =>
+    setSelectedPerms((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  // Selecciona/deselecciona todos los permisos de un módulo
+  const toggleAllPerms = (items) => {
+    const allSelected = items.every((p) => selectedPerms[p.id]);
+    const newPerms = { ...selectedPerms };
+    items.forEach((p) => { newPerms[p.id] = !allSelected; });
+    setSelectedPerms(newPerms);
+  };
 
   const handleEditRole = (role) => {
     setEditRole(role);
     setRoleName(role.nombre || role.name);
     setRoleDesc(role.descripcion || role.description);
     const map = {};
-    (role.permisos || role.permissions || []).forEach(p => (map[p] = true));
+    (role.permisos || role.permissions || []).forEach((p) => (map[p] = true));
     setSelectedPerms(map);
     setModalStep("form");
     setShowModal(true);
@@ -113,17 +127,20 @@ export const SettingsPage = () => {
       return;
     }
 
-    const permissions = Object.keys(selectedPerms).filter(k => selectedPerms[k]);
+    const permissions = Object.keys(selectedPerms).filter((k) => selectedPerms[k]);
     const payload = {
       id: editRole?.id || 0,
       nombre: roleName,
       descripcion: roleDesc,
-      permisos: permissions
+      permisos: permissions,
     };
 
     try {
       await rolesService.save(payload);
-      setToast({ message: editRole ? "Rol actualizado correctamente" : "Rol creado correctamente", type: "success" });
+      setToast({
+        message: editRole ? "Rol actualizado correctamente" : "Rol creado correctamente",
+        type: "success",
+      });
       setShowModal(false);
       await loadRoles();
       setEditRole(null);
@@ -131,7 +148,8 @@ export const SettingsPage = () => {
       setRoleDesc("");
       setSelectedPerms({});
     } catch (error) {
-      const errorMsg = error?.response?.data?.message || error?.message || "Error al guardar el rol";
+      const errorMsg =
+        error?.response?.data?.message || error?.message || "Error al guardar el rol";
       setToast({ message: errorMsg, type: "error" });
     }
   };
@@ -147,7 +165,14 @@ export const SettingsPage = () => {
         </div>
         {activeSection === "roles" && (
           <button
-            onClick={() => { setEditRole(null); setRoleName(""); setRoleDesc(""); setSelectedPerms({}); setShowModal(true); }}
+            onClick={() => {
+              setEditRole(null);
+              setRoleName("");
+              setRoleDesc("");
+              setSelectedPerms({});
+              setModalStep("form");
+              setShowModal(true);
+            }}
             className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 transition-all active:scale-95"
           >
             Crear Nuevo Rol
@@ -157,8 +182,26 @@ export const SettingsPage = () => {
 
       {/* Tabs */}
       <div className="flex gap-4 border-b border-slate-100">
-        <button onClick={() => setActiveSection("roles")} className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeSection === "roles" ? "border-emerald-600 text-emerald-600" : "border-transparent text-slate-400"}`}>Gestión de Roles</button>
-        <button onClick={() => setActiveSection("params")} className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeSection === "params" ? "border-emerald-600 text-emerald-600" : "border-transparent text-slate-400"}`}>Parámetros</button>
+        <button
+          onClick={() => setActiveSection("roles")}
+          className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${
+            activeSection === "roles"
+              ? "border-emerald-600 text-emerald-600"
+              : "border-transparent text-slate-400"
+          }`}
+        >
+          Gestión de Roles
+        </button>
+        <button
+          onClick={() => setActiveSection("params")}
+          className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${
+            activeSection === "params"
+              ? "border-emerald-600 text-emerald-600"
+              : "border-transparent text-slate-400"
+          }`}
+        >
+          Parámetros
+        </button>
       </div>
 
       {/* ── SECCIÓN ROLES ── */}
@@ -182,7 +225,7 @@ export const SettingsPage = () => {
                   <td colSpan={3} className="p-6 text-center text-slate-400 text-sm">No hay roles registrados</td>
                 </tr>
               ) : (
-                pagedRoles.map(role => (
+                pagedRoles.map((role) => (
                   <tr key={role.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
@@ -192,11 +235,25 @@ export const SettingsPage = () => {
                         <span className="font-bold text-slate-700 text-sm">{role.nombre || role.name}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-3 text-sm text-slate-400 font-medium">{role.descripcion || role.description}</td>
+                    <td className="px-5 py-3 text-sm text-slate-400 font-medium">
+                      {role.descripcion || role.description}
+                    </td>
                     <td className="px-5 py-3">
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => handleEditRole(role)} className="p-1.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit size={14} /></button>
-                        <button onClick={() => setDeleteConfirm({ show: true, id: role.id, name: role.nombre || role.name })} className="p-1.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={14} /></button>
+                        <button
+                          onClick={() => handleEditRole(role)}
+                          className="p-1.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setDeleteConfirm({ show: true, id: role.id, name: role.nombre || role.name })
+                          }
+                          className="p-1.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -205,21 +262,21 @@ export const SettingsPage = () => {
             </tbody>
           </table>
 
-          {/* ── Paginación — solo si hay más de 4 roles ── */}
           {usePagination && (
             <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-slate-50/50">
               <span className="text-xs text-slate-400 font-medium">
-                Mostrando {(currentPage - 1) * ROLES_PER_PAGE + 1}–{Math.min(currentPage * ROLES_PER_PAGE, roles.length)} de {roles.length} roles
+                Mostrando {(currentPage - 1) * ROLES_PER_PAGE + 1}–
+                {Math.min(currentPage * ROLES_PER_PAGE, roles.length)} de {roles.length} roles
               </span>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="p-2 rounded-xl text-slate-400 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   <ChevronLeft size={16} />
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
@@ -233,7 +290,7 @@ export const SettingsPage = () => {
                   </button>
                 ))}
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="p-2 rounded-xl text-slate-400 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
@@ -246,9 +303,7 @@ export const SettingsPage = () => {
       )}
 
       {/* ── SECCIÓN PARÁMETROS ── */}
-      {activeSection === "params" && (
-        <ParameterManagement user={user} />
-      )}
+      {activeSection === "params" && <ParameterManagement user={user} />}
 
       {/* ── Confirm Delete ── */}
       {deleteConfirm.show && (
@@ -268,68 +323,172 @@ export const SettingsPage = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-[2.5rem] w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
 
+            {/* Header */}
             <div className="p-8 border-b border-slate-100 flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{editRole ? "Editar Rol" : "Crear Rol Maestro"}</h2>
+                <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">
+                  {editRole ? "Editar Rol" : "Crear Rol Maestro"}
+                </h2>
                 <div className="flex gap-4 mt-2">
-                  <button onClick={() => setModalStep("form")} className={`text-[10px] font-black uppercase tracking-widest ${modalStep === "form" ? "text-emerald-600 underline" : "text-slate-400"}`}>1. Información</button>
-                  <button onClick={() => setModalStep("perms")} className={`text-[10px] font-black uppercase tracking-widest ${modalStep === "perms" ? "text-emerald-600 underline" : "text-slate-400"}`}>2. Permisos</button>
+                  <button
+                    onClick={() => setModalStep("form")}
+                    className={`text-[10px] font-black uppercase tracking-widest ${
+                      modalStep === "form" ? "text-emerald-600 underline" : "text-slate-400"
+                    }`}
+                  >
+                    1. Información
+                  </button>
+                  <button
+                    onClick={() => setModalStep("perms")}
+                    className={`text-[10px] font-black uppercase tracking-widest ${
+                      modalStep === "perms" ? "text-emerald-600 underline" : "text-slate-400"
+                    }`}
+                  >
+                    2. Permisos
+                  </button>
                 </div>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400"><X /></button>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400"
+              >
+                <X />
+              </button>
             </div>
 
+            {/* Body */}
             <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30">
               {modalStep === "form" ? (
                 <div className="max-w-md mx-auto space-y-4">
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block ml-1">Nombre del Rol</label>
-                    <input value={roleName} onChange={e => setRoleName(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 outline-none font-bold text-slate-700 transition-all" placeholder="Ej: Administrador de Ventas" />
+                    <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block ml-1">
+                      Nombre del Rol
+                    </label>
+                    <input
+                      value={roleName}
+                      onChange={(e) => setRoleName(e.target.value)}
+                      className="w-full p-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 outline-none font-bold text-slate-700 transition-all"
+                      placeholder="Ej: Administrador de Ventas"
+                    />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block ml-1">Descripción</label>
-                    <textarea value={roleDesc} onChange={e => setRoleDesc(e.target.value)} className="w-full p-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 outline-none font-medium text-slate-600 h-32" placeholder="Describe las responsabilidades..." />
+                    <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block ml-1">
+                      Descripción
+                    </label>
+                    <textarea
+                      value={roleDesc}
+                      onChange={(e) => setRoleDesc(e.target.value)}
+                      className="w-full p-4 rounded-2xl border-2 border-slate-100 focus:border-emerald-500 outline-none font-medium text-slate-600 h-32"
+                      placeholder="Describe las responsabilidades..."
+                    />
                   </div>
-                  <button onClick={() => setModalStep("perms")} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100">Configurar Permisos</button>
+                  <button
+                    onClick={() => setModalStep("perms")}
+                    className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100"
+                  >
+                    Configurar Permisos
+                  </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Object.entries(groupedPermissions).map(([cat, items]) => (
-                    <div key={cat} className="bg-white rounded-3xl border border-slate-200/60 p-5 shadow-sm">
-                      <div className="flex items-center gap-2 mb-5 border-b border-slate-50 pb-3">
-                        {CATEGORIA_ICONS[cat] || <Lock size={18} />}
-                        <h4 className="font-black text-slate-800 text-xs uppercase tracking-wider">{cat}</h4>
-                      </div>
-                      <div className="space-y-2">
-                        {items.map(p => (
-                          <div key={p.id} onClick={() => togglePerm(p.id)} className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer ${selectedPerms[p.id] ? 'border-emerald-500 bg-emerald-50/30' : 'border-transparent bg-slate-50 hover:border-slate-200'}`}>
-                            <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center ${selectedPerms[p.id] ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-300'}`}>
-                              {selectedPerms[p.id] && <CheckCircle2 size={12} strokeWidth={4} />}
-                            </div>
-                            <div>
-                              <p className={`text-[10px] font-black uppercase ${selectedPerms[p.id] ? 'text-emerald-900' : 'text-slate-600'}`}>{p.label}</p>
-                              <p className="text-[9px] text-slate-400 font-medium leading-none">{p.description}</p>
-                            </div>
+                  {Object.entries(groupedPermissions).map(([cat, items]) => {
+                    const allSelected = items.every((p) => selectedPerms[p.id]);
+                    const someSelected = items.some((p) => selectedPerms[p.id]);
+                    return (
+                      <div key={cat} className="bg-white rounded-3xl border border-slate-200/60 p-5 shadow-sm">
+
+                        {/* Header del módulo con checkbox general */}
+                        <div
+                          className="flex items-center gap-2 mb-5 border-b border-slate-100 pb-3 cursor-pointer group"
+                          onClick={() => toggleAllPerms(items)}
+                        >
+                          {/* Checkbox general — 3 estados */}
+                          <div
+                            className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all
+                              ${allSelected
+                                ? "bg-emerald-500 border-emerald-500 text-white"
+                                : someSelected
+                                  ? "bg-emerald-100 border-emerald-400"
+                                  : "bg-white border-slate-300 group-hover:border-emerald-300"
+                              }`}
+                          >
+                            {allSelected && <CheckCircle2 size={12} strokeWidth={4} />}
+                            {someSelected && !allSelected && (
+                              <div className="w-2 h-0.5 bg-emerald-500 rounded-sm" />
+                            )}
                           </div>
-                        ))}
+
+                          {CATEGORIA_ICONS[cat] || <Lock size={18} />}
+
+                          <h4 className="font-black text-slate-800 text-xs uppercase tracking-wider flex-1">
+                            {cat}
+                          </h4>
+                        </div>
+
+                        {/* Permisos individuales */}
+                        <div className="space-y-2">
+                          {items.map((p) => (
+                            <div
+                              key={p.id}
+                              onClick={() => togglePerm(p.id)}
+                              className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer ${
+                                selectedPerms[p.id]
+                                  ? "border-emerald-500 bg-emerald-50/30"
+                                  : "border-transparent bg-slate-50 hover:border-slate-200"
+                              }`}
+                            >
+                              <div
+                                className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 ${
+                                  selectedPerms[p.id]
+                                    ? "bg-emerald-500 border-emerald-500 text-white"
+                                    : "bg-white border-slate-300"
+                                }`}
+                              >
+                                {selectedPerms[p.id] && <CheckCircle2 size={12} strokeWidth={4} />}
+                              </div>
+                              <div>
+                                <p
+                                  className={`text-[10px] font-black uppercase ${
+                                    selectedPerms[p.id] ? "text-emerald-900" : "text-slate-600"
+                                  }`}
+                                >
+                                  {p.label}
+                                </p>
+                                <p className="text-[9px] text-slate-400 font-medium leading-none">
+                                  {p.description}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
 
+            {/* Footer */}
             <div className="p-8 border-t border-slate-100 flex justify-between items-center bg-white">
               {modalStep === "perms" && (
-                <button onClick={() => setModalStep("form")} className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase">
+                <button
+                  onClick={() => setModalStep("form")}
+                  className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase"
+                >
                   <ChevronLeft /> Volver
                 </button>
               )}
               <div className="ml-auto flex items-center gap-6">
                 <span className="text-xs font-black text-slate-400 uppercase">
-                  Seleccionados: <span className="text-emerald-600">{Object.values(selectedPerms).filter(Boolean).length}</span>
+                  Seleccionados:{" "}
+                  <span className="text-emerald-600">
+                    {Object.values(selectedPerms).filter(Boolean).length}
+                  </span>
                 </span>
-                <button onClick={handleSave} className="bg-slate-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all">
+                <button
+                  onClick={handleSave}
+                  className="bg-slate-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all"
+                >
                   Guardar Cambios
                 </button>
               </div>

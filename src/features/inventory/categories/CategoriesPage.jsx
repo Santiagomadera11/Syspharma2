@@ -23,6 +23,41 @@ export const CategoriesPage = () => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [notification, setNotification] = useState(null);
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (currentUser.rol || "").toLowerCase().trim();
+  const userPerms = (currentUser.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const isAdmin = userRole === "administrador";
+  const isEmployeePanel = userRole !== "administrador";
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+  const canCreate = hasPerm("categories.create");
+  const canEdit = hasPerm("categories.edit");
+  const canDelete = hasPerm("categories.delete");
+  const canToggleStatus = hasPerm("categories.status");
+  const theme = isEmployeePanel
+    ? {
+        main: "bg-blue-600",
+        mainHover: "hover:bg-blue-700",
+        text: "text-blue-600",
+        lightBg: "bg-blue-50",
+        hoverLight: "hover:bg-blue-50",
+        border: "border-blue-200",
+        focus: "focus:border-blue-400",
+        spinner: "border-blue-600",
+        successBg: "bg-blue-50 border-blue-200",
+        successIcon: "text-blue-600",
+      }
+    : {
+        main: "bg-emerald-600",
+        mainHover: "hover:bg-emerald-700",
+        text: "text-emerald-600",
+        lightBg: "bg-emerald-50",
+        hoverLight: "hover:bg-emerald-50",
+        border: "border-emerald-200",
+        focus: "focus:border-emerald-400",
+        spinner: "border-emerald-600",
+        successBg: "bg-emerald-50 border-emerald-200",
+        successIcon: "text-emerald-600",
+      };
 
   const loadData = async () => {
     try {
@@ -92,6 +127,12 @@ export const CategoriesPage = () => {
   };
 
   const confirmDeleteCategory = async () => {
+    if (!canDelete) {
+      setNotification({ message: "No tienes permiso para eliminar categorías.", type: "error" });
+      setIsDeleteConfirmOpen(false);
+      setCategoryToDelete(null);
+      return;
+    }
     try {
       await categoryService.remove(categoryToDelete.id);
       setNotification({ message: `Categoría "${categoryToDelete.nombre}" eliminada correctamente`, type: "success" });
@@ -106,6 +147,7 @@ export const CategoriesPage = () => {
   };
 
   const confirmToggleStatus = async () => {
+    if (!canToggleStatus) return;
     try {
       const newStatus = !categoryToToggle.estado;
       await categoryService.toggleStatus(categoryToToggle.id, newStatus);
@@ -129,12 +171,14 @@ export const CategoriesPage = () => {
           <h1 className="text-lg font-bold text-gray-800">Categorías</h1>
           <p className="text-xs text-gray-500">Clasificación de productos</p>
         </div>
-        <button
-          onClick={() => { setSelectedCategory(null); setModalMode("create"); setIsModalOpen(true); }}
-          className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm"
-        >
-          <Plus size={16} /> Nueva
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => { setSelectedCategory(null); setModalMode("create"); setIsModalOpen(true); }}
+            className={`flex items-center gap-1.5 ${theme.main} ${theme.mainHover} text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm`}
+          >
+            <Plus size={16} /> Nueva
+          </button>
+        )}
       </div>
 
       {/* FILTROS */}
@@ -144,14 +188,14 @@ export const CategoriesPage = () => {
           <input
             type="text"
             placeholder="Buscar categoría..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white"
+            className={`w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 focus:outline-none ${theme.focus} text-sm bg-white`}
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
           />
         </div>
         <div className="relative w-36">
           <select
-            className="w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 focus:outline-none focus:border-emerald-400 text-sm bg-white appearance-none cursor-pointer"
+            className={`w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 focus:outline-none ${theme.focus} text-sm bg-white appearance-none cursor-pointer`}
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
           >
@@ -166,7 +210,7 @@ export const CategoriesPage = () => {
       {/* Loading */}
       {loading && (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+          <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${theme.spinner}`} />
         </div>
       )}
 
@@ -175,7 +219,7 @@ export const CategoriesPage = () => {
         <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-emerald-600 text-white sticky top-0 z-10">
+              <thead className={`${theme.main} text-white sticky top-0 z-10`}>
                 <tr>
                   <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">ID</th>
                   <th className="py-2 px-3 text-[10px] font-bold uppercase tracking-wider">Nombre</th>
@@ -190,7 +234,7 @@ export const CategoriesPage = () => {
                     <td className="py-1.5 px-3 text-xs font-medium text-gray-900">{cat.id}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded bg-emerald-50 flex items-center justify-center text-emerald-600 flex-shrink-0">
+                        <div className={`w-5 h-5 rounded ${theme.lightBg} flex items-center justify-center ${theme.text} flex-shrink-0`}>
                           <Tag size={12} />
                         </div>
                         <span className="text-xs font-bold text-gray-700">{cat.nombre}</span>
@@ -198,22 +242,27 @@ export const CategoriesPage = () => {
                     </td>
                     <td className="py-1.5 px-3 text-xs text-center font-bold">
                       {cat.productos > 0
-                        ? <span className="text-emerald-600">{cat.productos}</span>
+                        ? <span className={theme.text}>{cat.productos}</span>
                         : <span className="text-gray-400">Sin asociar</span>}
                     </td>
                     <td className="py-1.5 px-3 text-center">
                       <button
-                        onClick={() => { setCategoryToToggle(cat); setIsStatusConfirmOpen(true); }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${cat.estado ? "bg-emerald-600" : "bg-gray-400"}`}
+                        onClick={() => { if (canToggleStatus) { setCategoryToToggle(cat); setIsStatusConfirmOpen(true); } }}
+                        disabled={!canToggleStatus}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${cat.estado ? theme.main : "bg-gray-400"} ${!canToggleStatus ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${cat.estado ? "translate-x-5" : "translate-x-0.5"}`} />
                       </button>
                     </td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => { setSelectedCategory(cat); setModalMode("view"); setIsModalOpen(true); }} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50" title="Ver"><Eye size={14} /></button>
-                        <button onClick={() => { setSelectedCategory(cat); setModalMode("edit"); setIsModalOpen(true); }} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
-                        <button onClick={() => { setCategoryToDelete(cat); setIsDeleteConfirmOpen(true); }} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                        <button onClick={() => { setSelectedCategory(cat); setModalMode("view"); setIsModalOpen(true); }} className={`p-1 rounded border ${theme.border} ${theme.text} ${theme.hoverLight}`} title="Ver"><Eye size={14} /></button>
+                        {canEdit && (
+                          <button onClick={() => { setSelectedCategory(cat); setModalMode("edit"); setIsModalOpen(true); }} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => { setCategoryToDelete(cat); setIsDeleteConfirmOpen(true); }} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -237,7 +286,7 @@ export const CategoriesPage = () => {
         </div>
       )}
 
-      <CategoryFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialData={selectedCategory} mode={modalMode} onSave={handleSave} onDelete={(cat) => { setCategoryToDelete(cat); setIsDeleteConfirmOpen(true); }} />
+      <CategoryFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} initialData={selectedCategory} mode={modalMode} onSave={handleSave} onDelete={(cat) => { setCategoryToDelete(cat); setIsDeleteConfirmOpen(true); }} accentColor={isEmployeePanel ? "blue" : "emerald"} />
 
       {/* Modal Eliminar */}
       {isDeleteConfirmOpen && categoryToDelete && (
@@ -263,9 +312,9 @@ export const CategoriesPage = () => {
       {isStatusConfirmOpen && categoryToToggle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
-            <div className={`px-5 py-3 border-b flex justify-between items-center ${categoryToToggle.estado ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
+            <div className={`px-5 py-3 border-b flex justify-between items-center ${categoryToToggle.estado ? "bg-red-50 border-red-200" : theme.successBg}`}>
               <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                {categoryToToggle.estado ? <AlertCircle size={18} className="text-red-600" /> : <CheckCircle size={18} className="text-emerald-600" />}
+                {categoryToToggle.estado ? <AlertCircle size={18} className="text-red-600" /> : <CheckCircle size={18} className={theme.successIcon} />}
                 {categoryToToggle.estado ? "Desactivar Categoría" : "Activar Categoría"}
               </h3>
               <button onClick={() => setIsStatusConfirmOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
@@ -274,9 +323,9 @@ export const CategoriesPage = () => {
               <p className="text-sm text-gray-700">{categoryToToggle.estado ? `¿Desactivar la categoría "${categoryToToggle.nombre}"?` : `¿Activar la categoría "${categoryToToggle.nombre}"?`}</p>
               {categoryToToggle.estado && <p className="text-xs text-gray-500 mt-2">Los productos de esta categoría no serán visibles en el catálogo.</p>}
             </div>
-            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${categoryToToggle.estado ? "bg-red-50 border-red-200" : "bg-emerald-50 border-emerald-200"}`}>
+            <div className={`px-5 py-3 border-t flex justify-end gap-2 ${categoryToToggle.estado ? "bg-red-50 border-red-200" : theme.successBg}`}>
               <button onClick={() => setIsStatusConfirmOpen(false)} className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md">Cancelar</button>
-              <button onClick={confirmToggleStatus} className={`px-4 py-2 text-xs font-bold text-white rounded-md flex items-center gap-1 ${categoryToToggle.estado ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"}`}>
+              <button onClick={confirmToggleStatus} className={`px-4 py-2 text-xs font-bold text-white rounded-md flex items-center gap-1 ${categoryToToggle.estado ? "bg-red-600 hover:bg-red-700" : `${theme.main} ${theme.mainHover}`}`}>
                 {categoryToToggle.estado ? "Desactivar" : "Activar"}
               </button>
             </div>
@@ -288,7 +337,7 @@ export const CategoriesPage = () => {
       {notification && (
         <div className="fixed bottom-4 left-4 max-w-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="bg-white rounded-lg shadow-lg border border-green-200 p-4 flex items-start gap-3">
-            <CheckCircle size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
+            <CheckCircle size={18} className={`${theme.successIcon} flex-shrink-0 mt-0.5`} />
             <p className="text-xs font-bold text-gray-800">{notification.message}</p>
           </div>
         </div>

@@ -6,15 +6,25 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
-import { permissionService } from "../../settings/permissionService";
 import { OrderDetailModal } from "./components/OrderDetailModal";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 export const AdminPedidos = () => {
   const navigate = useNavigate();
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-  const canEditOrder = permissionService.hasPerm(user.rol, "billing.create");
-  const canDeleteOrder = permissionService.hasPerm(user.rol, "billing.refund");
+  const userRole = (user.rol || "").toLowerCase().trim();
+  const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const isAdmin = userRole === "administrador";
+  const isEmployeePanel = userRole !== "administrador";
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+  const canCreateOrder = hasPerm("orders.create");
+  const canEditOrder = hasPerm("orders.edit");
+  const canDeleteOrder = hasPerm("orders.delete");
+  const canChangeStatus = hasPerm("orders.status");
+  const canExport = hasPerm("orders.export");
+  const theme = isEmployeePanel
+    ? { main: "bg-blue-600", hover: "hover:bg-blue-700", text: "text-blue-600", light: "bg-blue-50", hoverLight: "hover:bg-blue-100", border: "border-blue-200" }
+    : { main: "bg-emerald-600", hover: "hover:bg-emerald-700", text: "text-emerald-600", light: "bg-emerald-50", hoverLight: "hover:bg-emerald-100", border: "border-emerald-200" };
 
   const [orders, setOrders] = useState([]);
   const [estados, setEstados] = useState([]);
@@ -104,6 +114,12 @@ export const AdminPedidos = () => {
 
   const confirmStatusChange = async (estadoId) => {
     if (!orderToChangeStatus) return;
+    if (!canChangeStatus) {
+      setNotification({ message: "No tienes permiso para cambiar estados de pedidos", type: "error", zIndex: 1000 });
+      setIsStatusModalOpen(false);
+      setOrderToChangeStatus(null);
+      return;
+    }
     try {
       await ordersService.updateStatus(orderToChangeStatus.id, estadoId);
       setNotification({ message: "Estado actualizado correctamente", type: "success", zIndex: 1000 });
@@ -117,6 +133,12 @@ export const AdminPedidos = () => {
 
   const confirmDeleteOrder = async () => {
     if (!orderToDelete) return;
+    if (!canDeleteOrder) {
+      setNotification({ message: "No tienes permiso para eliminar pedidos", type: "error", zIndex: 1000 });
+      setIsDeleteModalOpen(false);
+      setOrderToDelete(null);
+      return;
+    }
     try {
       await ordersService.delete(orderToDelete.id);
       setNotification({ message: `Pedido eliminado correctamente`, type: "success", zIndex: 1000 });
@@ -129,6 +151,10 @@ export const AdminPedidos = () => {
   };
 
   const handleCompleteOrder = async (order) => {
+    if (!canChangeStatus) {
+      setNotification({ message: "No tienes permiso para cambiar estados de pedidos", type: "error", zIndex: 1000 });
+      return;
+    }
     const estadoEntregado = estados.find(e => e.nombre.toLowerCase() === "entregado");
     if (!estadoEntregado) { setNotification({ message: "No se encontró el estado Entregado", type: "error", zIndex: 1000 }); return; }
     try {
@@ -141,11 +167,13 @@ export const AdminPedidos = () => {
   };
 
   const handleEditOrder = (order) => {
+    if (!canEditOrder) return;
     sessionStorage.setItem("syspharma_edit_order", JSON.stringify(order));
-    navigate("/admin/pedidos/crear");
+    navigate(isEmployeePanel ? "/employee/pedidos/crear" : "/admin/pedidos/crear");
   };
 
   const exportCSV = () => {
+    if (!canExport) return;
     const csv = "data:text/csv;charset=utf-8,Código,Cliente,Documento,Fecha,Total,Estado\n" +
       filteredOrders.map(o => `${o.numeroPedido},${o.clienteNombre},${o.clienteDocumento || ""},${o.fechaCreacion ? new Date(o.fechaCreacion).toLocaleDateString("es-CO") : ""},${o.total},${o.estadoNombre}`).join("\n");
     const link = document.createElement("a");
@@ -163,10 +191,12 @@ export const AdminPedidos = () => {
           <h1 className="text-2xl font-bold text-gray-800">Gestión de Pedidos</h1>
           <p className="text-gray-500 text-xs mt-0.5">Control administrativo de todos los pedidos</p>
         </div>
-        <button onClick={() => navigate("/admin/pedidos/crear")}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2">
-          <Plus size={16} /> Crear pedido
-        </button>
+        {canCreateOrder && (
+          <button onClick={() => navigate(isEmployeePanel ? "/employee/pedidos/crear" : "/admin/pedidos/crear")}
+            className={`${theme.main} ${theme.hover} text-white px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-2`}>
+            <Plus size={16} /> Crear pedido
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -213,9 +243,11 @@ export const AdminPedidos = () => {
           <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setCurrentPage(0); }}
             className="text-xs focus:outline-none w-32 bg-transparent" />
         </div>
-        <button onClick={exportCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
-          <Download size={14} /> Exportar
-        </button>
+        {canExport && (
+          <button onClick={exportCSV} className={`${theme.main} ${theme.hover} text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2`}>
+            <Download size={14} /> Exportar
+          </button>
+        )}
         {(searchTerm || statusFilter !== "Todos" || originFilter !== "Todos" || startDate || endDate) && (
           <button onClick={() => { setSearchTerm(""); setStatusFilter("Todos"); setOriginFilter("Todos"); setStartDate(""); setEndDate(""); setCurrentPage(0); }}
             className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium">
@@ -228,7 +260,7 @@ export const AdminPedidos = () => {
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
         <div className="overflow-auto flex-1">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-emerald-600 text-white text-xs uppercase tracking-wider sticky top-0 z-10">
+            <thead className={`${theme.main} text-white text-xs uppercase tracking-wider sticky top-0 z-10`}>
               <tr>
                 {["Código", "Cliente", "Origen", "Documento", "Fecha", "Productos", "Total", "Estado", "Acciones"].map(h => (
                   <th key={h} className="px-3 py-3 font-semibold">{h}</th>
@@ -263,7 +295,7 @@ export const AdminPedidos = () => {
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 font-bold text-emerald-600 text-right">{formatCurrency(order.total)}</td>
+                    <td className={`px-3 py-2.5 font-bold ${theme.text} text-right`}>{formatCurrency(order.total)}</td>
                     <td className="px-3 py-2.5 text-center">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${getStatusColor(order.estadoNombre)}`}>
                         {order.estadoNombre}
@@ -275,7 +307,7 @@ export const AdminPedidos = () => {
                           className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200" title="Ver detalle">
                           <Eye size={14} />
                         </button>
-                        {(order.estadoNombre || "").toLowerCase() === "pendiente" && (
+                        {(order.estadoNombre || "").toLowerCase() === "pendiente" && canChangeStatus && (
                           <button onClick={() => handleCompleteOrder(order)}
                             className="bg-green-50 hover:bg-green-100 text-green-600 p-1.5 rounded-md border border-green-200" title="Completar">
                             <Check size={14} />
@@ -287,10 +319,12 @@ export const AdminPedidos = () => {
                             <Edit size={14} />
                           </button>
                         )}
-                        <button onClick={() => { setOrderToChangeStatus(order); setIsStatusModalOpen(true); }}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200" title="Cambiar estado">
-                          <Filter size={14} />
-                        </button>
+                        {canChangeStatus && (
+                          <button onClick={() => { setOrderToChangeStatus(order); setIsStatusModalOpen(true); }}
+                            className={`${theme.light} ${theme.hoverLight} ${theme.text} p-1.5 rounded-md border ${theme.border}`} title="Cambiar estado">
+                            <Filter size={14} />
+                          </button>
+                        )}
                         {canDeleteOrder && (
                           <button onClick={() => { setOrderToDelete(order); setIsDeleteModalOpen(true); }}
                             className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200" title="Eliminar">
@@ -333,7 +367,7 @@ export const AdminPedidos = () => {
                 <button key={e.id} onClick={() => confirmStatusChange(e.id)}
                   className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
                     orderToChangeStatus.estadoId === e.id
-                      ? "bg-emerald-100 border-emerald-300 text-emerald-700"
+                      ? `${theme.light} ${theme.border} ${theme.text}`
                       : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
                   }`}>
                   {e.nombre}

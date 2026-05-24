@@ -6,7 +6,6 @@ import {
   Search,
   Eye,
   Edit,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -26,6 +25,16 @@ import AppointmentFormModal from "../services/appointments/components/Appointmen
 import AppointmentDetailModal from "../services/appointments/components/AppointmentDetailModal";
 
 export const EmployeeAppointmentsPage = () => {
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (currentUser.rol || "").toLowerCase().trim();
+  const userPerms = (currentUser.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const isAdmin = userRole === "administrador";
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+  const canCreate = hasPerm("appointments.create");
+  const canCalendar = hasPerm("appointments.calendar");
+  const canList = hasPerm("appointments.list");
+  const canStatus = hasPerm("appointments.status");
+
   const [activeTab, setActiveTab] = useState("calendario");
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -57,6 +66,11 @@ export const EmployeeAppointmentsPage = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
+
+  useEffect(() => {
+    if (activeTab === "calendario" && !canCalendar && canList) setActiveTab("citas");
+    if (activeTab === "citas" && !canList && canCalendar) setActiveTab("calendario");
+  }, [activeTab, canCalendar, canList]);
 
   const loadData = async () => {
     try {
@@ -420,27 +434,31 @@ export const EmployeeAppointmentsPage = () => {
                       >
                         <Eye size={16} />
                       </button>
-                      <button
-                        onClick={() => {
-                          setEditingAppointment(appointment);
-                          setIsAppointmentModalOpen(true);
-                        }}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                        title="Editar"
-                      >
-                        <Edit size={16} />
-                      </button>
+                      {canCreate && (
+                        <button
+                          onClick={() => {
+                            setEditingAppointment(appointment);
+                            setIsAppointmentModalOpen(true);
+                          }}
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                      )}
                       </div>
 
-                      <button
-                        onClick={() => setStatusMenuFor(statusMenuFor === appointment.id ? null : appointment.id)}
-                        className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                        title="Cambiar estado"
-                      >
-                        <Settings size={16} />
-                      </button>
+                      {canStatus && (
+                        <button
+                          onClick={() => setStatusMenuFor(statusMenuFor === appointment.id ? null : appointment.id)}
+                          className="p-1 text-gray-600 hover:bg-gray-100 rounded"
+                          title="Cambiar estado"
+                        >
+                          <Settings size={16} />
+                        </button>
+                      )}
 
-                      {statusMenuFor === appointment.id && (
+                      {canStatus && statusMenuFor === appointment.id && (
                         <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-100 rounded-md shadow-md z-20">
                           {["Confirmar Asistencia","En Consulta","Completada","No Asistió","Cancelada"].map((status) => (
                             <button
@@ -461,22 +479,6 @@ export const EmployeeAppointmentsPage = () => {
                           ))}
                         </div>
                       )}
-                      <button
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              "¿Estás seguro de que deseas eliminar esta cita?",
-                            )
-                          ) {
-                            appointmentService.deleteAppointment(appointment.id);
-                            loadData();
-                          }
-                        }}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={16} />
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -518,31 +520,35 @@ export const EmployeeAppointmentsPage = () => {
       {/* Header con tabs y botón */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("calendario")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === "calendario"
-                ? "text-blue-600 border-blue-600"
-                : "text-gray-600 border-transparent hover:text-gray-800"
-            }`}
-          >
-            <Calendar size={16} />
-            Calendario
-          </button>
-          <button
-            onClick={() => setActiveTab("citas")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === "citas"
-                ? "text-blue-600 border-blue-600"
-                : "text-gray-600 border-transparent hover:text-gray-800"
-            }`}
-          >
-            <List size={16} />
-            Lista de Citas
-          </button>
+          {canCalendar && (
+            <button
+              onClick={() => setActiveTab("calendario")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === "calendario"
+                  ? "text-blue-600 border-blue-600"
+                  : "text-gray-600 border-transparent hover:text-gray-800"
+              }`}
+            >
+              <Calendar size={16} />
+              Calendario
+            </button>
+          )}
+          {canList && (
+            <button
+              onClick={() => setActiveTab("citas")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === "citas"
+                  ? "text-blue-600 border-blue-600"
+                  : "text-gray-600 border-transparent hover:text-gray-800"
+              }`}
+            >
+              <List size={16} />
+              Lista de Citas
+            </button>
+          )}
         </div>
 
-        {(activeTab === "calendario" || activeTab === "citas") && (
+        {(activeTab === "calendario" || activeTab === "citas") && canCreate && (
           <button
             onClick={() => {
               setEditingAppointment(null);
@@ -558,8 +564,8 @@ export const EmployeeAppointmentsPage = () => {
 
       {/* Contenido de las tabs */}
       <div className="flex-1 overflow-auto">
-        {activeTab === "calendario" && renderCalendar()}
-        {activeTab === "citas" && renderAppointmentsList()}
+        {activeTab === "calendario" && canCalendar && renderCalendar()}
+        {activeTab === "citas" && canList && renderAppointmentsList()}
       </div>
 
       {/* Modales */}

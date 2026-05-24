@@ -36,6 +36,10 @@ export const SalesPage = () => {
   const [selectedSale, setSelectedSale] = useState(null);
   const [toast, setToast] = useState(null);
   const itemsPerPage = 3; 
+  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (user.rol || "").toLowerCase().trim();
+  const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const canCreateSale = userRole === "administrador" || userPerms.includes("sales.create");
 
   const fmt = (v) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v || 0);
 
@@ -72,10 +76,12 @@ export const SalesPage = () => {
         <div>
           <h1 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Ventas</h1>
         </div>
-        <button onClick={() => navigate("/admin/ventas/nueva")}
-          className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95">
-          <Plus size={14} /> NUEVA VENTA
-        </button>
+        {canCreateSale && (
+          <button onClick={() => navigate("/admin/ventas/nueva")}
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95">
+            <Plus size={14} /> NUEVA VENTA
+          </button>
+        )}
       </div>
 
       {/* KPIs Pequeños */}
