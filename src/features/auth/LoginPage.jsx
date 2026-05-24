@@ -9,8 +9,23 @@ import axios from "axios";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import loginImage from "../../assets/login.jpg";
 
-const PERMS_ADMIN    = ["users.view","users.create","users.edit","users.delete","system.view","reports.view"];
-const PERMS_EMPLOYEE = ["sales.view","sales.create","sales.orders","inven.view","inven.create","services.view","services.manage"];
+const PERMS_ADMIN = [
+  "dashboard.view", "users.view", "users.create", "users.edit", "users.delete",
+  "users.status", "system.roles", "reports.shifts", "reports.performance",
+  "config.service_categories.create", "config.payment_methods.create", "config.document_types.create"
+];
+
+const PERMS_EMPLOYEE = [
+  "purchase.view", "purchase.create", "purchase.edit", "purchase.delete", "purchase.status",
+  "products.view", "products.create", "products.edit", "products.delete", "products.status",
+  "categories.view", "categories.create", "categories.edit", "categories.delete", "categories.status",
+  "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", "suppliers.status",
+  "sales.view", "sales.create", "sales.cancel", "sales.return", "sales.invoice", "sales.export",
+  "orders.view", "orders.create", "orders.edit", "orders.delete", "orders.status", "orders.export",
+  "services.view", "services.create", "services.edit", "services.delete", "services.status",
+  "appointments.create", "appointments.calendar", "appointments.list", "appointments.status",
+  "appointments.availability", "appointments.doctors.view", "reports.shifts", "reports.performance"
+];
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -119,8 +134,8 @@ const LoginPage = () => {
       const normalizedUser = {
         ...data.user,
         rol: data.user.rol?.toLowerCase().trim(),
+        permisos: Array.isArray(data.user.permisos) ? data.user.permisos : [],
       };
-
       sessionStorage.setItem("syspharma_user", JSON.stringify(normalizedUser));
 
       // Sincronizar productos al login
@@ -150,19 +165,23 @@ const LoginPage = () => {
 
       const rutasPorRol = {
         "administrador": "/admin/dashboard",
-        "empleado": "/employee/inicio",
         "cliente": "/client/inicio",
       };
+
+      console.log("ROL:", role);
+      console.log("PERMISOS:", userPerms);
+      console.log("TIENE PERMS ADMIN:", userPerms.some(p => PERMS_ADMIN.includes(p)));
+      console.log("TIENE PERMS EMPLEADO:", userPerms.some(p => PERMS_EMPLOYEE.includes(p)));
+      console.log("REDIRECT PATH:", rutasPorRol[role]);
 
       // Roles dinámicos — decidir panel según permisos
       let redirectPath = rutasPorRol[role];
       if (!redirectPath) {
-        const tienePermisosAdmin    = userPerms.some(p => PERMS_ADMIN.includes(p));
-        const tienePermisosEmpleado = userPerms.some(p => PERMS_EMPLOYEE.includes(p));
-        if (tienePermisosAdmin)    redirectPath = "/admin/dashboard";
-        else if (tienePermisosEmpleado) redirectPath = "/employee/inicio";
-        else redirectPath = "/employee/inicio";
+        // empleado fijo y cualquier rol dinámico van al panel empleado
+        redirectPath = "/employee/inicio";
       }
+
+      navigate(redirectPath);
 
       console.log("✨ LOGIN EXITOSO - Navegando a:", redirectPath);
       navigate(redirectPath);

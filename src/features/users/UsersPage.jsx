@@ -21,6 +21,8 @@ export const UsersPage = () => {
   const canCreateUser = isAdmin || userPerms.includes("users.create");
   const canEditUser   = isAdmin || userPerms.includes("users.edit");
   const canDeleteUser = isAdmin || userPerms.includes("users.delete");
+  const canViewDetail    = isAdmin || userPerms.includes("users.view");
+  const canToggleStatus  = isAdmin || userPerms.includes("users.status");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -235,14 +237,25 @@ export const UsersPage = () => {
                         </td>
                         <td className="px-3 py-2.5 text-gray-500 font-mono">{user.documento || "---"}</td>
                         <td className="px-3 py-2.5 text-center">
-                          <button onClick={() => handleToggleStatus(user)}
-                            className={`relative w-8 h-4 rounded-full transition-colors duration-200 ${user.estado ? "bg-primary-500" : "bg-gray-300"}`}>
-                            <span className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full shadow transition-transform duration-200 ${user.estado ? "translate-x-4" : "translate-x-0"}`} />
-                          </button>
+                        <button
+                          onClick={() => canToggleStatus ? handleToggleStatus(user) : null}
+                          className={`relative w-8 h-4 rounded-full transition-colors duration-200 
+                            ${user.estado ? "bg-primary-500" : "bg-gray-300"}
+                            ${!canToggleStatus ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
+                          `}
+                        >
+                          <span className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full shadow transition-transform duration-200 
+                            ${user.estado ? "translate-x-4" : "translate-x-0"}`} 
+                          />
+                        </button>
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button onClick={() => handleOpenDetail(user)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200"><Info size={14} /></button>
+                            {canViewDetail && (
+                              <button onClick={() => handleOpenDetail(user)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200">
+                                <Info size={14} />
+                              </button>
+                            )}
                             {canEditUser && <button onClick={() => handleOpenEdit(user)} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"><Edit size={14} /></button>}
                             {canDeleteUser && (
                               <button onClick={() => handleDelete(user)}

@@ -23,6 +23,19 @@ export const ServicesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState(null);
   const itemsPerPage = 5;
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (currentUser.rol || "").toLowerCase().trim();
+  const userPerms = (currentUser.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const isAdmin = userRole === "administrador";
+  const isEmployeePanel = userRole !== "administrador";
+  const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
+  const canCreate = hasPerm("services.create");
+  const canEdit = hasPerm("services.edit");
+  const canDelete = hasPerm("services.delete");
+  const canChangeStatus = hasPerm("services.status");
+  const theme = isEmployeePanel
+    ? { main: "bg-blue-600", hover: "hover:bg-blue-700", text: "text-blue-600", light: "bg-blue-50", hoverLight: "hover:bg-blue-50", border: "border-blue-200", focus: "focus:border-blue-500" }
+    : { main: "bg-emerald-600", hover: "hover:bg-emerald-700", text: "text-emerald-600", light: "bg-emerald-50", hoverLight: "hover:bg-emerald-50", border: "border-emerald-200", focus: "focus:border-emerald-500" };
 
   const [confirmConfig, setConfirmConfig] = useState({
     open: false, title: "", message: "", confirmText: "Confirmar", danger: true, onConfirm: null,
@@ -51,9 +64,13 @@ export const ServicesPage = () => {
     }
   }, [notification]);
 
-  const handleCreate = () => { setEditingItem(null); setIsViewMode(false); setIsModalOpen(true); };
+  const handleCreate = () => {
+    if (!canCreate) return;
+    setEditingItem(null); setIsViewMode(false); setIsModalOpen(true);
+  };
 
   const handleEdit = (srv) => {
+    if (!canEdit) return;
     setConfirmConfig({
       open: true, title: "Editar Servicio",
       message: <><b>¿Editar el servicio "{srv.nombre}"?</b></>,
@@ -65,6 +82,10 @@ export const ServicesPage = () => {
   const handleView = (srv) => { setEditingItem(srv); setIsViewMode(true); setIsModalOpen(true); };
 
   const handleDelete = (srv) => {
+    if (!canDelete) {
+      setNotification({ message: "No tienes permiso para eliminar servicios", type: "error" });
+      return;
+    }
     setConfirmConfig({
       open: true, title: "Eliminar Servicio",
       message: <><b>¿Eliminar el servicio "{srv.nombre}"?</b><br /><span className="text-xs text-gray-500">Esta acción no se puede deshacer.</span></>,
@@ -82,6 +103,7 @@ export const ServicesPage = () => {
   };
 
   const handleToggleEstado = (srv) => {
+    if (!canChangeStatus) return;
     const newEstado = !srv.estado;
     setConfirmConfig({
       open: true, title: `Cambiar estado`,
@@ -101,6 +123,15 @@ export const ServicesPage = () => {
   };
 
   const handleSave = async (formData) => {
+    if (editingItem && !canEdit) {
+      setNotification({ message: "No tienes permiso para editar servicios", type: "error" });
+      return;
+    }
+    if (!editingItem && !canCreate) {
+      setNotification({ message: "No tienes permiso para crear servicios", type: "error" });
+      return;
+    }
+
     try {
       if (editingItem) {
         await axios.put(API_URL, { ...formData, id: editingItem.id }, getAuthHeaders());
@@ -139,21 +170,23 @@ export const ServicesPage = () => {
           <h1 className="text-lg font-bold text-gray-800">Servicios</h1>
           <p className="text-xs text-gray-500">Catálogo de procedimientos</p>
         </div>
-        <button onClick={handleCreate}
-          className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors">
-          <Plus size={16} /> Nuevo
-        </button>
+        {canCreate && (
+          <button onClick={handleCreate}
+            className={`flex items-center gap-1.5 ${theme.main} ${theme.hover} text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors`}>
+            <Plus size={16} /> Nuevo
+          </button>
+        )}
       </div>
 
       <div className="flex gap-3 mb-3 flex-shrink-0">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input type="text" placeholder="Buscar servicio..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 text-sm focus:outline-none focus:border-emerald-500"
+            className={`w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 text-sm focus:outline-none ${theme.focus}`}
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <div className="relative w-36">
-          <select className="w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 text-sm bg-white appearance-none cursor-pointer focus:outline-none focus:border-emerald-500"
+          <select className={`w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 text-sm bg-white appearance-none cursor-pointer focus:outline-none ${theme.focus}`}
             value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="Todos">Todos</option>
             <option value="Activo">Activo</option>
@@ -166,7 +199,7 @@ export const ServicesPage = () => {
       <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-emerald-600 text-white sticky top-0 z-10">
+            <thead className={`${theme.main} text-white sticky top-0 z-10`}>
               <tr>
                 {["ID", "Nombre", "Categoría", "Precio", "Duración", "Estado", "Acciones"].map(h => (
                   <th key={h} className="py-2 px-3 text-[10px] font-bold uppercase">{h}</th>
@@ -184,26 +217,27 @@ export const ServicesPage = () => {
                     <td className="py-1.5 px-3 text-xs font-medium text-gray-900">{srv.id}</td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center gap-2">
-                        <Stethoscope size={12} className="text-emerald-600" />
+                        <Stethoscope size={12} className={theme.text} />
                         <span className="text-xs font-bold text-gray-700">{srv.nombre}</span>
                       </div>
                     </td>
                     <td className="py-1.5 px-3 text-xs text-gray-600">{srv.categoriaNombre}</td>
-                    <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">$ {Number(srv.precio).toLocaleString()}</td>
+                    <td className={`py-1.5 px-3 text-xs font-bold ${theme.text} text-right`}>$ {Number(srv.precio).toLocaleString()}</td>
                     <td className="py-1.5 px-3 text-xs text-center text-gray-500">
                       <div className="flex items-center justify-center gap-1"><Clock size={10} /> {srv.duracion} min</div>
                     </td>
                     <td className="py-1.5 px-3">
                       <button onClick={() => handleToggleEstado(srv)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${srv.estado ? "bg-emerald-600" : "bg-gray-400"}`}>
+                        disabled={!canChangeStatus}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${srv.estado ? theme.main : "bg-gray-400"} ${!canChangeStatus ? "opacity-50 cursor-not-allowed" : ""}`}>
                         <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${srv.estado ? "translate-x-5" : "translate-x-0.5"}`} />
                       </button>
                     </td>
                     <td className="py-1.5 px-3">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => handleView(srv)} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50"><Eye size={14} /></button>
-                        <button onClick={() => handleEdit(srv)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50"><Edit size={14} /></button>
-                        <button onClick={() => handleDelete(srv)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50"><Trash2 size={14} /></button>
+                        <button onClick={() => handleView(srv)} className={`p-1 rounded border ${theme.border} ${theme.text} ${theme.hoverLight}`}><Eye size={14} /></button>
+                        {canEdit && <button onClick={() => handleEdit(srv)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50"><Edit size={14} /></button>}
+                        {canDelete && <button onClick={() => handleDelete(srv)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50"><Trash2 size={14} /></button>}
                       </div>
                     </td>
                   </tr>
