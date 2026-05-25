@@ -90,7 +90,7 @@ export const CategoriesPage = () => {
 
   useEffect(() => {
     if (notification) {
-      const timer = setTimeout(() => setNotification(null), 3000);
+      const timer = setTimeout(() => setNotification(null), 4000); // 4 segundos para leer mensajes largos
       return () => clearTimeout(timer);
     }
   }, [notification]);
@@ -139,7 +139,10 @@ export const CategoriesPage = () => {
       await loadData();
     } catch (err) {
       console.error("Error al eliminar:", err);
-      setNotification({ message: "Error al eliminar la categoría.", type: "error" });
+      
+      // --- MODIFICADO: Extrae el mensaje dinámico enviado por el Backend ---
+      const errorMsg = err.response?.data?.message || "No se puede eliminar la categoría porque está relacionada a un producto.";
+      setNotification({ message: errorMsg, type: "error" });
     } finally {
       setIsDeleteConfirmOpen(false);
       setCategoryToDelete(null);
@@ -333,11 +336,17 @@ export const CategoriesPage = () => {
         </div>
       )}
 
-      {/* Notification */}
+      {/* MODIFICADO: Notificación adaptativa para alertas y éxitos */}
       {notification && (
-        <div className="fixed bottom-4 left-4 max-w-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="bg-white rounded-lg shadow-lg border border-green-200 p-4 flex items-start gap-3">
-            <CheckCircle size={18} className={`${theme.successIcon} flex-shrink-0 mt-0.5`} />
+        <div className="fixed bottom-4 left-4 max-w-xs animate-in fade-in slide-in-from-bottom-2 duration-300 z-50">
+          <div className={`bg-white rounded-lg shadow-lg p-4 flex items-start gap-3 border ${
+            notification.type === "error" ? "border-red-200" : "border-green-200"
+          }`}>
+            {notification.type === "error" ? (
+              <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+            ) : (
+              <CheckCircle size={18} className={`${theme.successIcon} flex-shrink-0 mt-0.5`} />
+            )}
             <p className="text-xs font-bold text-gray-800">{notification.message}</p>
           </div>
         </div>

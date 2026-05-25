@@ -32,6 +32,7 @@ const ServiceFormModal = ({
     : "bg-emerald-600 hover:bg-emerald-700";
 
   const [formData, setFormData] = useState({
+    id: "", // <-- AGREGADO AL ESTADO INICIAL
     nombre: "",
     categoriaId: "",
     estado: "Activo",
@@ -59,6 +60,7 @@ const ServiceFormModal = ({
       });
     } else {
       setFormData({
+        id: "", // <-- LIMPIAR ID AL CREAR NUEVO
         nombre: "",
         categoriaId: String(defaultCat),
         estado: "Activo",
@@ -148,7 +150,22 @@ const ServiceFormModal = ({
 
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+            
+            {/* Campo ID - Se muestra solo si el servicio ya existe (Edición o Vista de Detalles) */}
+            {formData.id && (
+              <div className="col-span-1">
+                <label className="block text-xs font-bold text-gray-700 mb-1">ID</label>
+                <input
+                  type="text"
+                  disabled
+                  className="w-full pl-3 pr-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-100 text-gray-500 focus:outline-none"
+                  value={formData.id}
+                />
+              </div>
+            )}
+
+            {/* Campo Nombre - Ocupa la mitad si se muestra el ID, o el ancho completo si es nuevo */}
+            <div className={formData.id ? "col-span-1" : "col-span-2"}>
               <label className="block text-xs font-bold text-gray-700 mb-1">Nombre</label>
               <input
                 type="text"
@@ -168,6 +185,7 @@ const ServiceFormModal = ({
                 </div>
               )}
             </div>
+            
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Categoría</label>
               <select

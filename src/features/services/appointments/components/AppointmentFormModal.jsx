@@ -111,7 +111,6 @@ const AppointmentFormModal = ({
     const loadServices = async () => {
       try {
         const response = await apiClient.get("Servicio");
-        // apiClient devuelve objeto axios: la data está en response.data
         const raw = Array.isArray(response.data)
           ? response.data
           : Array.isArray(response)
@@ -307,6 +306,9 @@ const AppointmentFormModal = ({
           referencia: created?.id || "CITA",
           paciente: formData.paciente,
         });
+        
+        // --- NUEVO: Llamar a onSave para recargar los datos en la creación ---
+        onSave && onSave(null);
       }
       onClose();
     } catch (error) {

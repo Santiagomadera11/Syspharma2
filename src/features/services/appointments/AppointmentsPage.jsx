@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Calendar as CalendarIcon, List, Settings, Plus, Search, Eye, Edit, Trash2,
-  ChevronLeft, ChevronRight, Clock, Users, Filter, DollarSign, X, CheckCircle
+  ChevronLeft, ChevronRight, Clock, Users, Filter, DollarSign, X, CheckCircle, AlertCircle
 } from "lucide-react";
 import axios from "axios";
 import AppointmentFormModal from "./components/AppointmentFormModal";
@@ -40,6 +40,10 @@ export const AppointmentsPage = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isDaySummaryModalOpen, setIsDaySummaryModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+
+  // Estado para controlar qué popover flotante de estado está activo
+  const [activeStatusPopover, setActiveStatusPopover] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -61,20 +65,37 @@ export const AppointmentsPage = () => {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Escuchar cambios en médicos para refrescar el selector del modal
+  // Escuchar cambios en médicos y en citas para refrescar la vista en tiempo real
   useEffect(() => {
     const refresh = () => loadData();
     window.addEventListener("doctors:changed", refresh);
-    return () => window.removeEventListener("doctors:changed", refresh);
+    window.addEventListener("appointments:changed", refresh);
+    return () => {
+      window.removeEventListener("doctors:changed", refresh);
+      window.removeEventListener("appointments:changed", refresh);
+    };
   }, [loadData]);
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter(apt => {
-      const matchRange = apt.fecha >= range.start && apt.fecha <= range.end;
+      const cleanAptFecha = apt.fecha ? apt.fecha.substring(0, 10) : "";
+      const matchRange = cleanAptFecha >= range.start && cleanAptFecha <= range.end;
+      
       const matchSearch = (apt.pacienteNombre || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (apt.servicioNombre || "").toLowerCase().includes(searchTerm.toLowerCase());
       return matchRange && matchSearch;
-    }).sort((a, b) => new Date(`${b.fecha}T${b.hora}`) - new Date(`${a.fecha}T${a.hora}`));
+    }).sort((a, b) => {
+      const cleanFechaA = a.fecha ? a.fecha.substring(0, 10) : "";
+      const cleanFechaB = b.fecha ? b.fecha.substring(0, 10) : "";
+      
+      const timeA = a.hora || "00:00:00";
+      const timeB = b.hora || "00:00:00";
+
+      const dateTimeA = new Date(`${cleanFechaA}T${timeA}`);
+      const dateTimeB = new Date(`${cleanFechaB}T${timeB}`);
+
+      return dateTimeB - dateTimeA;
+    });
   }, [appointments, range, searchTerm]);
 
   const financialSummary = useMemo(() => {
@@ -85,8 +106,12 @@ export const AppointmentsPage = () => {
   }, [filteredAppointments]);
 
   const getAppointmentsForDate = (date) => {
-    const dateStr = date.toISOString().split("T")[0];
-    return appointments.filter(apt => apt.fecha === dateStr);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+    
+    return appointments.filter(apt => apt.fecha && apt.fecha.startsWith(dateStr));
   };
 
   const handleStatusChange = async (appointmentId, estadoNombre) => {
@@ -97,15 +122,45 @@ export const AppointmentsPage = () => {
         ...getAuthHeaders(),
         headers: { ...getAuthHeaders().headers, "Content-Type": "application/json" }
       });
-      setNotification({ message: "Estado actualizado", type: "success" });
+      setNotification({ message: "Estado actualizado correctamente", type: "success" });
       loadData();
     } catch (err) {
       setNotification({ message: "Error al actualizar", type: "error" });
     }
   };
 
+  const confirmDelete = async () => {
+    if (!showDeleteConfirm) return;
+    try {
+      await axios.delete(`${API_URL}/${showDeleteConfirm.id}`, getAuthHeaders());
+      setNotification({ message: "Cita eliminada correctamente", type: "success" });
+      loadData();
+    } catch (err) {
+      console.error("Error al eliminar cita:", err);
+      setNotification({ message: "Error al eliminar la cita", type: "error" });
+    } finally {
+      setShowDeleteConfirm(null);
+    }
+  };
+
+  // Función de ayuda para formatear las clases de color del estado estático (Píldora)
+  const getStatusPillStyle = (estadoNombre) => {
+    const est = (estadoNombre || "").toLowerCase();
+    if (est.includes("completada")) {
+      return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    }
+    if (est.includes("cancelada")) {
+      return "bg-red-50 text-red-700 border-red-100";
+    }
+    if (est.includes("pendiente") || est.includes("asistencia")) {
+      return "bg-amber-50 text-amber-700 border-amber-100";
+    }
+    return "bg-blue-50 text-blue-700 border-blue-100";
+  };
+
   const renderList = () => (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+    // --- MODIFICADO: Cambiado overflow-hidden a overflow-visible para que el modal flotante no se recorte ---
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">
       <div className="p-4 border-b border-gray-50 bg-gray-50/30">
         <input type="text" placeholder="Buscar paciente o servicio..."
           className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
@@ -114,12 +169,13 @@ export const AppointmentsPage = () => {
       <table className="w-full text-left">
         <thead className="bg-gray-50 text-gray-400">
           <tr>
-            <th className="p-4 text-[10px] font-black uppercase">Paciente</th>
+            {/* --- MODIFICADO: Se agregaron clases rounded-tl-3xl y rounded-tr-3xl para conservar las esquinas redondeadas de la tabla sin recortar --- */}
+            <th className="p-4 text-[10px] font-black uppercase rounded-tl-3xl">Paciente</th>
             <th className="p-4 text-[10px] font-black uppercase">Fecha / Hora</th>
             <th className="p-4 text-[10px] font-black uppercase">Servicio</th>
             <th className="p-4 text-[10px] font-black uppercase">Precio</th>
             <th className="p-4 text-[10px] font-black uppercase">Estado</th>
-            <th className="p-4 text-center text-[10px] font-black uppercase">Ver</th>
+            <th className="p-4 text-center text-[10px] font-black uppercase rounded-tr-3xl">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -133,18 +189,79 @@ export const AppointmentsPage = () => {
                   <p className="text-[10px] text-gray-400 font-bold uppercase">{apt.medicoNombre}</p>
                 </td>
                 <td className="p-4">
-                  <p className="text-sm font-bold text-gray-700">{apt.fecha}</p>
+                  <p className="text-sm font-bold text-gray-700">{apt.fecha ? apt.fecha.substring(0, 10) : ""}</p>
                   <p className="text-[10px] text-gray-400 font-bold">{apt.hora}</p>
                 </td>
                 <td className="p-4 text-sm font-medium text-gray-600">{apt.servicioNombre}</td>
                 <td className="p-4 font-black text-emerald-600">${Number(apt.precio || 0).toLocaleString()}</td>
+                
                 <td className="p-4">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${apt.estadoNombre?.toLowerCase().includes('completada') ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${getStatusPillStyle(apt.estadoNombre)}`}>
                     {apt.estadoNombre}
                   </span>
                 </td>
-                <td className="p-4 text-center">
-                  <button onClick={() => { setSelectedAppointment(apt); setIsDetailModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Eye size={16} /></button>
+
+                <td className="p-4">
+                  <div className="flex justify-center gap-1.5 items-center">
+                    <button 
+                      onClick={() => { setSelectedAppointment(apt); setIsDetailModalOpen(true); }} 
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Ver detalle"
+                    >
+                      <Eye size={16} />
+                    </button>
+
+                    {/* Botón interactivo y popover de cambio de estado */}
+                    <div className="relative">
+                      <button 
+                        onClick={() => setActiveStatusPopover(activeStatusPopover === apt.id ? null : apt.id)} 
+                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                        title="Cambiar estado"
+                      >
+                        <CheckCircle size={16} />
+                      </button>
+
+                      {activeStatusPopover === apt.id && (
+                        <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 py-2 animate-in fade-in slide-in-from-top-2 duration-150">
+                          <p className="text-[9px] font-black uppercase text-gray-400 px-3 pb-1.5 border-b border-gray-50 tracking-wider">Cambiar Estado</p>
+                          {estados.map(est => (
+                            <button
+                              key={est.id}
+                              onClick={() => {
+                                handleStatusChange(apt.id, est.nombre);
+                                setActiveStatusPopover(null);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-xs font-bold transition-colors hover:bg-gray-50 flex items-center gap-2 ${
+                                apt.estadoNombre === est.nombre ? "text-emerald-600 bg-emerald-50/30" : "text-gray-600"
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                est.nombre.toLowerCase().includes("completada") ? "bg-emerald-500" :
+                                est.nombre.toLowerCase().includes("cancelada") ? "bg-red-500" :
+                                est.nombre.toLowerCase().includes("pendiente") || est.nombre.toLowerCase().includes("asistencia") ? "bg-amber-500" : "bg-blue-500"
+                              }`} />
+                              {est.nombre}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <button 
+                      onClick={() => { setEditingAppointment(apt); setIsAppointmentModalOpen(true); }} 
+                      className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-xl transition-all"
+                      title="Editar cita"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button 
+                      onClick={() => setShowDeleteConfirm(apt)} 
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                      title="Eliminar cita"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))
@@ -268,6 +385,47 @@ export const AppointmentsPage = () => {
       {isDetailModalOpen && selectedAppointment && (
         <AppointmentDetailModal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} appointment={selectedAppointment} />
       )}
+
+      {/* Modal Eliminar Cita con el Estilo Solicitado */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col border border-gray-100">
+            {/* Header */}
+            <div className="bg-red-50/50 px-6 py-4 border-b border-red-100 flex justify-between items-center flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-red-100 text-red-600 rounded-full">
+                  <AlertCircle size={16} />
+                </div>
+                <h3 className="font-bold text-gray-800 text-sm uppercase tracking-wider">Eliminar Registro</h3>
+              </div>
+              <button onClick={() => setShowDeleteConfirm(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            {/* Body */}
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                ¿Estás seguro de eliminar a <strong>{showDeleteConfirm.pacienteNombre}</strong>?
+              </p>
+              <p className="text-xs text-red-500 font-semibold italic flex items-start gap-1.5">
+                <span>⚠️</span> Esta acción borrará la cita permanentemente de la base de datos.
+              </p>
+            </div>
+            {/* Footer */}
+            <div className="bg-gray-50/30 px-6 py-3 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setShowDeleteConfirm(null)} 
+                className="px-4 py-2 text-xs font-black uppercase tracking-widest text-gray-500 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-all">
+                Cancelar
+              </button>
+              <button onClick={confirmDelete} 
+                className="px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white bg-red-600 hover:bg-red-700 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-red-100">
+                <Trash2 size={14} /> Eliminar ahora
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {notification && <StatusNotification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
     </div>
   );
