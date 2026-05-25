@@ -15,6 +15,10 @@ const mapToApiFormat = (appointmentData) => {
     pacienteEmail: appointmentData.email,
     fecha: appointmentData.fecha,
     hora: appointmentData.hora,
+    
+    // --- NUEVO: Mapear el ID del servicio convertido a número entero para la API ---
+    servicioId: appointmentData.servicioId ? parseInt(appointmentData.servicioId, 10) : null,
+    
     servicioNombre: appointmentData.servicio || "Consulta",
     precio: appointmentData.precio || 0,
     notas: appointmentData.notas,
@@ -37,6 +41,10 @@ const mapFromApiFormat = (apiData) => ({
   hora: apiData.hora,
   servicio: apiData.servicioNombre,
   servicioNombre: apiData.servicioNombre,
+  
+  // --- NUEVO: Mapear el ID del servicio de regreso para que el modal lo precargue al editar ---
+  servicioId: apiData.servicioId,
+
   precio: apiData.precio,
   notas: apiData.notas,
   estado: apiData.estadoNombre || apiData.estado,
@@ -46,16 +54,15 @@ const mapFromApiFormat = (apiData) => ({
 export const appointmentService = {
   // --- MÉDICOS ---
   getDoctors: async () => {
-  try {
-    const res = await apiClient.get(DOCTORS_ENDPOINT);
-    // apiClient puede devolver res directamente o res.data
-    const data = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : []);
-    return data;
-  } catch (error) {
-    console.error("Error obteniendo médicos:", error);
-    return [];
-  }
-},
+    try {
+      const res = await apiClient.get(DOCTORS_ENDPOINT);
+      const data = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : []);
+      return data;
+    } catch (error) {
+      console.error("Error obteniendo médicos:", error);
+      return [];
+    }
+  },
 
   updateDoctorSchedule: async (doctor) => {
     try {
@@ -179,5 +186,3 @@ export const appointmentService = {
     }
   },
 };
-
-// (no debug exposure)
