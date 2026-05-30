@@ -36,7 +36,7 @@ export const UsersPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
 
   // ✅ 1. CORRECCIÓN: Paginado a 6 registros
-  const itemsPerPage = 6; 
+  const itemsPerPage = 20; 
 
   useEffect(() => {
     loadUsers();

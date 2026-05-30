@@ -199,7 +199,7 @@ export const DoctorsPage = () => {
                 <th className="px-4 py-3 text-left text-xs font-semibold">Especialidad</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold">Email</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold">Teléfono</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold">Días Laborales</th>
+                {/* <th className="px-4 py-3 text-left text-xs font-semibold">Días Laborales</th> */}
                 <th className="px-4 py-3 text-left text-xs font-semibold">Estado</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold">Acciones</th>
               </tr>
@@ -219,13 +219,6 @@ export const DoctorsPage = () => {
                     <td className="px-4 py-3 text-sm text-gray-600">{doctor.especialidad}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{doctor.email}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{doctor.telefono}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {doctor.diasLaborales?.length > 0 && (
-                        <span className="inline-block bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs">
-                          {doctor.diasLaborales.map(d => DIAS_LABELS[d]).join(", ")}
-                        </span>
-                      )}
-                    </td>
                     <td className="px-4 py-3"><StatusToggle doctor={doctor} /></td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
@@ -284,23 +277,17 @@ export const DoctorsPage = () => {
                 { label: "Documento", value: selectedDoctor.documento },
                 { label: "Email", value: selectedDoctor.email },
                 { label: "Teléfono", value: selectedDoctor.telefono },
-                { label: "Horario", value: `${selectedDoctor.horaInicio} - ${selectedDoctor.horaFin} (cada ${selectedDoctor.intervalo} min)` },
               ].map(({ label, value }) => value && (
                 <div key={label}>
                   <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">{label}</label>
                   <p className="text-sm text-gray-900 font-medium">{value}</p>
                 </div>
               ))}
-              {selectedDoctor.diasLaborales?.length > 0 && (
-                <div>
-                  <label className="text-xs font-semibold text-gray-600 uppercase block mb-1">Días Laborales</label>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedDoctor.diasLaborales.map((dia) => (
-                      <span key={dia} className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-md text-xs font-medium">{DIAS_LABELS[dia]}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
+                <p className="text-xs text-emerald-700 font-medium">
+                  💡 El horario detallado se configura desde la pestaña <strong>Disponibilidad</strong>.
+                </p>
+              </div>
             </div>
             <div className="bg-gray-50 px-6 py-3 border-t flex justify-end">
               <button onClick={() => setIsDetailModalOpen(false)} className="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100">Cerrar</button>

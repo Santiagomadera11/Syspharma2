@@ -124,7 +124,7 @@ const LoginPage = () => {
       const data = res.data || res;
 
       if (!data || !data.token || !data.user) {
-        setError("La respuesta del servidor no contiene datos de usuario.");
+        setError("El correo o la contraseña no coinciden. Intente de nuevo");
         return;
       }
 

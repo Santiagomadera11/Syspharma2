@@ -78,16 +78,14 @@ const AppointmentFormModal = ({
 
   // Cuando cambia el médico o la fecha, actualizar slots disponibles
   useEffect(() => {
-    if (formData.doctorId && formData.fecha) {
-      const slots = availabilityService.getAvailableSlotsForDate(
-        formData.doctorId,
-        formData.fecha,
-      );
-      setAvailableSlots(slots);
-    } else {
-      setAvailableSlots([]);
-    }
-  }, [formData.doctorId, formData.fecha, availabilityService]);
+  if (!formData.doctorId || !formData.fecha) {
+    setAvailableSlots([]);
+    return;
+  }
+  availabilityService
+    .getSlots(parseInt(formData.doctorId), formData.fecha)
+    .then((slots) => setAvailableSlots(Array.isArray(slots) ? slots : []));
+}, [formData.doctorId, formData.fecha]);
 
   // Validaciones
   const validateField = (name, value) => {

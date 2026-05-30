@@ -56,10 +56,16 @@ export const CalendarPicker = ({
     const dateStr = getDateString(date);
 
     // Validar rango de fechas
-    if (minDate && date < new Date(minDate))
-      return { disabled: true, reason: "min" };
-    if (maxDate && date > new Date(maxDate))
-      return { disabled: true, reason: "max" };
+    if (minDate) {
+  const [y, m, d] = minDate.split("-").map(Number);
+  const minDateLocal = new Date(y, m - 1, d);
+  if (date < minDateLocal) return { disabled: true, reason: "min" };
+  }
+  if (maxDate) {
+    const [y, m, d] = maxDate.split("-").map(Number);
+    const maxDateLocal = new Date(y, m - 1, d);
+    if (date > maxDateLocal) return { disabled: true, reason: "max" };
+  }
 
     if (!disabledDates || disabledDates.length === 0)
       return { disabled: false };

@@ -17,6 +17,7 @@ import { appointmentService } from "../services/appointmentService";
 import { apiClient } from "../../../../shared/utils/apiClient";
 import CalendarPicker from "./CalendarPicker";
 import { turnService } from "../../../sales/services/turnService";
+import { availabilityService } from "../services/availabilityService";
 
 const getDateString = (date) => {
   const year = date.getFullYear();
@@ -33,6 +34,12 @@ const getLocalToday = () => {
   return `${year}-${month}-${day}`;
 };
 
+const parseDateLocal = (isoDate) => {
+  if (!isoDate) return new Date();
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day); // sin UTC, local puro
+};
+
 const formatDateDisplay = (isoDate) => {
   if (!isoDate) return "";
   const parts = isoDate.split("-");
@@ -46,7 +53,7 @@ const AppointmentFormModal = ({
   onSave,
   appointment,
   doctors,
-  availabilityService,
+  // availabilityService,
 }) => {
   const initialFormState = {
     paciente: "",
@@ -72,6 +79,8 @@ const AppointmentFormModal = ({
 
   const [formData, setFormData] = useState(initialFormState);
   const [availableSlots, setAvailableSlots] = useState([]);
+  const [diasBloqueados, setDiasBloqueados] = useState([]);
+  const [horarioMedico, setHorarioMedico] = useState([]);
   const [servicesList, setServicesList] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -156,75 +165,56 @@ const AppointmentFormModal = ({
     return slots;
   };
 
-  const getDisabledDatesForDoctor = (doctorId) => {
-    if (!availabilityService || !doctorId) return [];
-    try {
-      const doctorAvailability = availabilityService.getAvailabilityByDoctor(
-        parseInt(doctorId),
-      );
-      const unavailableDays = availabilityService.getUnavailableDays() || [];
-      const disabled = [];
-      const dayNames = [
-        "sunday",
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-      ];
+  // Cargar bloqueos y horario cuando cambia el médico
+  useEffect(() => {
+  if (!formData.doctorId) {
+    setDiasBloqueados([]);
+    setHorarioMedico([]);
+    return;
+  }
+  const id = parseInt(formData.doctorId);
+  availabilityService.getDiasNoDisponibles(id)
+    .then(data => setDiasBloqueados(Array.isArray(data) ? data : []))
+    .catch(() => setDiasBloqueados([]));
+  availabilityService.getHorario(id)
+    .then(data => setHorarioMedico(Array.isArray(data) ? data : []))
+    .catch(() => setHorarioMedico([]));
+}, [formData.doctorId]);
 
-      unavailableDays.forEach((day) => {
-        disabled.push({
-          date: day.date,
-          reason: day.reason ? String(day.reason).toLowerCase() : "farmacia",
-        });
-      });
+// REEMPLAZAR getDisabledDatesForDoctor completa:
+const getDisabledDatesForDoctor = () => {
+  const disabled = [];
+  const diasConHorario = new Set(horarioMedico.map((h) => h.diaSemana));
 
-      if (doctorAvailability) {
-        const today = new Date();
-        const maxDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
-        for (
-          let d = new Date(today);
-          d <= maxDate;
-          d.setDate(d.getDate() + 1)
-        ) {
-          const dayName = dayNames[d.getDay()];
-          if (!doctorAvailability.schedule[dayName]) {
-            disabled.push({ date: getDateString(d), reason: "doctor" });
-          }
-        }
-      }
-      return disabled;
-    } catch (error) {
-      console.warn("Error getting disabled dates:", error);
-      return [];
+  const today = new Date();
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    if (!diasConHorario.has(d.getDay())) {
+      disabled.push({ date: getDateString(d), reason: "doctor" });
     }
-  };
+  }
+
+  diasBloqueados.forEach((bloqueo) => {
+    const start = new Date(bloqueo.fechaInicio + "T12:00:00");
+    const end = new Date(bloqueo.fechaFin + "T12:00:00");
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      disabled.push({ date: getDateString(d), reason: bloqueo.motivo || "no disponible" });
+    }
+  });
+
+  return disabled;
+};
 
   useEffect(() => {
-    if (formData.doctorId && formData.fecha) {
-      let slots = [];
-      try {
-        if (
-          availabilityService &&
-          typeof availabilityService.getAvailableSlotsForDate === "function"
-        ) {
-          slots = availabilityService.getAvailableSlotsForDate(
-            parseInt(formData.doctorId),
-            formData.fecha,
-          );
-          if (!Array.isArray(slots)) slots = [];
-        }
-        if (slots.length === 0) slots = generateTimeSlots();
-      } catch {
-        slots = generateTimeSlots();
-      }
-      setAvailableSlots(slots);
-    } else {
-      setAvailableSlots([]);
-    }
-  }, [formData.doctorId, formData.fecha, availabilityService]);
+  if (!formData.doctorId || !formData.fecha) {
+    setAvailableSlots([]);
+    return;
+  }
+  availabilityService
+    .getSlots(parseInt(formData.doctorId), formData.fecha)
+    .then((slots) => setAvailableSlots(Array.isArray(slots) ? slots : []));
+}, [formData.doctorId, formData.fecha]);
 
   const handleGenericInput = (e) => {
     const { name, value } = e.target;
@@ -458,6 +448,11 @@ const AppointmentFormModal = ({
                     {errors.doctorId}
                   </p>
                 )}
+                {formData.doctorId && horarioMedico.length === 0 && (
+                  <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                    <AlertCircle size={12} /> Este médico no tiene horario configurado aún
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -495,7 +490,7 @@ const AppointmentFormModal = ({
                   {formData.fecha &&
                     formData.doctorId &&
                     (() => {
-                      const dd = getDisabledDatesForDoctor(formData.doctorId);
+                      const dd = getDisabledDatesForDoctor();
                       const found =
                         Array.isArray(dd) &&
                         dd.find((d) =>
@@ -523,9 +518,7 @@ const AppointmentFormModal = ({
                           if (errors.fecha)
                             setErrors((prev) => ({ ...prev, fecha: null }));
                         }}
-                        disabledDates={getDisabledDatesForDoctor(
-                          formData.doctorId,
-                        )}
+                        disabledDates={getDisabledDatesForDoctor()}
                         minDate={getLocalToday()}
                       />
                     </div>
@@ -536,26 +529,33 @@ const AppointmentFormModal = ({
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                     Hora *
                   </label>
-                  <select
-                    name="hora"
-                    className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.hora ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
-                    value={formData.hora}
-                    onChange={handleGenericInput}
-                    disabled={!formData.doctorId || !formData.fecha}
-                  >
-                    <option value="">
-                      {availableSlots.length > 0 ? "Seleccionar hora..." : "--"}
-                    </option>
-                    {availableSlots.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </select>
+                  <div className={`w-full border rounded-lg bg-white overflow-hidden ${errors.hora ? "border-red-300" : "border-gray-200"} ${(!formData.doctorId || !formData.fecha) ? "opacity-50 pointer-events-none" : ""}`}>
+                    {availableSlots.length === 0 ? (
+                      <p className="px-3 py-2 text-sm text-gray-400">--</p>
+                    ) : (
+                      <div className="max-h-[120px] overflow-y-auto">
+                        {availableSlots.map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, hora: slot }));
+                              if (errors.hora) setErrors(prev => ({ ...prev, hora: null }));
+                            }}
+                            className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${
+                              formData.hora === slot
+                                ? "bg-emerald-600 text-white font-semibold"
+                                : "text-gray-700 hover:bg-emerald-50"
+                            }`}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {errors.hora && (
-                    <p className="text-[10px] text-red-500 mt-1">
-                      {errors.hora}
-                    </p>
+                    <p className="text-[10px] text-red-500 mt-1">{errors.hora}</p>
                   )}
                 </div>
               </div>

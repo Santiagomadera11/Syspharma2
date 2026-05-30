@@ -1,454 +1,379 @@
 import React, { useState, useEffect } from "react";
-import {
-  Calendar,
-  Clock,
-  Save,
-  AlertCircle,
-  CheckCircle,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Save, Plus, X } from "lucide-react";
 import { availabilityService } from "./services/availabilityService";
 import { appointmentService } from "./services/appointmentService";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
 
+const DAY_NAMES = {
+  1: "Lunes",
+  2: "Martes",
+  3: "Miércoles",
+  4: "Jueves",
+  5: "Viernes",
+  6: "Sábado",
+  0: "Domingo",
+};
+
+// Horario vacío para un día desactivado
+const emptyDay = () => ({
+  mananaInicio: "08:00",
+  mananaFin: "12:00",
+  tardeInicio: "14:00",
+  tardeFin: "18:00",
+});
+
+// Convierte array de HorarioDiaDto de la API a mapa { diaSemana: {...} | null }
+const apiToScheduleMap = (apiHorarios) => {
+  const map = {};
+  // Todos los días empiezan desactivados
+  [0, 1, 2, 3, 4, 5, 6].forEach((d) => (map[d] = null));
+  apiHorarios.forEach((h) => {
+    map[h.diaSemana] = {
+      mananaInicio: h.mananaInicio || "08:00",
+      mananaFin: h.mananaFin || "12:00",
+      tardeInicio: h.tardeInicio || "14:00",
+      tardeFin: h.tardeFin || "18:00",
+    };
+  });
+  return map;
+};
+
+// Convierte el mapa local a array para la API
+const scheduleMapToApi = (map) => {
+  return Object.entries(map)
+    .filter(([, v]) => v !== null)
+    .map(([dia, v]) => ({
+      diaSemana: parseInt(dia),
+      mananaInicio: v.mananaInicio,
+      mananaFin: v.mananaFin,
+      tardeInicio: v.tardeInicio,
+      tardeFin: v.tardeFin,
+    }));
+};
+
 export const AvailabilityConfigPage = () => {
-  const [availability, setAvailability] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [scheduleMap, setScheduleMap] = useState({});
+  const [diasNoDisponibles, setDiasNoDisponibles] = useState([]);
+  const [newBlock, setNewBlock] = useState({
+    fechaInicio: "",
+    fechaFin: "",
+    motivo: "",
+  });
   const [notification, setNotification] = useState(null);
-  const [doctorSchedule, setDoctorSchedule] = useState({
-    monday: {
-      morning: { start: "08:00", end: "12:00" },
-      afternoon: { start: "14:00", end: "18:00" },
-    },
-    tuesday: {
-      morning: { start: "08:00", end: "12:00" },
-      afternoon: { start: "14:00", end: "18:00" },
-    },
-    wednesday: {
-      morning: { start: "08:00", end: "12:00" },
-      afternoon: { start: "14:00", end: "18:00" },
-    },
-    thursday: {
-      morning: { start: "08:00", end: "12:00" },
-      afternoon: { start: "14:00", end: "18:00" },
-    },
-    friday: {
-      morning: { start: "08:00", end: "12:00" },
-      afternoon: { start: "14:00", end: "18:00" },
-    },
-    saturday: null,
-    sunday: null,
-  });
-  const [newUnavailableDay, setNewUnavailableDay] = useState({
-    date: "",
-    reason: "",
-  });
-  const [unavailableDays, setUnavailableDays] = useState([]);
+  const [saving, setSaving] = useState(false);
 
+  // Cargar médicos al montar
   useEffect(() => {
-    loadData();
+    appointmentService.getDoctors().then(setDoctors);
   }, []);
 
+  // Cuando cambia el médico seleccionado, cargar su horario y bloqueos
   useEffect(() => {
-    if (selectedDoctor) {
-      const existingAvailability = availability.find(
-        (a) => a.doctorId === selectedDoctor.id,
-      );
-      if (existingAvailability) {
-        setDoctorSchedule(existingAvailability.schedule);
-      } else {
-        // Reset to default
-        setDoctorSchedule({
-          monday: {
-            morning: { start: "08:00", end: "12:00" },
-            afternoon: { start: "14:00", end: "18:00" },
-          },
-          tuesday: {
-            morning: { start: "08:00", end: "12:00" },
-            afternoon: { start: "14:00", end: "18:00" },
-          },
-          wednesday: {
-            morning: { start: "08:00", end: "12:00" },
-            afternoon: { start: "14:00", end: "18:00" },
-          },
-          thursday: {
-            morning: { start: "08:00", end: "12:00" },
-            afternoon: { start: "14:00", end: "18:00" },
-          },
-          friday: {
-            morning: { start: "08:00", end: "12:00" },
-            afternoon: { start: "14:00", end: "18:00" },
-          },
-          saturday: null,
-          sunday: null,
-        });
-      }
-    }
-  }, [selectedDoctor?.id]);
-
-  const loadData = async () => {
-    const doctorsData = await appointmentService.getDoctors();
-    setDoctors(doctorsData);
-    setAvailability(availabilityService.getAvailability());
-    setUnavailableDays(availabilityService.getUnavailableDays());
-  };
-
-  const handleScheduleChange = (day, period, field, value) => {
-    setDoctorSchedule((prev) => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [period]: {
-          ...prev[day]?.[period],
-          [field]: value,
-        },
-      },
-    }));
-  };
-
-  const toggleDayAvailability = (day) => {
-    setDoctorSchedule((prev) => ({
-      ...prev,
-      [day]: prev[day]
-        ? null
-        : {
-            morning: { start: "08:00", end: "12:00" },
-            afternoon: { start: "14:00", end: "18:00" },
-          },
-    }));
-  };
-
-  const handleSaveSchedule = () => {
     if (!selectedDoctor) return;
 
+    availabilityService.getHorario(selectedDoctor.id).then((horarios) => {
+      setScheduleMap(apiToScheduleMap(horarios));
+    });
+
+    availabilityService
+      .getDiasNoDisponibles(selectedDoctor.id)
+      .then(setDiasNoDisponibles);
+  }, [selectedDoctor?.id]);
+
+  const toggleDay = (dia) => {
+    setScheduleMap((prev) => ({
+      ...prev,
+      [dia]: prev[dia] ? null : emptyDay(),
+    }));
+  };
+
+  const handleTimeChange = (dia, campo, valor) => {
+    setScheduleMap((prev) => ({
+      ...prev,
+      [dia]: { ...prev[dia], [campo]: valor },
+    }));
+  };
+
+  const handleSaveSchedule = async () => {
+    if (!selectedDoctor) return;
+    setSaving(true);
     try {
-      availabilityService.updateAvailability(selectedDoctor.id, doctorSchedule);
-      setNotification({
-        message: "Horario guardado exitosamente",
-        type: "success",
-      });
-      // Emitir evento para actualizar clientes en tiempo real
-      window.dispatchEvent(new Event("availability:changed"));
-      loadData(); // Recargar datos
+      await availabilityService.guardarHorario(
+        selectedDoctor.id,
+        scheduleMapToApi(scheduleMap),
+      );
+      setNotification({ message: "Horario guardado exitosamente", type: "success" });
     } catch {
-      setNotification({
-        message: "Error al guardar el horario",
-        type: "error",
-      });
+      setNotification({ message: "Error al guardar el horario", type: "error" });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleAddUnavailableDay = () => {
-    if (!newUnavailableDay.date) {
-      setNotification({
-        message: "Por favor seleccione una fecha",
-        type: "error",
-      });
+  const handleAddBloqueo = async () => {
+    if (!selectedDoctor || !newBlock.fechaInicio) {
+      setNotification({ message: "Seleccione médico y fecha inicio", type: "error" });
       return;
     }
-
+    const fin = newBlock.fechaFin || newBlock.fechaInicio; // si no pone fin, es un día suelto
     try {
-      availabilityService.addUnavailableDay(
-        newUnavailableDay.date,
-        newUnavailableDay.reason,
+      const created = await availabilityService.agregarDiaNoDisponible(
+        selectedDoctor.id,
+        newBlock.fechaInicio,
+        fin,
+        newBlock.motivo,
       );
-      setNewUnavailableDay({ date: "", reason: "" });
-      setNotification({
-        message: "Día no disponible agregado correctamente",
-        type: "success",
-      });
-      
-      // Emitir evento para actualizar clientes en tiempo real
-      window.dispatchEvent(new Event("availability:changed"));
-      
-      loadData(); // Recargar datos
+      setDiasNoDisponibles((prev) => [...prev, created]);
+      setNewBlock({ fechaInicio: "", fechaFin: "", motivo: "" });
+      setNotification({ message: "Bloqueo agregado correctamente", type: "success" });
     } catch {
-      setNotification({
-        message: "Error al agregar el día no disponible",
-        type: "error",
-      });
+      setNotification({ message: "Error al agregar el bloqueo", type: "error" });
     }
   };
 
-  const dayNames = {
-    monday: "Lunes",
-    tuesday: "Martes",
-    wednesday: "Miércoles",
-    thursday: "Jueves",
-    friday: "Viernes",
-    saturday: "Sábado",
-    sunday: "Domingo",
+  const handleRemoveBloqueo = async (id) => {
+    try {
+      await availabilityService.eliminarDiaNoDisponible(id);
+      setDiasNoDisponibles((prev) => prev.filter((d) => d.id !== id));
+      setNotification({ message: "Bloqueo eliminado", type: "success" });
+    } catch {
+      setNotification({ message: "Error al eliminar el bloqueo", type: "error" });
+    }
   };
+
+  const formatFecha = (iso) =>
+    new Date(iso + "T12:00:00").toLocaleDateString("es-ES", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
 
   return (
     <div className="bg-gray-50 h-full overflow-y-auto">
       <div className="max-w-7xl mx-auto px-2 py-2">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-          <h2 className="text-lg font-bold text-gray-800 mb-3">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 space-y-4">
+          <h2 className="text-lg font-bold text-gray-800">
             Configuración de Disponibilidad
           </h2>
 
-          <div className="space-y-3">
-            {/* Selección de Médico */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleccionar Profesional Médico
-              </label>
-              <select
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                value={selectedDoctor?.id || ""}
-                onChange={(e) => {
-                  const doctor = doctors.find(
-                    (d) => d.id === parseInt(e.target.value),
-                  );
-                  setSelectedDoctor(doctor);
-                }}
-              >
-                <option value="">Seleccionar médico</option>
-                {doctors.map((doctor) => (
-                  <option key={doctor.id} value={doctor.id}>
-                    {doctor.nombre} - {doctor.especialidad}
+          {/* Selector de médico */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Seleccionar Profesional Médico
+            </label>
+            <select
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-400"
+              value={selectedDoctor?.id || ""}
+              onChange={(e) => {
+                const d = doctors.find((x) => x.id === parseInt(e.target.value));
+                setSelectedDoctor(d || null);
+              }}
+            >
+              <option value="">Seleccionar médico</option>
+              <option value="">Seleccionar médico</option>
+                {doctors.filter((d) => d.estado === true).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nombre} - {d.especialidad}
                   </option>
                 ))}
-              </select>
-            </div>
+            </select>
+          </div>
 
-            {/* Configuración de Horarios */}
-            {selectedDoctor && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Horarios de {selectedDoctor.nombre}
-                  </h3>
-                  <button
-                    onClick={handleSaveSchedule}
-                    className="px-3 py-1 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-                  >
-                    <Save size={16} />
-                    Guardar Horario
-                  </button>
-                </div>
+          {/* Horario por día */}
+          {selectedDoctor && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-base font-semibold text-gray-800">
+                  Horarios de {selectedDoctor.nombre}
+                </h3>
+                <button
+                  onClick={handleSaveSchedule}
+                  disabled={saving}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center gap-1 disabled:opacity-60"
+                >
+                  <Save size={15} />
+                  {saving ? "Guardando..." : "Guardar Horario"}
+                </button>
+              </div>
 
-                <div className="grid gap-2">
-                  {Object.entries(dayNames).map(([dayKey, dayName]) => (
-                    <div key={dayKey} className="border rounded-lg p-2">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-gray-800">{dayName}</h4>
-                        <button
-                          onClick={() => toggleDayAvailability(dayKey)}
-                          className={`px-3 py-1 rounded text-sm ${
-                            doctorSchedule[dayKey]
-                              ? "bg-primary-100 text-primary-700 hover:bg-primary-200"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
-                        >
-                          {doctorSchedule[dayKey]
-                            ? "Disponible"
-                            : "No disponible"}
-                        </button>
-                      </div>
+              <div className="grid gap-2">
+                {[1, 2, 3, 4, 5, 6, 0].map((dia) => (
+                  <div key={dia} className="border rounded-lg p-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-gray-800">
+                        {DAY_NAMES[dia]}
+                      </h4>
+                      <button
+                        onClick={() => toggleDay(dia)}
+                        className={`px-3 py-1 rounded text-sm font-medium ${
+                          scheduleMap[dia]
+                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        }`}
+                      >
+                        {scheduleMap[dia] ? "Disponible" : "No disponible"}
+                      </button>
+                    </div>
 
-                      {doctorSchedule[dayKey] && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {/* Mañana */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Mañana
-                            </label>
-                            <div className="flex gap-2">
-                              <input
-                                type="time"
-                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                                value={
-                                  doctorSchedule[dayKey].morning?.start || ""
-                                }
-                                onChange={(e) =>
-                                  handleScheduleChange(
-                                    dayKey,
-                                    "morning",
-                                    "start",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                              <span className="flex items-center text-gray-500">
-                                a
-                              </span>
-                              <input
-                                type="time"
-                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                                value={
-                                  doctorSchedule[dayKey].morning?.end || ""
-                                }
-                                onChange={(e) =>
-                                  handleScheduleChange(
-                                    dayKey,
-                                    "morning",
-                                    "end",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            </div>
-                          </div>
-
-                          {/* Tarde */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Tarde
-                            </label>
-                            <div className="flex gap-2">
-                              <input
-                                type="time"
-                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                                value={
-                                  doctorSchedule[dayKey].afternoon?.start || ""
-                                }
-                                onChange={(e) =>
-                                  handleScheduleChange(
-                                    dayKey,
-                                    "afternoon",
-                                    "start",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                              <span className="flex items-center text-gray-500">
-                                a
-                              </span>
-                              <input
-                                type="time"
-                                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                                value={
-                                  doctorSchedule[dayKey].afternoon?.end || ""
-                                }
-                                onChange={(e) =>
-                                  handleScheduleChange(
-                                    dayKey,
-                                    "afternoon",
-                                    "end",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            </div>
+                    {scheduleMap[dia] && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {/* Mañana */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Mañana
+                          </label>
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="time"
+                              className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                              value={scheduleMap[dia].mananaInicio}
+                              onChange={(e) =>
+                                handleTimeChange(dia, "mananaInicio", e.target.value)
+                              }
+                            />
+                            <span className="text-gray-400 text-sm">a</span>
+                            <input
+                              type="time"
+                              className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                              value={scheduleMap[dia].mananaFin}
+                              onChange={(e) =>
+                                handleTimeChange(dia, "mananaFin", e.target.value)
+                              }
+                            />
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                        {/* Tarde */}
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Tarde
+                          </label>
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="time"
+                              className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                              value={scheduleMap[dia].tardeInicio}
+                              onChange={(e) =>
+                                handleTimeChange(dia, "tardeInicio", e.target.value)
+                              }
+                            />
+                            <span className="text-gray-400 text-sm">a</span>
+                            <input
+                              type="time"
+                              className="flex-1 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                              value={scheduleMap[dia].tardeFin}
+                              onChange={(e) =>
+                                handleTimeChange(dia, "tardeFin", e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Días No Disponibles */}
-            <div className="border-t pt-2">
-              <h3 className="text-base font-semibold text-gray-800 mb-2">
-                Días No Disponibles
+          {/* Bloqueos de fechas */}
+          {selectedDoctor && (
+            <div className="border-t pt-3">
+              <h3 className="text-base font-semibold text-gray-800 mb-3">
+                Días / Rangos No Disponibles
               </h3>
 
-              {/* Agregar nuevo día no disponible */}
-              <div className="bg-gray-50 p-2 rounded-lg mb-2">
-                <h4 className="font-medium text-gray-700 mb-2">
-                  Agregar Día No Disponible
+              <div className="bg-gray-50 p-3 rounded-lg mb-3">
+                <h4 className="font-medium text-gray-700 mb-2 text-sm">
+                  Agregar bloqueo
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">
-                      Fecha
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Fecha inicio
                     </label>
                     <input
                       type="date"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                      value={newUnavailableDay.date}
+                      className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none"
+                      value={newBlock.fechaInicio}
                       onChange={(e) =>
-                        setNewUnavailableDay({
-                          ...newUnavailableDay,
-                          date: e.target.value,
-                        })
+                        setNewBlock((p) => ({ ...p, fechaInicio: e.target.value }))
                       }
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Fecha fin{" "}
+                      <span className="text-gray-400">(vaciar = mismo día)</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none"
+                      value={newBlock.fechaFin}
+                      min={newBlock.fechaInicio}
+                      onChange={(e) =>
+                        setNewBlock((p) => ({ ...p, fechaFin: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
                       Motivo (opcional)
                     </label>
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-300"
-                      placeholder="Ej: Vacaciones, Enfermedad..."
-                      value={newUnavailableDay.reason}
+                      className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none"
+                      placeholder="Vacaciones, Incapacidad..."
+                      value={newBlock.motivo}
                       onChange={(e) =>
-                        setNewUnavailableDay({
-                          ...newUnavailableDay,
-                          reason: e.target.value,
-                        })
+                        setNewBlock((p) => ({ ...p, motivo: e.target.value }))
                       }
                     />
                   </div>
-                  <div className="flex items-end">
-                    <button
-                      onClick={handleAddUnavailableDay}
-                      className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Plus size={16} />
-                      Agregar
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleAddBloqueo}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+                  >
+                    <Plus size={15} /> Agregar
+                  </button>
                 </div>
               </div>
 
-              {/* Lista de días no disponibles */}
               <div className="space-y-2">
-                {unavailableDays.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">
-                    No hay días marcados como no disponibles
+                {diasNoDisponibles.length === 0 ? (
+                  <p className="text-gray-400 text-sm text-center py-3">
+                    No hay bloqueos registrados para este médico
                   </p>
                 ) : (
-                  unavailableDays.map((day) => (
+                  diasNoDisponibles.map((d) => (
                     <div
-                      key={day.id}
-                      className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg"
+                      key={d.id}
+                      className="flex items-center justify-between p-2.5 bg-red-50 border border-red-100 rounded-lg"
                     >
                       <div>
-                        <div className="font-medium text-red-800">
-                          {new Date(day.date).toLocaleDateString("es-ES", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
+                        <div className="font-medium text-red-800 text-sm">
+                          {d.fechaInicio === d.fechaFin
+                            ? formatFecha(d.fechaInicio)
+                            : `${formatFecha(d.fechaInicio)} → ${formatFecha(d.fechaFin)}`}
                         </div>
-                        {day.reason && (
-                          <div className="text-sm text-red-600">
-                            {day.reason}
-                          </div>
+                        {d.motivo && (
+                          <div className="text-xs text-red-500">{d.motivo}</div>
                         )}
                       </div>
                       <button
-                        onClick={() => {
-                          availabilityService.removeUnavailableDay(day.id);
-                          setNotification({
-                            message: "Día removido de la lista",
-                            type: "success",
-                          });
-                          // Emitir evento para actualizar clientes en tiempo real
-                          window.dispatchEvent(new Event("availability:changed"));
-                          loadData();
-                        }}
-                        className="text-red-600 hover:text-red-800 p-1"
+                        onClick={() => handleRemoveBloqueo(d.id)}
+                        className="text-red-400 hover:text-red-700 p-1"
                       >
-                        <X size={20} />
+                        <X size={18} />
                       </button>
                     </div>
                   ))
                 )}
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
