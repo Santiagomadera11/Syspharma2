@@ -24,6 +24,13 @@ export const AppointmentsPage = () => {
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [estados, setEstados] = useState([]);
+  const formatHora = (hora) => {
+  if (!hora) return "";
+  const [h, m] = hora.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+};
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
 
@@ -190,7 +197,7 @@ export const AppointmentsPage = () => {
                 </td>
                 <td className="p-4">
                   <p className="text-sm font-bold text-gray-700">{apt.fecha ? apt.fecha.substring(0, 10) : ""}</p>
-                  <p className="text-[10px] text-gray-400 font-bold">{apt.hora}</p>
+                  <p className="text-[10px] text-gray-400 font-bold">{formatHora(apt.hora)}</p>
                 </td>
                 <td className="p-4 text-sm font-medium text-gray-600">{apt.servicioNombre}</td>
                 <td className="p-4 font-black text-emerald-600">${Number(apt.precio || 0).toLocaleString()}</td>
@@ -425,6 +432,79 @@ export const AppointmentsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Resumen del Día */}
+{isDaySummaryModalOpen && selectedDate && (
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+    onClick={() => setIsDaySummaryModalOpen(false)}>
+    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+      onClick={(e) => e.stopPropagation()}>
+      
+      {/* Header */}
+      <div className="bg-emerald-600 px-5 py-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-white font-black text-sm uppercase tracking-wide">
+            {selectedDate.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
+          </h3>
+          <p className="text-emerald-100 text-xs mt-0.5">
+            {getAppointmentsForDate(selectedDate).length} cita(s) programada(s)
+          </p>
+        </div>
+        <button onClick={() => setIsDaySummaryModalOpen(false)}
+          className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors">
+          <X size={18} />
+        </button>
+      </div>
+
+      {/* Lista de citas */}
+      <div className="max-h-[60vh] overflow-y-auto divide-y divide-gray-50">
+        {getAppointmentsForDate(selectedDate).length === 0 ? (
+          <p className="text-center text-gray-400 text-sm py-8">No hay citas para este día</p>
+        ) : (
+          getAppointmentsForDate(selectedDate)
+            .sort((a, b) => (a.hora || "").localeCompare(b.hora || ""))
+            .map((apt) => (
+              <div key={apt.id} className="px-5 py-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    {/* Hora */}
+                    <div className="bg-emerald-50 text-emerald-700 font-black text-xs px-2 py-1 rounded-lg min-w-[48px] text-center">
+                      {apt.hora ? formatHora(apt.hora) : "--"}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">{apt.pacienteNombre}</p>
+                      <p className="text-[11px] text-gray-400 font-medium">{apt.medicoNombre} · {apt.servicioNombre}</p>
+                    </div>
+                  </div>
+                  {/* Estado */}
+                  <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full border shrink-0 ${getStatusPillStyle(apt.estadoNombre)}`}>
+                    {apt.estadoNombre}
+                  </span>
+                </div>
+              </div>
+            ))
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-gray-50 px-5 py-3 border-t flex justify-between items-center">
+        <button
+          onClick={() => {
+            setIsDaySummaryModalOpen(false);
+            setEditingAppointment(null);
+            setIsAppointmentModalOpen(true);
+          }}
+          className="text-xs font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+          + Nueva cita este día
+        </button>
+        <button onClick={() => setIsDaySummaryModalOpen(false)}
+          className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-200 rounded-lg transition-colors">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {notification && <StatusNotification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
     </div>
