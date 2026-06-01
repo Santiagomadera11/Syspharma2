@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import {
   LS,
   read,
@@ -20,6 +20,7 @@ const CarritoPage = () => {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [selectedPaymentId, setSelectedPaymentId] = useState("");
+  const [direccionEntrega, setDireccionEntrega] = useState("");
   const [checkoutError, setCheckoutError] = useState(null);
   const [processing, setProcessing] = useState(false);
 
@@ -30,11 +31,9 @@ const CarritoPage = () => {
     return () => window.removeEventListener(`${LS.CART}_updated`, onCartUpdated);
   }, []);
 
-  // Carga y normalización de productos en el carrito
   function load() {
     const cart = read(LS.CART) || [];
     const prods = JSON.parse(localStorage.getItem("syspharma_products") || "[]");
-    
     const normalized = (cart || []).map((item) => {
       const p = prods.find((x) => x.id === item.id || x.id === Number(item)) || {};
       return {
@@ -65,13 +64,23 @@ const CarritoPage = () => {
   };
 
   const total = cartItems.reduce((s, it) => s + (it.precioActual * it.cantidad), 0);
-
   const formatCurrency = (amount) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(amount);
+
+  const handleAbrirCheckout = () => {
+    const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+    const methods = getPaymentMethods();
+    setPaymentMethods(methods || []);
+    // Pre-llenar con la dirección del perfil si existe
+    setDireccionEntrega(user.direccion || "");
+    setCheckoutOpen(true);
+  };
 
   return (
     <div className="p-6 font-sans">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><ArrowLeft size={24} /></button>
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <ArrowLeft size={24} />
+        </button>
         <h2 className="text-2xl font-black text-gray-900">Tu Carrito</h2>
       </div>
 
@@ -106,11 +115,7 @@ const CarritoPage = () => {
               <span className="text-emerald-600">{formatCurrency(total)}</span>
             </div>
             <button
-              onClick={() => {
-                const methods = getPaymentMethods();
-                setPaymentMethods(methods || []);
-                setCheckoutOpen(true);
-              }}
+              onClick={handleAbrirCheckout}
               className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-lg shadow-emerald-100 transition-all"
             >
               Finalizar Compra
@@ -124,9 +129,12 @@ const CarritoPage = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
             <h3 className="text-2xl font-black text-gray-900 mb-6">Confirmar Pedido</h3>
-            
-            <div className="mb-6">
-              <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">Método de Pago</label>
+
+            {/* Método de Pago */}
+            <div className="mb-5">
+              <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">
+                Método de Pago
+              </label>
               <select
                 value={selectedPaymentId}
                 onChange={(e) => setSelectedPaymentId(e.target.value)}
@@ -139,6 +147,28 @@ const CarritoPage = () => {
               </select>
             </div>
 
+            {/* Dirección de Entrega */}
+            <div className="mb-6">
+              <label className="block text-[10px] font-black uppercase text-gray-400 mb-2 tracking-widest">
+                Dirección de Entrega <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <MapPin size={16} className="absolute left-3 top-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  value={direccionEntrega}
+                  onChange={(e) => setDireccionEntrega(e.target.value)}
+                  placeholder="Ej: Calle 123 #45-67, Medellín"
+                  className="w-full border-2 border-gray-100 pl-9 pr-3 py-3 rounded-2xl outline-none focus:border-emerald-500 font-medium text-sm"
+                />
+              </div>
+              {!direccionEntrega.trim() && (
+                <p className="text-[10px] text-amber-500 font-bold mt-1 ml-1">
+                  ⚠️ Ingresá la dirección donde querés recibir tu pedido
+                </p>
+              )}
+            </div>
+
             {checkoutError && (
               <div className="bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-bold mb-6 border border-red-100">
                 {checkoutError}
@@ -146,30 +176,31 @@ const CarritoPage = () => {
             )}
 
             <div className="flex gap-4">
-              <button 
-                onClick={() => setCheckoutOpen(false)} 
+              <button
+                onClick={() => setCheckoutOpen(false)}
                 className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition-colors"
               >
                 Cancelar
               </button>
               <button
-                disabled={processing || !selectedPaymentId}
+                disabled={processing || !selectedPaymentId || !direccionEntrega.trim()}
                 onClick={async () => {
                   setProcessing(true);
                   setCheckoutError(null);
                   try {
-                    // 1. LEER USUARIO DE SESIÓN (Sincronizado con el resto de la app)
                     const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "null");
-                    
+
                     if (!user || !user.id) {
                       throw new Error("No hay una sesión activa. Por favor, inicia sesión de nuevo.");
                     }
 
-                    // 2. CONSTRUIR OBJETO PARA EL BACKEND (DTO)
                     const dataParaGuardar = {
                       usuarioId: Number(user.id),
                       clienteNombre: user.nombre,
                       clienteEmail: user.email,
+                      clienteDocumento: user.documento || null,
+                      clienteTelefono: user.telefono || null,
+                      direccion: direccionEntrega.trim(),
                       metodoPagoId: Number(selectedPaymentId),
                       porcentajeIva: 0,
                       detalles: cartItems.map(it => ({
@@ -180,20 +211,17 @@ const CarritoPage = () => {
                       }))
                     };
 
-                    console.log("ENVIANDO PEDIDO:", dataParaGuardar);
                     await ordersService.create(dataParaGuardar);
 
-                    // 3. ÉXITO: Limpiar y Redirigir
                     write(LS.CART, []);
                     setCheckoutOpen(false);
                     pushNotification({
-                        title: "¡Gracias por tu compra!",
-                        message: "Tu pedido se ha registrado con éxito.",
-                        date: new Date().toISOString(),
-                        path: "/client/mis-pedidos"
+                      title: "¡Gracias por tu compra!",
+                      message: "Tu pedido se ha registrado con éxito.",
+                      date: new Date().toISOString(),
+                      path: "/client/mis-pedidos"
                     });
-                    
-                    // Redirección forzada para ver el pedido
+
                     window.location.href = "/client/mis-pedidos";
 
                   } catch (err) {
