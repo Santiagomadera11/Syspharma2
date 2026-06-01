@@ -22,6 +22,7 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
   const clienteDoc    = order.clienteDocumento || order.documento || "-";
   const clienteTel    = order.clienteTelefono  || null;
   const clienteEmail  = order.clienteEmail     || null;
+  const clienteDireccion = order.direccion || null;
   const estadoNombre  = order.estadoNombre  || order.estado    || "-";
   const origen        = order.origen        || order.origin    || "web";
   const fechaCreacion = order.fechaCreacion || order.fecha     || null;
@@ -67,6 +68,7 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
               <div className="flex justify-between"><span className="text-xs text-gray-500">Documento:</span><span className="text-xs font-mono">{clienteDoc}</span></div>
               {clienteTel && <div className="flex justify-between"><span className="text-xs text-gray-500">Teléfono:</span><span className="text-xs font-semibold">{clienteTel}</span></div>}
               {clienteEmail && <div className="flex justify-between"><span className="text-xs text-gray-500">Correo:</span><span className="text-xs font-semibold break-all">{clienteEmail}</span></div>}
+              {clienteDireccion && <div className="flex justify-between"><span className="text-xs text-gray-500">Dirección:</span><span className="text-xs font-semibold">{clienteDireccion}</span></div>}
             </div>
           </div>
 
