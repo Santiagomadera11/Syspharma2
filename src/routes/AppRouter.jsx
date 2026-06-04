@@ -28,6 +28,7 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { UsersPage } from "../features/users/UsersPage";
 import SettingsPage from "../features/settings/SettingsPage";
 import SalesPage from "../features/sales/SalesPage";
+import { SalesReport } from "../features/sales/components/SalesReport";
 
 // --- PÁGINAS DE INVENTARIO (ADMIN) ---
 import { ProductsPage } from "../features/inventory/products/ProductsPage";
@@ -175,6 +176,11 @@ export const AppRouter = () => {
               <SalesPage />
             </ProtectedRoute>
           } />
+          <Route path="ventas/reporte" element={
+            <ProtectedRoute requiredPerm="sales.view">
+              <SalesReport />
+            </ProtectedRoute>
+          } />
           <Route path="ventas/nueva" element={
             <ProtectedRoute requiredPerm="sales.create">
               <CreateOrderPage />
@@ -273,6 +279,11 @@ export const AppRouter = () => {
           <Route path="ventas" element={
             <ProtectedRoute requiredPerm="sales.view">
               <EmployeeSalesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas/reporte" element={
+            <ProtectedRoute requiredPerm="sales.view">
+              <SalesReport />
             </ProtectedRoute>
           } />
           <Route path="ventas/nueva" element={

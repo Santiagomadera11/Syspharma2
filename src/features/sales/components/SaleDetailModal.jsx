@@ -18,20 +18,34 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
   const estado = ESTADO_CONFIG[estadoKey] || ESTADO_CONFIG.completada;
   const EstadoIcon = estado.icon;
 
+  // ============ NUEVO: Extraer subtotal, IVA y porcentaje ============
+  const porcentajeIva = sale.porcentajeIva || sale.PorcentajeIva || 0;
+  const subtotalBackend = sale.subtotal || sale.Subtotal || null;
+  const ivaBackend = sale.iva || sale.Iva || null;
+  const totalBackend = sale.total || sale.Total || null;
+
   const allItems = [
     ...(sale.detalles || []).map((d) => ({
       nombre: d.productoNombre || "Producto",
       cantidad: d.cantidad,
       precio: d.precioUnitario,
+      subtotal: d.subtotal || (d.cantidad * d.precioUnitario),
       tipo: "P",
     })),
     ...(sale.servicios || []).map((s) => ({
       nombre: s.servicioNombre || "Servicio Médico",
       cantidad: s.cantidad,
       precio: s.precioUnitario,
+      subtotal: s.subtotal || (s.cantidad * s.precioUnitario),
       tipo: "S",
     })),
   ];
+
+  // ============ NUEVO: Calcular subtotal e IVA si no vienen del backend ============
+  const subtotalCalculado = allItems.reduce((s, item) => s + (item.subtotal || item.cantidad * item.precio), 0);
+  const subtotal = subtotalBackend !== null ? subtotalBackend : subtotalCalculado;
+  const iva = ivaBackend !== null ? ivaBackend : (subtotal * (porcentajeIva / 100));
+  const total = totalBackend !== null ? totalBackend : (subtotal + iva);
 
   console.log("DATOS DE LA VENTA EN EL MODAL:", sale);
   console.log("PRODUCTOS ENCONTRADOS:", sale.detalles);
@@ -39,7 +53,6 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      {/* max-w-sm hace el modal más estrecho */}
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[85vh]">
 
         {/* Header más pequeño */}
@@ -86,7 +99,9 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
 
           {/* Listado de Items */}
           <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Artículos</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">
+              Artículos ({allItems.length} items)
+            </p>
             <div className="space-y-1.5">
               {allItems.length > 0 ? (
                 allItems.map((item, idx) => (
@@ -100,7 +115,9 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
                       </p>
                       <p className="text-[9px] text-gray-400">Cant: {item.cantidad} x {fmt(item.precio)}</p>
                     </div>
-                    <p className="text-[11px] font-black text-gray-900 ml-2">{fmt(item.cantidad * item.precio)}</p>
+                    <div className="text-right ml-2 flex-shrink-0">
+                      <p className="text-[11px] font-black text-gray-900">{fmt(item.subtotal || item.cantidad * item.precio)}</p>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -118,12 +135,22 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
           )}
         </div>
 
-        {/* Footer resumido */}
-        <div className="bg-gray-50 border-t border-gray-100 p-4">
-          <div className="flex justify-between items-end mb-3">
+        {/* ============ NUEVO: Footer con Subtotal, IVA y Total ============ */}
+        <div className="bg-gray-50 border-t border-gray-100 p-4 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] font-bold text-gray-400 uppercase">Subtotal</span>
+            <span className="text-[11px] font-bold text-gray-700">{fmt(subtotal)}</span>
+          </div>
+          {porcentajeIva > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-[9px] font-bold text-gray-400 uppercase">IVA ({porcentajeIva}%)</span>
+              <span className="text-[11px] font-bold text-gray-700">{fmt(iva)}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-end border-t border-gray-200 pt-2">
             <div>
               <p className="text-[9px] font-bold text-gray-400 uppercase">Total de la venta</p>
-              <p className="text-2xl font-black text-emerald-600 leading-none mt-1">{fmt(sale.total)}</p>
+              <p className="text-2xl font-black text-emerald-600 leading-none mt-1">{fmt(total)}</p>
             </div>
             <div className="text-right">
                 <p className="text-[8px] font-bold text-gray-400 uppercase">Atendido por</p>
@@ -131,7 +158,7 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
             </div>
           </div>
           <button onClick={onClose}
-            className="w-full py-2.5 bg-gray-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md">
+            className="w-full py-2.5 bg-gray-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md mt-2">
             Cerrar Detalles
           </button>
         </div>

@@ -29,6 +29,12 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
   const usuarioNombre = order.usuarioNombre || order.creadoPor || null;
   const metodoPago    = order.metodoPagoNombre || order.metodoPago || null;
 
+  // ============ NUEVO: Extraer subtotal, IVA y porcentaje ============
+  const porcentajeIva = order.porcentajeIva || order.PorcentajeIva || 0;
+  const subtotalBackend = order.subtotal || order.Subtotal || null;
+  const ivaBackend = order.iva || order.Iva || null;
+  const totalBackend = order.total || order.Total || null;
+
   // Detalles normalizados
   const detalles = order.detalles?.length > 0
     ? order.detalles.map(d => ({
@@ -44,7 +50,14 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
         subtotal: p.precio * p.cantidad,
       }));
 
+  // ============ NUEVO: Calcular subtotal e IVA si no vienen del backend ============
+  const subtotalCalculado = detalles.reduce((s, d) => s + d.subtotal, 0);
+  const subtotal = subtotalBackend !== null ? subtotalBackend : subtotalCalculado;
+  const iva = ivaBackend !== null ? ivaBackend : (subtotal * (porcentajeIva / 100));
+  const total = totalBackend !== null ? totalBackend : (subtotal + iva);
+  
   const totalProductos = detalles.reduce((s, d) => s + d.cantidad, 0);
+  const cantidadItems = detalles.length; // ← NUEVO: Cantidad de líneas/items
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -127,7 +140,8 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
           {/* Productos */}
           <div>
             <h3 className="text-xs font-bold text-emerald-700 uppercase tracking-wide mb-2">
-              Productos ({totalProductos} unidades)
+              {/* ============ NUEVO: Mostrar cantidad de items ============ */}
+              Productos ({cantidadItems} items — {totalProductos} unidades)
             </h3>
             <div className="bg-gray-50 rounded-lg p-3 space-y-2 max-h-[150px] overflow-y-auto">
               {detalles.length === 0 ? (
@@ -159,11 +173,21 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
             </div>
           )}
 
-          {/* Total */}
-          <div className="border-t border-gray-200 pt-3">
+          {/* ============ NUEVO: Subtotal, IVA y Total ============ */}
+          <div className="border-t border-gray-200 pt-3 space-y-2">
             <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-500">Subtotal:</span>
+              <span className="text-xs font-semibold text-gray-700">{formatCurrency(subtotal)}</span>
+            </div>
+            {porcentajeIva > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">IVA ({porcentajeIva}%):</span>
+                <span className="text-xs font-semibold text-gray-700">{formatCurrency(iva)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center border-t border-gray-100 pt-2">
               <span className="text-sm font-bold text-gray-800">Total:</span>
-              <span className="text-sm font-bold text-emerald-600">{formatCurrency(order.total)}</span>
+              <span className="text-sm font-bold text-emerald-600">{formatCurrency(total)}</span>
             </div>
           </div>
         </div>
