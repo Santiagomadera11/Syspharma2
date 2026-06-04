@@ -76,12 +76,18 @@ export const SalesPage = () => {
         <div>
           <h1 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Ventas</h1>
         </div>
-        {canCreateSale && (
-          <button onClick={() => navigate("/admin/ventas/nueva")}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95">
-            <Plus size={14} /> NUEVA VENTA
+        <div className="flex gap-2">
+          {canCreateSale && (
+            <button onClick={() => navigate("/admin/ventas/nueva")}
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-emerald-700">
+              <Plus size={14} /> NUEVA VENTA
+            </button>
+          )}
+          <button onClick={() => navigate(`/${userRole === "administrador" ? "admin" : "employee"}/ventas/reporte`)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-blue-700">
+            <TrendingUp size={14} /> REPORTE
           </button>
-        )}
+        </div>
       </div>
 
       {/* KPIs Pequeños */}

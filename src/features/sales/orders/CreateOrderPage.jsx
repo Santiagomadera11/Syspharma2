@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { ArrowLeft, AlertCircle, Search } from "lucide-react";
 import { ProductsSearchView } from "../components/ProductsSearchView";
 import { ServicesSearchView } from "../components/ServicesSearchView";
 import { IntegratedCart } from "../components/IntegratedCart";
@@ -10,6 +10,13 @@ import { ordersService } from "./services/ordersService";
 import { authService } from "../../auth/authService";
 import { fetchPaymentMethods, getPaymentMethods } from "../../settings/services/parameterService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
+
+// ============ NUEVO: Servicio de clientes (ajusta la ruta según tu proyecto) ============
+// Si no tienes clientService, créalo o usa axios directamente
+const API_URL = "http://localhost:5055/api";
+const getAuthHeaders = () => ({
+  headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
+});
 
 export const CreateOrderPage = () => {
   const navigate = useNavigate();
@@ -31,11 +38,18 @@ export const CreateOrderPage = () => {
     documento: "", nombre: "", telefono: "", correo: "", metodoPagoId: "",
   });
 
+  // ============ NUEVO: Estado para IVA ============
+  const [porcentajeIva, setPorcentajeIva] = useState(19);
+
+  // ============ NUEVO: Estado para lista de usuarios ============
+  const [usuarios, setUsuarios] = useState([]);
+
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [turnoActivo, setTurnoActivo] = useState(null);
   const [turnoLoading, setTurnoLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [searchingClient, setSearchingClient] = useState(false);
 
   const LOCAL_TURNO_KEY = "activeTurno";
 
@@ -75,7 +89,56 @@ export const CreateOrderPage = () => {
     };
 
     loadActiveTurn();
+
+    // ============ NUEVO: Cargar usuarios al montar ============
+    const cargarUsuarios = async () => {
+      try {
+        const response = await fetch(`${API_URL}/Usuario`, getAuthHeaders());
+        if (response.ok) {
+          const data = await response.json();
+          setUsuarios(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.warn("Error cargando usuarios:", err);
+      }
+    };
+    cargarUsuarios();
   }, [currentUser?.id]);
+
+  // ============ CORREGIDO: Buscar cliente por documento (búsqueda local) ============
+  const handleSearchClient = () => {
+    if (!clientInfo.documento || clientInfo.documento.length < 3) {
+      setNotification({ message: "Ingrese al menos 3 caracteres del documento", type: "warning" });
+      return;
+    }
+
+    const usuarioEncontrado = usuarios.find(u =>
+      (u.documento || u.numeroDocumento || u.identificacion || "") === clientInfo.documento ||
+      (u.documento || "").includes(clientInfo.documento)
+    );
+
+    if (usuarioEncontrado) {
+      setClientInfo(prev => ({
+        ...prev,
+        nombre: usuarioEncontrado.nombre || usuarioEncontrado.name || usuarioEncontrado.nombres || prev.nombre,
+        telefono: usuarioEncontrado.telefono || usuarioEncontrado.phone || usuarioEncontrado.celular || prev.telefono,
+        correo: usuarioEncontrado.correo || usuarioEncontrado.email || prev.correo,
+      }));
+      setNotification({ message: "Cliente cargado exitosamente", type: "success" });
+    } else {
+      setNotification({ message: "No se encontró usuario con ese documento", type: "warning" });
+    }
+  };
+
+  // ============ NUEVO: Función para calcular totales con IVA ============
+  const calcularTotales = useCallback(() => {
+    const subtotalProds = productCart.reduce((sum, p) => sum + p.cantidad * p.precio, 0);
+    const subtotalServs = serviceCart.reduce((sum, s) => sum + s.precio, 0);
+    const subtotal = subtotalProds + subtotalServs;
+    const iva = subtotal * (porcentajeIva / 100);
+    const total = subtotal + iva;
+    return { subtotal, iva, total };
+  }, [productCart, serviceCart, porcentajeIva]);
 
   const handleAddProduct = useCallback((product, cantidad) => {
     setProductCart((prev) => {
@@ -121,8 +184,10 @@ export const CreateOrderPage = () => {
         throw new Error("No se puede procesar: No tienes una caja abierta.");
       }
 
+      // ============ NUEVO: Calcular totales con IVA ============
+      const { subtotal, iva, total } = calcularTotales();
+
       if (esUnPedido) {
-        // ✅ Payload exacto según Swagger de Pedidos
         const pedidoPayload = {
           usuarioId: Number(userId),
           clienteNombre: clientInfo.nombre,
@@ -130,31 +195,34 @@ export const CreateOrderPage = () => {
           clienteTelefono: clientInfo.telefono || "",
           clienteEmail: clientInfo.correo || "",
           metodoPagoId: Number(clientInfo.metodoPagoId),
-          porcentajeIva: 0,
+          porcentajeIva: porcentajeIva, // ← CAMBIO: usar variable de estado
           notas: "",
           origen: "Terminal",
+          subtotal: subtotal,  // ← NUEVO
+          iva: iva,            // ← NUEVO
+          total: total,        // ← NUEVO
           detalles: productCart.map((p) => ({
             productoId: Number(p.id),
             nombre: p.nombre || p.name || p.nombreProducto || p.descripcion || "Producto",
             cantidad: Number(p.cantidad),
             precioUnitario: Number(p.precio),
+            subtotal: Number(p.cantidad * p.precio), // ← NUEVO
           })),
         };
 
         console.log("📝 Enviando PEDIDO:", JSON.stringify(pedidoPayload, null, 2));
-        await ordersService.create(pedidoPayload);
+        const pedidoResponse = await ordersService.create(pedidoPayload);
+        const pedidoId = pedidoResponse?.id || pedidoResponse?.pedidoId;
+        
         window.dispatchEvent(new Event("orders:changed"));
         setNotification({ message: "Pedido guardado con éxito", type: "success" });
+        
         setTimeout(() => {
-          navigate(isEmployeePath ? "/employee/pedidos" : "/admin/pedidos");
+          // ============ NUEVO: Redirigir al detalle del pedido ============
+          navigate(isEmployeePath ? `/employee/pedidos/${pedidoId}` : `/admin/pedidos/${pedidoId}`);
         }, 1500);
 
       } else {
-        // ✅ Payload de Ventas (sin cambios)
-        const subtotalProds = productCart.reduce((sum, p) => sum + p.cantidad * p.precio, 0);
-        const subtotalServs = serviceCart.reduce((sum, s) => sum + s.precio, 0);
-        const totalGeneral = subtotalProds + subtotalServs;
-
         const ventaPayload = {
           turnoId: Number(currentTurnoId),
           usuarioId: Number(userId),
@@ -162,10 +230,10 @@ export const CreateOrderPage = () => {
           clienteDocumento: clientInfo.documento || "",
           clienteTelefono: clientInfo.telefono || "",
           metodoPagoId: Number(clientInfo.metodoPagoId),
-          porcentajeIva: 0,
-          subtotal: totalGeneral,
-          iva: 0,
-          total: totalGeneral,
+          porcentajeIva: porcentajeIva, // ← CAMBIO
+          subtotal: subtotal,           // ← CAMBIO
+          iva: iva,                     // ← CAMBIO
+          total: total,                 // ← CAMBIO
           notas: clientInfo.correo ? `Email: ${clientInfo.correo}` : "",
           detalles: productCart.map((p) => ({
             productoId: Number(p.id),
@@ -184,11 +252,15 @@ export const CreateOrderPage = () => {
         };
 
         console.log("💰 Enviando VENTA:", JSON.stringify(ventaPayload, null, 2));
-        await salesService.create(ventaPayload);
+        const ventaResponse = await salesService.create(ventaPayload);
+        const ventaId = ventaResponse?.id || ventaResponse?.ventaId;
+        
         window.dispatchEvent(new Event("sales:changed"));
         setNotification({ message: "Transacción exitosa", type: "success" });
+        
         setTimeout(() => {
-          navigate(isEmployeePath ? "/employee/inicio" : "/admin/dashboard");
+          // ============ CORREGIDO: Redirigir al detalle de la venta ============
+          navigate(isEmployeePath ? `/employee/ventas/${ventaId}` : `/admin/ventas/${ventaId}`);
         }, 1500);
       }
 
@@ -254,11 +326,28 @@ export const CreateOrderPage = () => {
           )}
         </div>
 
-        <div className="w-96 flex flex-col gap-4">
+        <div className="w-96 h-full flex flex-col gap-4">
           <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
             <h3 className="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Cliente</h3>
             <div className="space-y-3">
-              <input type="text" placeholder="Documento" value={clientInfo.documento} onChange={e => setClientInfo(p => ({ ...p, documento: e.target.value }))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" />
+              {/* ============ NUEVO: Campo documento con botón de búsqueda ============ */}
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="Documento" 
+                  value={clientInfo.documento} 
+                  onChange={e => setClientInfo(p => ({ ...p, documento: e.target.value }))} 
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" 
+                />
+                <button
+                  onClick={handleSearchClient}
+                  disabled={searchingClient}
+                  className="px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {searchingClient ? "..." : <Search size={14} />}
+                </button>
+              </div>
+              
               <input type="text" placeholder="Nombre completo *" value={clientInfo.nombre} onChange={e => setClientInfo(p => ({ ...p, nombre: e.target.value }))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" />
               <div className="grid grid-cols-2 gap-2">
                 <input type="tel" placeholder="Teléfono" value={clientInfo.telefono} onChange={e => setClientInfo(p => ({ ...p, telefono: e.target.value }))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" />
@@ -266,12 +355,35 @@ export const CreateOrderPage = () => {
                   {paymentMethods.map(m => <option key={m.id} value={m.id}>{m.value}</option>)}
                 </select>
               </div>
+              
+              {/* ============ NUEVO: Campo IVA ============ */}
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-500">IVA %:</label>
+                <input 
+                  type="number" 
+                  value={porcentajeIva} 
+                  onChange={e => setPorcentajeIva(Number(e.target.value))}
+                  className="w-20 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1 text-sm outline-none text-center"
+                  min="0"
+                  max="100"
+                />
+              </div>
+              
               <button onClick={() => setClientInfo({ documento: "222222222", nombre: "Consumidor Final", telefono: "-", correo: "-", metodoPagoId: paymentMethods[0]?.id?.toString() || "" })} className="w-full py-2 text-[10px] font-black text-blue-600 border border-blue-100 bg-blue-50 rounded-lg uppercase">Cargar Genérico</button>
             </div>
           </div>
 
           <div className="flex-1 overflow-hidden">
-            <IntegratedCart products={productCart} services={serviceCart} onConfirm={handleConfirmOrder} isLoading={loading} primary={primary} disabled={!clientInfo.nombre || (isEmployeeRole && !turnoActivo)} />
+            {/* ============ NUEVO: Pasar totales calculados al carrito ============ */}
+            <IntegratedCart 
+              products={productCart} 
+              services={serviceCart} 
+              onConfirm={handleConfirmOrder} 
+              isLoading={loading} 
+              primary={primary} 
+              disabled={!clientInfo.nombre || (isEmployeeRole && !turnoActivo)}
+              porcentajeIva={porcentajeIva}
+            />
           </div>
         </div>
       </div>

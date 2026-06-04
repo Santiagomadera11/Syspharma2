@@ -25,14 +25,18 @@ export const salesService = {
       clienteDocumento: saleData.documento || saleData.clienteDocumento || null,
       clienteTelefono: saleData.telefono || saleData.clienteTelefono || null,
       metodoPagoId: saleData.metodoPagoId,
-      estadoId: saleData.estadoId || 1, // 1 = Pendiente (estado inicial)
-      porcentajeIva: saleData.porcentajeIva || 0,
+      estadoId: saleData.estadoId || 1,
+      porcentajeIva: saleData.porcentajeIva || 19, // ← CAMBIO: default 19% en lugar de 0
+      subtotal: saleData.subtotal || 0,  // ← NUEVO
+      iva: saleData.iva || 0,            // ← NUEVO
+      total: saleData.total || 0,        // ← NUEVO
       notas: saleData.notas || null,
       detalles: (saleData.productos || saleData.detalles || []).map(p => ({
         productoId: p.id || p.productoId,
         cantidad: p.cantidad,
         precioUnitario: p.precio || p.precioUnitario,
         descuento: p.descuento || 0,
+        subtotal: p.subtotal || (p.cantidad * (p.precio || p.precioUnitario || 0)), // ← NUEVO
       })),
     };
 
