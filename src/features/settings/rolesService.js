@@ -1,33 +1,19 @@
-import { apiClient } from '../../shared/utils/apiClient';
+import { apiClient as api } from '../../shared/utils/apiClient';
 
 export const rolesService = {
-  getAll: () => apiClient.get('/RolMaestro'),
+  getAll: () => api.get('/rolmaestro'),
 
-  getPermisosMaestros: () => apiClient.get('/Permiso'),
+  getById: (id) => api.get(`/rolmaestro/${id}`),
 
-  save: async (roleData) => {
-  let response;
-  if (roleData.id && roleData.id !== 0) {
-    response = await apiClient.put('/RolMaestro', roleData);
-  } else {
-    response = await apiClient.post('/RolMaestro', roleData);
-  }
+  save: (data) => data.id ? api.put('/rolmaestro', data) : api.post('/rolmaestro', data),
 
-  const rolId = response?.data?.id || response?.id || roleData.id;
+  delete: (id) => api.delete(`/rolmaestro/${id}`),
 
-  if (rolId) {
-    try {
-      const permRes = await apiClient.post(`/RolMaestro/${rolId}/permisos`, roleData.permisos ?? []);
-      console.log("PERMISOS GUARDADOS:", permRes);
-    } catch (err) {
-      console.error("ERROR GUARDANDO PERMISOS:", err.response?.data || err.message);
-    }
-  }
+  updateStatus: (id, data) => api.patch(`/rolmaestro/${id}/estado`, data),
 
-  return response;
-},
+  getPermisos: (id) => api.get(`/rolmaestro/${id}/permisos`),
 
-  delete: (id) => apiClient.delete(`/RolMaestro/${id}`),
-
-  toggleStatus: (id, status) => apiClient.patch(`/RolMaestro/${id}/estado`, status)
+  assignPermisos: (id, permisos) => api.post(`/rolmaestro/${id}/permisos`, permisos),
 };
+
+export default rolesService;
