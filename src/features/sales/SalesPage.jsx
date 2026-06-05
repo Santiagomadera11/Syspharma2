@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, DollarSign, Eye, ChevronLeft, ChevronRight,
-  ShoppingCart, TrendingUp, Receipt, Package
+  ShoppingCart, TrendingUp, Receipt, Package, Globe, User
 } from "lucide-react";
 import { salesService } from "./services/salesService";
 import { SaleDetailModal } from "./components/SaleDetailModal";
@@ -40,6 +40,22 @@ export const SalesPage = () => {
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const canCreateSale = userRole === "administrador" || userPerms.includes("sales.create");
+
+  const getOriginBadge = (origen) => {
+    const orig = (origen || "").toUpperCase();
+    if (orig === "WEB") {
+      return (
+        <span className="bg-purple-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase flex items-center gap-1 w-fit">
+          <Globe size={10} /> WEB
+        </span>
+      );
+    }
+    return (
+      <span className="bg-blue-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase flex items-center gap-1 w-fit">
+        <User size={10} /> CAJA
+      </span>
+    );
+  };
 
   const fmt = (v) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v || 0);
 
@@ -118,7 +134,7 @@ export const SalesPage = () => {
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              {["#", "Fecha", "Cliente", "Items", "Pago", "Total", "Estado", ""].map(h => (
+              {["#", "Fecha", "Origen", "Cliente", "Items", "Pago", "Total", "Estado", ""].map(h => (
                 <th key={h} className="px-3 py-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">{h}</th>
               ))}
             </tr>
@@ -131,8 +147,9 @@ export const SalesPage = () => {
                 (sale.servicios?.length || sale.Servicios?.length || 0);
               return (
                 <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-3 py-2 text-[10px] font-bold text-gray-400">{sale.numeroVenta?.split('-')[1]}</td>
+                  <td className="px-3 py-2 text-[10px] font-bold text-gray-400">{sale.numeroVenta?.split('-')[1] || sale.numeroVenta || sale.id}</td>
                   <td className="px-3 py-2 text-[10px] text-gray-500">{new Date(sale.fechaVenta).toLocaleDateString()}</td>
+                  <td className="px-3 py-2">{getOriginBadge(sale.origen)}</td>
                   <td className="px-3 py-2">
                     <span className="text-[10px] font-bold text-gray-700 truncate block max-w-[100px]">{sale.clienteNombre || "C. Final"}</span>
                   </td>

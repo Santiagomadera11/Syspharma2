@@ -15,39 +15,28 @@ import {
 const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors = [] }) => {
   if (!isOpen || !appointment) return null;
 
-  const doctor = doctors.find((d) => d.id === appointment.doctorId);
+  const doctorId = appointment.doctorId || appointment.medicoId;
+  const doctor = doctors.find((d) => d.id === doctorId);
 
-  const getStatusColor = (estado) => {
-    switch (estado) {
-      case "Confirmada":
-        return "bg-green-100 text-green-700";
-      case "En Consulta":
-        return "bg-blue-100 text-blue-700";
-      case "Completada":
-        return "bg-green-100 text-green-700";
-      case "No Asistió":
-        return "bg-red-100 text-red-700";
-      case "Cancelada":
-        return "bg-gray-100 text-gray-700";
-      default:
-        return "bg-yellow-100 text-yellow-700";
-    }
+  const getStatusColor = (estadoRaw) => {
+    const estado = (estadoRaw || "").toLowerCase();
+    if (estado.includes("confirmada") || estado.includes("confirmar")) return "bg-green-100 text-green-700";
+    if (estado.includes("consulta")) return "bg-blue-100 text-blue-700";
+    if (estado.includes("completada")) return "bg-green-100 text-green-700";
+    if (estado.includes("no asistio") || estado.includes("no asistió")) return "bg-red-100 text-red-700";
+    if (estado.includes("cancelada")) return "bg-gray-100 text-gray-700";
+    return "bg-yellow-100 text-yellow-700";
   };
 
-  const getStatusIcon = (estado) => {
-    switch (estado) {
-      case "Confirmada":
-        return <CheckCircle size={16} />;
-      case "En Consulta":
-        return <ClockIcon size={16} />;
-      case "Completada":
-        return <CheckCircle size={16} />;
-      case "No Asistió":
-        return <XCircle size={16} />;
-      default:
-        return <Clock size={16} />;
-    }
+  const getStatusIcon = (estadoRaw) => {
+    const estado = (estadoRaw || "").toLowerCase();
+    if (estado.includes("confirmada") || estado.includes("completada")) return <CheckCircle size={16} />;
+    if (estado.includes("consulta")) return <ClockIcon size={16} />;
+    if (estado.includes("cancelada") || estado.includes("no asistio") || estado.includes("no asistió")) return <XCircle size={16} />;
+    return <Clock size={16} />;
   };
+
+  const currentEstado = appointment.estado || appointment.estadoNombre || "Confirmar Asistencia";
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -69,10 +58,10 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors = [] }) 
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-600">Estado:</span>
             <span
-              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(appointment.estado)}`}
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentEstado)}`}
             >
-              {getStatusIcon(appointment.estado)}
-              {appointment.estado}
+              {getStatusIcon(currentEstado)}
+              {currentEstado}
             </span>
           </div>
 
@@ -87,22 +76,22 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors = [] }) 
                 <span className="text-sm font-medium text-gray-600">
                   Nombre:
                 </span>
-                <p className="text-gray-900">{appointment.paciente}</p>
+                <p className="text-gray-900">{appointment.paciente || appointment.pacienteNombre}</p>
               </div>
               <div>
                 <span className="text-sm font-medium text-gray-600">
                   Documento:
                 </span>
-                <p className="text-gray-900">{appointment.documento}</p>
+                <p className="text-gray-900">{appointment.documento || appointment.pacienteDocumento}</p>
               </div>
-              {appointment.telefono && (
+              {(appointment.telefono || appointment.pacienteTelefono) && (
                 <div>
                   <span className="text-sm font-medium text-gray-600">
                     Teléfono:
                   </span>
                   <p className="text-gray-900 flex items-center gap-2">
                     <Phone size={14} />
-                    {appointment.telefono}
+                    {appointment.telefono || appointment.pacienteTelefono}
                   </p>
                 </div>
               )}
@@ -121,7 +110,7 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors = [] }) 
                   Profesional:
                 </span>
                 <p className="text-gray-900">
-                  {doctor?.nombre} - {doctor?.especialidad}
+                  {doctor?.nombre || appointment.medicoNombre || "Médico"} - {doctor?.especialidad || doctor?.especialidad || "General"}
                 </p>
               </div>
               <div>
@@ -130,12 +119,12 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors = [] }) 
                 </span>
                 <p className="text-gray-900 flex items-center gap-2">
                   <Calendar size={14} />
-                  {new Date(appointment.fecha).toLocaleDateString("es-ES", {
+                  {appointment.fecha ? new Date(appointment.fecha).toLocaleDateString("es-ES", {
                     weekday: "long",
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  })}
+                  }) : "-"}
                 </p>
               </div>
               <div>
@@ -149,7 +138,7 @@ const AppointmentDetailModal = ({ isOpen, onClose, appointment, doctors = [] }) 
                 <span className="text-sm font-medium text-gray-600">
                   Servicio:
                 </span>
-                <p className="text-gray-900">{appointment.servicio}</p>
+                <p className="text-gray-900">{appointment.servicio || appointment.servicioNombre || "Consulta Médica"}</p>
               </div>
             </div>
           </div>

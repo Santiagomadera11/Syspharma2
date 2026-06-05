@@ -24,6 +24,8 @@ const mapToApiFormat = (appointmentData) => {
     notas: appointmentData.notas,
     estadoId: appointmentData.estadoId || 1,
     usuarioId: appointmentData.userId || currentUser?.id,
+    pedidoId: appointmentData.pedidoId || null,
+    ventaId: appointmentData.ventaId || null,
   };
 };
 
@@ -49,6 +51,8 @@ const mapFromApiFormat = (apiData) => ({
   notas: apiData.notas,
   estado: apiData.estadoNombre || apiData.estado,
   estadoNombre: apiData.estadoNombre || apiData.estado,
+  pedidoId: apiData.pedidoId,
+  ventaId: apiData.ventaId,
 });
 
 export const appointmentService = {
@@ -182,6 +186,17 @@ export const appointmentService = {
       return appointments.filter((a) => a.fecha === date && a.doctorId === doctorId);
     } catch (error) {
       console.error("Error filtrando citas:", error);
+      return [];
+    }
+  },
+
+  // --- CATÁLOGO DE SERVICIOS ---
+  getCatalogServices: async () => {
+    try {
+      const res = await apiClient.get("Servicio");
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (error) {
+      console.error("Error obteniendo catálogo de servicios:", error);
       return [];
     }
   },
