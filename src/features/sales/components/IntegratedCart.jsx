@@ -12,6 +12,7 @@ export const IntegratedCart = ({
   primary, 
   disabled,
   porcentajeIva = 19,
+  esUnPedido = false,
 }) => {
   const productsTotal = products.reduce((sum, p) => sum + p.precio * p.cantidad, 0);
   const servicesTotal = services.reduce((sum, s) => sum + s.precio, 0);
@@ -22,13 +23,15 @@ export const IntegratedCart = ({
   const hasItems = products.length > 0 || services.length > 0;
 
   return (
-    <div className="w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden flex flex-col h-full">
+    <div className="w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden flex flex-col h-fit">
       {/* Header */}
       <div className="px-3 py-2.5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingCart size={18} style={{ color: primary }} />
-            <h3 className="font-bold text-sm text-gray-900">Resumen de Venta</h3>
+            <h3 className="font-bold text-sm text-gray-900">
+              {esUnPedido ? "Resumen de Pedido" : "Resumen de Venta"}
+            </h3>
           </div>
           {hasItems && (
             <span className="text-xs bg-gray-100 px-2 py-1 rounded-full font-semibold text-gray-600">
@@ -40,60 +43,6 @@ export const IntegratedCart = ({
 
       {/* Contenido scrolleable */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {/* Productos */}
-        {products.length > 0 && (
-          <div>
-            <h4 className="text-xs font-bold uppercase text-gray-500 mb-2">
-              📦 Productos ({products.length})
-            </h4>
-            <div className="space-y-1.5 border-b border-gray-100 pb-2">
-              {products.map((p) => (
-                <div key={p.id} className="flex justify-between text-xs">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 truncate">{p.nombre}</p>
-                    <p className="text-[10px] text-gray-500">
-                      {p.cantidad} x {fmt(p.precio)}
-                    </p>
-                  </div>
-                  <p className="font-bold text-gray-900 ml-2 flex-shrink-0">{fmt(p.precio * p.cantidad)}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs mt-2 font-semibold text-gray-600">
-              <span>Subtotal productos:</span>
-              <span>{fmt(productsTotal)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Servicios */}
-        {services.length > 0 && (
-          <div>
-            <h4 className="text-xs font-bold uppercase text-gray-500 mb-2">
-              🏥 Servicios ({services.length})
-            </h4>
-            <div className="space-y-1.5 border-b border-gray-100 pb-2">
-              {services.map((s) => (
-                <div key={s.id} className="flex justify-between text-xs">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-800 truncate">
-                      {s.doctorNombre || s.nombre || "Servicio"}
-                    </p>
-                    <p className="text-[10px] text-gray-500">
-                      {s.fecha ? new Date(s.fecha).toLocaleDateString("es-CO") : ""} {s.hora || ""}
-                    </p>
-                  </div>
-                  <p className="font-bold text-gray-900 ml-2 flex-shrink-0">{fmt(s.precio)}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs mt-2 font-semibold text-gray-600">
-              <span>Subtotal servicios:</span>
-              <span>{fmt(servicesTotal)}</span>
-            </div>
-          </div>
-        )}
-
         {/* Vacío */}
         {!hasItems && (
           <div className="flex flex-col items-center justify-center py-8 text-gray-400">
@@ -143,7 +92,7 @@ export const IntegratedCart = ({
             }}
           >
             <DollarSign size={14} />
-            {isLoading ? "Procesando..." : "Finalizar Venta"}
+            {isLoading ? "Procesando..." : (esUnPedido ? "Confirmar Pedido" : "Finalizar Venta")}
           </button>
         </div>
       )}

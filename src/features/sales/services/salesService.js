@@ -38,6 +38,14 @@ export const salesService = {
         descuento: p.descuento || 0,
         subtotal: p.subtotal || (p.cantidad * (p.precio || p.precioUnitario || 0)), // ← NUEVO
       })),
+      servicios: (saleData.servicios || []).map(s => ({
+        servicioId: s.servicioId,
+        cantidad: s.cantidad || 1,
+        precioUnitario: s.precioUnitario,
+        descuento: s.descuento || 0,
+        subtotal: s.subtotal || (s.cantidad * s.precioUnitario),
+        citaId: s.citaId || null,
+      })),
     };
 
     const parsedTurnoId = Number(saleData.turnoId);

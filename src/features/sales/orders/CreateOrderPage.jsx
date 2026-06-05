@@ -160,6 +160,15 @@ export const CreateOrderPage = () => {
 
   const handleAddService = useCallback((service) => {
     setServiceCart((prev) => [...prev, service]);
+    if (service.paciente || service.documento) {
+      setClientInfo((prevClient) => ({
+        ...prevClient,
+        nombre: service.paciente || prevClient.nombre,
+        documento: service.documento || prevClient.documento,
+        telefono: service.telefono || prevClient.telefono || "",
+        correo: service.email || prevClient.correo || "",
+      }));
+    }
   }, []);
 
   const handleRemoveService = useCallback((id) => {
@@ -196,7 +205,10 @@ export const CreateOrderPage = () => {
           clienteEmail: clientInfo.correo || "",
           metodoPagoId: Number(clientInfo.metodoPagoId),
           porcentajeIva: porcentajeIva, // ← CAMBIO: usar variable de estado
-          notas: "",
+          notas: [
+            clientInfo.correo ? `Email: ${clientInfo.correo}` : "",
+            ...serviceCart.map((s) => s.notas).filter(Boolean)
+          ].filter(Boolean).join(" | ") || "Pedido realizado desde terminal",
           origen: "Terminal",
           subtotal: subtotal,  // ← NUEVO
           iva: iva,            // ← NUEVO
@@ -208,6 +220,7 @@ export const CreateOrderPage = () => {
             precioUnitario: Number(p.precio),
             subtotal: Number(p.cantidad * p.precio), // ← NUEVO
           })),
+          citaIds: serviceCart.map((s) => s.appointmentId).filter(Boolean), // ← NUEVO
         };
 
         console.log("📝 Enviando PEDIDO:", JSON.stringify(pedidoPayload, null, 2));
@@ -218,8 +231,8 @@ export const CreateOrderPage = () => {
         setNotification({ message: "Pedido guardado con éxito", type: "success" });
         
         setTimeout(() => {
-          // ============ NUEVO: Redirigir al detalle del pedido ============
-          navigate(isEmployeePath ? `/employee/pedidos/${pedidoId}` : `/admin/pedidos/${pedidoId}`);
+          // Redirigir a la lista de pedidos
+          navigate(isEmployeePath ? "/employee/pedidos" : "/admin/pedidos");
         }, 1500);
 
       } else {
@@ -234,7 +247,10 @@ export const CreateOrderPage = () => {
           subtotal: subtotal,           // ← CAMBIO
           iva: iva,                     // ← CAMBIO
           total: total,                 // ← CAMBIO
-          notas: clientInfo.correo ? `Email: ${clientInfo.correo}` : "",
+          notas: [
+            clientInfo.correo ? `Email: ${clientInfo.correo}` : "",
+            ...serviceCart.map((s) => s.notas).filter(Boolean)
+          ].filter(Boolean).join(" | ") || null,
           detalles: productCart.map((p) => ({
             productoId: Number(p.id),
             cantidad: Number(p.cantidad),
@@ -243,11 +259,12 @@ export const CreateOrderPage = () => {
             subtotal: Number(p.cantidad * p.precio),
           })),
           servicios: serviceCart.map((s) => ({
-            servicioId: Number(s.id),
+            servicioId: Number(s.servicioId),
             cantidad: 1,
             precioUnitario: Number(s.precio),
             descuento: 0,
             subtotal: Number(s.precio),
+            citaId: s.appointmentId || null,
           })),
         };
 
@@ -259,8 +276,8 @@ export const CreateOrderPage = () => {
         setNotification({ message: "Transacción exitosa", type: "success" });
         
         setTimeout(() => {
-          // ============ CORREGIDO: Redirigir al detalle de la venta ============
-          navigate(isEmployeePath ? `/employee/ventas/${ventaId}` : `/admin/ventas/${ventaId}`);
+          // Redirigir a la lista de ventas
+          navigate(isEmployeePath ? "/employee/ventas" : "/admin/ventas");
         }, 1500);
       }
 
@@ -326,54 +343,82 @@ export const CreateOrderPage = () => {
           )}
         </div>
 
-        <div className="w-96 h-full flex flex-col gap-4">
+        <div className="w-96 h-full flex flex-col gap-4 overflow-y-auto pr-1 no-scrollbar">
           <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest">Cliente</h3>
             <div className="space-y-3">
-              {/* ============ NUEVO: Campo documento con botón de búsqueda ============ */}
-              <div className="flex gap-2">
+              {/* Documento */}
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Documento</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={clientInfo.documento} 
+                    onChange={e => setClientInfo(p => ({ ...p, documento: e.target.value }))} 
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" 
+                  />
+                  <button
+                    onClick={handleSearchClient}
+                    disabled={searchingClient}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center"
+                  >
+                    {searchingClient ? "..." : <Search size={14} />}
+                  </button>
+                </div>
+              </div>
+              
+              {/* Nombre completo */}
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Nombre completo *</label>
                 <input 
                   type="text" 
-                  placeholder="Documento" 
-                  value={clientInfo.documento} 
-                  onChange={e => setClientInfo(p => ({ ...p, documento: e.target.value }))} 
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" 
+                  value={clientInfo.nombre} 
+                  onChange={e => setClientInfo(p => ({ ...p, nombre: e.target.value }))} 
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" 
                 />
-                <button
-                  onClick={handleSearchClient}
-                  disabled={searchingClient}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {searchingClient ? "..." : <Search size={14} />}
-                </button>
               </div>
-              
-              <input type="text" placeholder="Nombre completo *" value={clientInfo.nombre} onChange={e => setClientInfo(p => ({ ...p, nombre: e.target.value }))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" />
+
+              {/* Teléfono y Método de pago */}
               <div className="grid grid-cols-2 gap-2">
-                <input type="tel" placeholder="Teléfono" value={clientInfo.telefono} onChange={e => setClientInfo(p => ({ ...p, telefono: e.target.value }))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" />
-                <select value={clientInfo.metodoPagoId} onChange={e => setClientInfo(p => ({ ...p, metodoPagoId: e.target.value }))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold">
-                  {paymentMethods.map(m => <option key={m.id} value={m.id}>{m.value}</option>)}
-                </select>
+                <div className="flex flex-col gap-0.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Teléfono</label>
+                  <input 
+                    type="tel" 
+                    value={clientInfo.telefono} 
+                    onChange={e => setClientInfo(p => ({ ...p, telefono: e.target.value }))} 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none" 
+                  />
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Método de pago</label>
+                  <select 
+                    value={clientInfo.metodoPagoId} 
+                    onChange={e => setClientInfo(p => ({ ...p, metodoPagoId: e.target.value }))} 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold outline-none"
+                  >
+                    {paymentMethods.map(m => <option key={m.id} value={m.id}>{m.value}</option>)}
+                  </select>
+                </div>
               </div>
               
-              {/* ============ NUEVO: Campo IVA ============ */}
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-bold text-gray-500">IVA %:</label>
+              {/* IVA % */}
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">IVA %</label>
                 <input 
                   type="number" 
                   value={porcentajeIva} 
                   onChange={e => setPorcentajeIva(Number(e.target.value))}
-                  className="w-20 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1 text-sm outline-none text-center"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   min="0"
                   max="100"
+                  disabled={currentUser.rol?.toLowerCase() !== "administrador"}
                 />
               </div>
               
-              <button onClick={() => setClientInfo({ documento: "222222222", nombre: "Consumidor Final", telefono: "-", correo: "-", metodoPagoId: paymentMethods[0]?.id?.toString() || "" })} className="w-full py-2 text-[10px] font-black text-blue-600 border border-blue-100 bg-blue-50 rounded-lg uppercase">Cargar Genérico</button>
+              <button onClick={() => setClientInfo({ documento: "222222222", nombre: "Consumidor Final", telefono: "-", correo: "-", metodoPagoId: paymentMethods[0]?.id?.toString() || "" })} className="w-full py-2 text-[10px] font-black text-blue-600 border border-blue-100 bg-blue-50 rounded-lg uppercase mt-1">Cargar Genérico</button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-shrink-0">
             {/* ============ NUEVO: Pasar totales calculados al carrito ============ */}
             <IntegratedCart 
               products={productCart} 
@@ -383,6 +428,7 @@ export const CreateOrderPage = () => {
               primary={primary} 
               disabled={!clientInfo.nombre || (isEmployeeRole && !turnoActivo)}
               porcentajeIva={porcentajeIva}
+              esUnPedido={esUnPedido}
             />
           </div>
         </div>
