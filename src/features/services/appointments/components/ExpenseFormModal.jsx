@@ -4,7 +4,6 @@ import {
   Save,
   DollarSign,
   FileText,
-  Calendar,
   Tag,
   CreditCard,
   TrendingDown,
@@ -12,6 +11,8 @@ import {
 } from "lucide-react";
 import { formValidations } from "../../../../shared/utils/formValidations";
 import { getPaymentMethods } from "../../../settings/services/parameterService";
+import { expensesService } from "../../../sales/services/expensesService";
+import { turnService } from "../../../sales/services/turnService";
 
 const ExpenseFormModal = ({
   isOpen,
@@ -24,7 +25,7 @@ const ExpenseFormModal = ({
     concepto: "",
     monto: "",
     categoria: "Servicios Básicos",
-    fecha: new Date().toISOString().split("T")[0], // Fecha de hoy por defecto
+    fecha: new Date().toISOString().split("T")[0],
     metodoPago: "",
     observaciones: "",
   });
@@ -33,7 +34,6 @@ const ExpenseFormModal = ({
   const [paymentMethods, setPaymentMethods] = useState([]);
 
   useEffect(() => {
-    // Load payment methods from localStorage
     const methods = getPaymentMethods();
     setPaymentMethods(methods);
     const defaultMethod = methods.length > 0 ? methods[0].value : "";
@@ -52,21 +52,14 @@ const ExpenseFormModal = ({
     }
     setErrors({});
 
-    // Listen for parameter updates
     const handleParameterUpdate = () => {
       const updatedMethods = getPaymentMethods();
       setPaymentMethods(updatedMethods);
     };
 
-    window.addEventListener(
-      "syspharma_parameters_updated",
-      handleParameterUpdate,
-    );
+    window.addEventListener("syspharma_parameters_updated", handleParameterUpdate);
     return () => {
-      window.removeEventListener(
-        "syspharma_parameters_updated",
-        handleParameterUpdate,
-      );
+      window.removeEventListener("syspharma_parameters_updated", handleParameterUpdate);
     };
   }, [initialData, isOpen]);
 
@@ -82,7 +75,7 @@ const ExpenseFormModal = ({
     setErrors({ ...errors, [field]: error });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const conceptoError = formValidations.validateService(formData.concepto);
     setErrors({ ...errors, concepto: conceptoError });
 
@@ -90,14 +83,48 @@ const ExpenseFormModal = ({
       alert("Concepto y Monto son obligatorios");
       return;
     }
-    onSave({ ...formData, monto: Number(formData.monto) });
-    onClose();
+
+    const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+
+    // ✅ Obtener turno activo real
+    const turno = await turnService.getActiveTurn(user.id);
+    if (!turno) {
+      alert("No hay un turno activo. Debes abrir caja primero.");
+      return;
+    }
+
+    const metodoPagoMap = {
+      "Efectivo": 1,
+      "Tarjeta": 2,
+      "Transferencia": 3,
+      "Cheque": 4,
+    };
+
+    const gastoData = {
+      TurnoId: turno.id,
+      UsuarioId: user.id || user.usuarioId || 0,
+      Concepto: formData.concepto,
+      Descripcion: formData.concepto,
+      Monto: Number(formData.monto) || 0,
+      Categoria: formData.categoria || "operacional",
+      MetodoPagoId: metodoPagoMap[formData.metodoPago] || null,
+      Notas: formData.observaciones || "",
+      FechaGasto: formData.fecha ? `${formData.fecha}T00:00:00` : new Date().toISOString().split('T')[0] + 'T00:00:00',
+    };
+
+    try {
+      await expensesService.create(gastoData);
+      onSave(gastoData);
+      onClose();
+    } catch (error) {
+      console.error("Error creando gasto:", error);
+      alert("Error al crear gasto: " + error.message);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden">
-        {/* Header Rojo para indicar Gasto */}
         <div className="bg-red-50 px-5 py-3 border-b border-red-100 flex justify-between items-center">
           <h3 className="font-bold text-red-800 text-sm flex items-center gap-2">
             <TrendingDown size={16} className="text-red-600" />
@@ -116,7 +143,6 @@ const ExpenseFormModal = ({
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Concepto y Categoría */}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -193,7 +219,6 @@ const ExpenseFormModal = ({
             </div>
           </div>
 
-          {/* Monto y Método */}
           <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -260,7 +285,6 @@ const ExpenseFormModal = ({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="bg-gray-50 px-5 py-3 border-t border-gray-200 flex justify-end gap-2">
           <button
             onClick={onClose}

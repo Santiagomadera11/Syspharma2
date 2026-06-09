@@ -150,7 +150,7 @@ export const SettingsPage = () => {
   const [editRole, setEditRole] = useState(null);
   const [toast, setToast] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null, name: "" });
-  const [statusLoading, setStatusLoading] = useState(null); // ID del rol cambiando estado
+  const [statusLoading, setStatusLoading] = useState(null);
 
   const [roleName, setRoleName] = useState("");
   const [roleDesc, setRoleDesc] = useState("");
@@ -181,9 +181,6 @@ export const SettingsPage = () => {
     ? roles.slice((currentPage - 1) * ROLES_PER_PAGE, currentPage * ROLES_PER_PAGE)
     : roles;
 
-  /* ═══════════════════════════════════════════
-     CAMBIO DE ESTADO (ACTIVO/INACTIVO)
-     ═══════════════════════════════════════════ */
   const handleToggleStatus = async (role) => {
     const newStatus = !(role.estado ?? true);
     setStatusLoading(role.id);
@@ -402,20 +399,22 @@ export const SettingsPage = () => {
                         </div>
                       </td>
                       <td className="px-5 py-3">
-                        <div className="flex justify-center gap-2">
+                        <div className="flex justify-center gap-1.5">
                           <button
                             onClick={() => handleEditRole(role)}
-                            className="p-1.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
+                            className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors"
+                            title="Editar"
                           >
-                            <Edit size={14} />
+                            <Edit size={16} />
                           </button>
                           <button
                             onClick={() =>
                               setDeleteConfirm({ show: true, id: role.id, name: role.nombre || role.name })
                             }
-                            className="p-1.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"
+                            className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors"
+                            title="Eliminar"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </td>

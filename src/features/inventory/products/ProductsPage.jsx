@@ -79,7 +79,6 @@ export const ProductsPage = () => {
       setCategories(cats);
       setProviders(provs);
 
-      // Sincronizar productos a localStorage para la landing pública
       const productsForPublic = prods.map(p => ({
         id: p.id,
         nombre: p.nombre,
@@ -202,21 +201,6 @@ export const ProductsPage = () => {
     else if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [totalPages]);
 
-  const StatusToggle = ({ estado, product }) => (
-    <button
-      onClick={() => handleStatusToggle(product)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${
-        estado ? `${theme.main} shadow-md ${theme.shadow}` : "bg-gray-300 shadow-md shadow-gray-200"
-      } ${!canToggleStatus ? "opacity-50 cursor-not-allowed" : ""}`}
-      disabled={!canToggleStatus}
-      role="switch"
-      aria-checked={estado}
-    >
-      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${estado ? "translate-x-6" : "translate-x-0.5"}`} />
-      <span className="sr-only">{estado ? "Activo" : "Inactivo"}</span>
-    </button>
-  );
-
   return (
     <div className="h-full flex flex-col p-3 sm:p-6 font-sans text-gray-800 bg-white md:bg-transparent relative overflow-hidden">
 
@@ -296,21 +280,28 @@ export const ProductsPage = () => {
                     <td className="py-2.5 px-3 sm:px-4 text-xs text-center font-semibold text-gray-900">{prod.stock}</td>
                     <td className={`py-2.5 px-3 sm:px-4 text-xs text-right font-semibold ${theme.text} hidden lg:table-cell`}>$ {Number(prod.precio).toLocaleString()}</td>
                     <td className="py-2.5 px-3 sm:px-4 text-center">
-                      <StatusToggle estado={prod.estado} product={prod} />
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${prod.estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        {prod.estado ? "Activo" : "Inactivo"}
+                      </span>
                     </td>
                     <td className="py-2.5 px-3 sm:px-4">
                       <div className="flex justify-center gap-1.5">
-                        <button onClick={() => setDetailProduct(prod)} className={`p-1.5 rounded-lg border ${theme.border} ${theme.text} ${theme.hoverLight} transition-colors`} title="Ver detalle">
-                          <Eye size={14} />
+                        <button onClick={() => setDetailProduct(prod)} className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
+                          <Eye size={16} />
                         </button>
+                        {canToggleStatus && (
+                          <button onClick={() => handleStatusToggle(prod)} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                            <CheckCircle size={16} />
+                          </button>
+                        )}
                         {canEdit && (
-                          <button onClick={() => handleEdit(prod)} className="p-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors" title="Editar">
-                            <Edit size={14} />
+                          <button onClick={() => handleEdit(prod)} className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                            <Edit size={16} />
                           </button>
                         )}
                         {canDelete && (
-                          <button onClick={() => setShowDeleteConfirm(prod)} className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
-                            <Trash2 size={14} />
+                          <button onClick={() => setShowDeleteConfirm(prod)} className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                            <Trash2 size={16} />
                           </button>
                         )}
                       </div>
@@ -362,7 +353,9 @@ export const ProductsPage = () => {
                     <p className="text-xs text-gray-600">ID: {prod.id}</p>
                   </div>
                 </div>
-                <StatusToggle estado={prod.estado} product={prod} />
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${prod.estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                  {prod.estado ? "Activo" : "Inactivo"}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div><p className="text-gray-500 font-medium">Categoría</p><p className="text-gray-900 font-semibold">{prod.categoria}</p></div>
@@ -370,9 +363,24 @@ export const ProductsPage = () => {
                 <div className="col-span-2"><p className="text-gray-500 font-medium">Precio</p><p className={`${theme.text} font-bold`}>$ {Number(prod.precio).toLocaleString()}</p></div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setDetailProduct(prod)} className={`flex-1 py-1.5 px-3 rounded-lg border ${theme.border} ${theme.text} ${theme.hoverLight} transition-colors text-xs font-medium`}>Ver</button>
-                {canEdit && <button onClick={() => handleEdit(prod)} className="flex-1 py-1.5 px-3 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors text-xs font-medium">Editar</button>}
-                {canDelete && <button onClick={() => setShowDeleteConfirm(prod)} className="flex-1 py-1.5 px-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-xs font-medium">Borrar</button>}
+                <button onClick={() => setDetailProduct(prod)} className="flex-1 py-1.5 px-3 rounded-md text-blue-600 hover:bg-blue-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
+                  <Eye size={14} /> Ver
+                </button>
+                {canToggleStatus && (
+                  <button onClick={() => handleStatusToggle(prod)} className="flex-1 py-1.5 px-3 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
+                    <CheckCircle size={14} /> Estado
+                  </button>
+                )}
+                {canEdit && (
+                  <button onClick={() => handleEdit(prod)} className="flex-1 py-1.5 px-3 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
+                    <Edit size={14} /> Editar
+                  </button>
+                )}
+                {canDelete && (
+                  <button onClick={() => setShowDeleteConfirm(prod)} className="flex-1 py-1.5 px-3 rounded-md text-red-600 hover:bg-red-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
+                    <Trash2 size={14} /> Borrar
+                  </button>
+                )}
               </div>
             </div>
           )) : (
@@ -416,7 +424,6 @@ export const ProductsPage = () => {
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">ID</label><p className="text-xs text-gray-900 font-medium truncate">{detailProduct.id}</p></div>
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">Nombre</label><p className="text-xs text-gray-900 font-medium line-clamp-2">{detailProduct.nombre}</p></div>
                   
-                  {/* Descripción (NUEVA FILA - OCUPA DOS COLUMNAS) */}
                   <div className="col-span-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase block">Descripción</label>
                     <p className="text-xs text-gray-900 font-medium whitespace-pre-line">{detailProduct.descripcion || "Sin descripción disponible."}</p>
@@ -473,8 +480,6 @@ export const ProductsPage = () => {
             </div>
             <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex justify-end gap-2">
               <button onClick={() => setShowDeleteConfirm(null)} className="px-4 py-2 text-xs font-medium text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors">Cancelar</button>
-              
-              {/* === CORREGIDO: SE AGREGÓ LA FUNCIÓN DE FLECHA () => EN EL ONCLICK === */}
               <button onClick={() => handleDelete(showDeleteConfirm)} className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1 shadow-sm">
                 <Trash2 size={14} /> Eliminar
               </button>

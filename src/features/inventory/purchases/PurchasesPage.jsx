@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Plus, Search, Eye, Edit, Trash2,
-  ChevronLeft, ChevronRight, Filter, ShoppingBag, Settings,
+  ChevronLeft, ChevronRight, Filter, ShoppingBag,
   CheckCircle, AlertCircle, X
 } from "lucide-react";
 import PurchaseModal from "./components/PurchaseFormModal";
@@ -225,27 +225,27 @@ export const PurchasesPage = () => {
                     </td>
                     <td className="py-1.5 px-3 text-center">{getStatusBadge(compra.estadoNombre)}</td>
                     <td className="py-1.5 px-3">
-                      <div className="flex items-center justify-center gap-1">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => { setSelectedPurchase(compra); setModalMode("view"); setIsModalOpen(true); }}
+                          className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
+                          <Eye size={16} />
+                        </button>
                         {canChangeStatus && (
                           <button onClick={() => { setPurchaseToChangeStatus(compra); setIsStatusModalOpen(true); }}
-                            className="p-1 rounded text-gray-600 hover:bg-gray-100" title="Cambiar Estado">
-                            <Settings size={14} />
+                            className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                            <CheckCircle size={16} />
                           </button>
                         )}
-                        <button onClick={() => { setSelectedPurchase(compra); setModalMode("view"); setIsModalOpen(true); }}
-                          className={`p-1 rounded border ${theme.border} ${theme.text} ${theme.hoverLight}`} title="Ver">
-                          <Eye size={14} />
-                        </button>
                         {canEdit && (
                           <button onClick={() => { setSelectedPurchase(compra); setModalMode("edit"); setIsModalOpen(true); }}
-                            className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar">
-                            <Edit size={14} />
+                            className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                            <Edit size={16} />
                           </button>
                         )}
                         {canDelete && (
                           <button onClick={() => setShowDeleteConfirm(compra)}
-                            className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar">
-                            <Trash2 size={14} />
+                            className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                            <Trash2 size={16} />
                           </button>
                         )}
                       </div>

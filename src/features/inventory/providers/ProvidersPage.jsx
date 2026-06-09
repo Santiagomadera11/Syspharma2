@@ -286,22 +286,29 @@ export const ProvidersPage = () => {
                       </div>
                     </td>
                     <td className="py-1.5 px-3 text-center">
-                      <button
-                        onClick={() => handleToggleStatus(prov)}
-                        disabled={!canToggleStatus}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${prov.estado ? theme.main : "bg-gray-400"} ${!canToggleStatus ? "opacity-50 cursor-not-allowed" : ""}`}
-                      >
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${prov.estado ? "translate-x-5" : "translate-x-0.5"}`} />
-                      </button>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${prov.estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        {prov.estado ? "Activo" : "Inactivo"}
+                      </span>
                     </td>
                     <td className="py-1.5 px-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => handleView(prov)} className={`p-1 rounded border ${theme.border} ${theme.text} ${theme.hoverLight}`} title="Ver"><Eye size={14} /></button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => handleView(prov)} className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
+                          <Eye size={16} />
+                        </button>
+                        {canToggleStatus && (
+                          <button onClick={() => handleToggleStatus(prov)} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                            <CheckCircle size={16} />
+                          </button>
+                        )}
                         {canEdit && (
-                          <button onClick={() => handleEdit(prov)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
+                          <button onClick={() => handleEdit(prov)} className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                            <Edit size={16} />
+                          </button>
                         )}
                         {canDelete && (
-                          <button onClick={() => handleDelete(prov)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                          <button onClick={() => handleDelete(prov)} className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                            <Trash2 size={16} />
+                          </button>
                         )}
                       </div>
                     </td>

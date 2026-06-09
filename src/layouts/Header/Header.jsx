@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Bell, Menu, Stethoscope, Eye } from 'lucide-react';
+import { Bell, Menu, Eye } from 'lucide-react';
 import { appointmentService } from '../../features/services/appointments/services/appointmentService';
 import { useNavigate } from 'react-router-dom';
+import icono1 from '../../assets/icono1.png'; // ← NUEVO: import del logo
 
-// Recibimos la función onMenuClick
 export const Header = ({ onMenuClick }) => {
   const [user, setUser] = useState({ nombre: 'Usuario', rol: 'Invitado' });
   const [notifications, setNotifications] = useState([]);
@@ -25,13 +25,12 @@ export const Header = ({ onMenuClick }) => {
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
-  // Load notifications: appointments created after `lastSeenAppointmentsAt`
   useEffect(() => {
     const loadNotifications = async () => {
       const lastSeen = localStorage.getItem('lastSeenAppointmentsAt');
       const all = await appointmentService.getAppointments();
       const newOnes = all.filter((a) => {
-        if (!a.fechaCreacion) return false; // ignore old seed data
+        if (!a.fechaCreacion) return false;
         if (!lastSeen) return true;
         try {
           return new Date(a.fechaCreacion) > new Date(lastSeen);
@@ -42,7 +41,6 @@ export const Header = ({ onMenuClick }) => {
       setNotifications(newOnes.sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion)));
     };
 
-    // initial load
     loadNotifications();
 
     const onChange = () => loadNotifications();
@@ -56,7 +54,6 @@ export const Header = ({ onMenuClick }) => {
       {/* IZQUIERDA: Botón Menú y Logo */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         
-        {/* BOTÓN MENÚ: Solo visible en móvil (lg:hidden) */}
         <button 
           onClick={onMenuClick} 
           className="lg:hidden text-white/80 hover:text-white p-1 rounded-md hover:bg-white/10 transition flex-shrink-0"
@@ -65,10 +62,14 @@ export const Header = ({ onMenuClick }) => {
           <Menu size={24} />
         </button>
         
-        {/* LOGO SYSPHARMA */}
+        {/* LOGO SYSPHARMA - SOLO ESTO CAMBIÓ */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="bg-white/20 p-1 sm:p-1.5 rounded-lg backdrop-blur-sm flex-shrink-0">
-            <Stethoscope size={18} className="text-white" />
+          <div className="p-0.5 flex-shrink-0">
+            <img 
+              src={icono1}
+              alt="SysPharma Logo" 
+              className="w-8 h-8 object-contain rounded-full"
+            />
           </div>
           <div className="hidden xs:block min-w-0">
             <h1 className="text-base sm:text-lg font-bold tracking-wide leading-none truncate">SysPharma</h1>
@@ -79,13 +80,12 @@ export const Header = ({ onMenuClick }) => {
         </div>
       </div>
 
-      {/* DERECHA */}
+      {/* DERECHA - SIN CAMBIOS */}
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         <div className="relative">
           <button
             onClick={() => {
               const opening = !open;
-              // If opening the dropdown, show native notifications now
               if (opening && notifications.length > 0 && "Notification" in window) {
                 Notification.requestPermission().then((perm) => {
                   if (perm === 'granted') {
@@ -97,7 +97,6 @@ export const Header = ({ onMenuClick }) => {
                   }
                 });
               }
-              // toggle dropdown
               setOpen((v) => !v);
             }}
             className="relative text-primary-100 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10"
@@ -109,7 +108,6 @@ export const Header = ({ onMenuClick }) => {
             )}
           </button>
 
-          {/* Dropdown */}
           {open && (
             <div className="absolute right-0 mt-2 w-80 bg-white text-gray-800 rounded-lg shadow-lg border border-gray-100 z-50">
               <div className="p-2 border-b flex items-center justify-between">

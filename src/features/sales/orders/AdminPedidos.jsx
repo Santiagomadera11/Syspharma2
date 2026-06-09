@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Search, Eye, ChevronLeft, ChevronRight, Calendar,
   Plus, Download, Edit, Trash2, Users, Filter,
-  User, Globe, Check,
+  User, Globe, CheckCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ordersService } from "./services/ordersService";
@@ -43,7 +43,7 @@ export const AdminPedidos = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState(null);
   const [tooltipOrderId, setTooltipOrderId] = useState(null);
-  const itemsPerPage = 6;  // ✅ CAMBIADO A 6 REGISTROS POR PÁGINA
+  const itemsPerPage = 6;
 
   const loadOrders = useCallback(async () => {
     try {
@@ -148,22 +148,6 @@ export const AdminPedidos = () => {
     }
     setIsDeleteModalOpen(false);
     setOrderToDelete(null);
-  };
-
-  const handleCompleteOrder = async (order) => {
-    if (!canChangeStatus) {
-      setNotification({ message: "No tienes permiso para cambiar estados de pedidos", type: "error", zIndex: 1000 });
-      return;
-    }
-    const estadoEntregado = estados.find(e => e.nombre.toLowerCase() === "entregado");
-    if (!estadoEntregado) { setNotification({ message: "No se encontró el estado Entregado", type: "error", zIndex: 1000 }); return; }
-    try {
-      await ordersService.updateStatus(order.id, estadoEntregado.id);
-      setNotification({ message: `Pedido ${order.numeroPedido} completado`, type: "success", zIndex: 1000 });
-      await loadOrders();
-    } catch (err) {
-      setNotification({ message: err?.response?.data?.message || "Error al completar", type: "error", zIndex: 1000 });
-    }
   };
 
   const handleEditOrder = (order) => {
@@ -304,31 +288,25 @@ export const AdminPedidos = () => {
                     <td className="px-3 py-2.5">
                       <div className="flex items-center justify-end gap-1.5">
                         <button onClick={() => { setSelectedOrder(order); setIsDetailOpen(true); }}
-                          className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200" title="Ver detalle">
-                          <Eye size={14} />
+                          className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
+                          <Eye size={16} />
                         </button>
-                        {(order.estadoNombre || "").toLowerCase() === "pendiente" && canChangeStatus && (
-                          <button onClick={() => handleCompleteOrder(order)}
-                            className="bg-green-50 hover:bg-green-100 text-green-600 p-1.5 rounded-md border border-green-200" title="Completar">
-                            <Check size={14} />
+                        {canChangeStatus && (
+                          <button onClick={() => { setOrderToChangeStatus(order); setIsStatusModalOpen(true); }}
+                            className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                            <CheckCircle size={16} />
                           </button>
                         )}
                         {(order.estadoNombre || "").toLowerCase() === "pendiente" && canEditOrder && (
                           <button onClick={() => handleEditOrder(order)}
-                            className="bg-amber-50 hover:bg-amber-100 text-amber-600 p-1.5 rounded-md border border-amber-200" title="Editar">
-                            <Edit size={14} />
-                          </button>
-                        )}
-                        {canChangeStatus && (
-                          <button onClick={() => { setOrderToChangeStatus(order); setIsStatusModalOpen(true); }}
-                            className={`${theme.light} ${theme.hoverLight} ${theme.text} p-1.5 rounded-md border ${theme.border}`} title="Cambiar estado">
-                            <Filter size={14} />
+                            className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                            <Edit size={16} />
                           </button>
                         )}
                         {canDeleteOrder && (
                           <button onClick={() => { setOrderToDelete(order); setIsDeleteModalOpen(true); }}
-                            className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200" title="Eliminar">
-                            <Trash2 size={14} />
+                            className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                            <Trash2 size={16} />
                           </button>
                         )}
                       </div>

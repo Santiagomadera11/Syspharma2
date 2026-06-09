@@ -15,7 +15,8 @@ export const ExpensesModal = ({ isOpen, onClose }) => {
 
   const loadExpenses = async () => {
     try {
-      const todayExpenses = await expensesService.getTodayExpenses();
+      const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+      const todayExpenses = await expensesService.getTodayExpenses(user.usuarioId || user.id);
       setExpenses(Array.isArray(todayExpenses) ? todayExpenses : []);
     } catch (error) {
       console.error("Error cargando gastos:", error);
@@ -24,14 +25,14 @@ export const ExpensesModal = ({ isOpen, onClose }) => {
   };
 
   const handleDeleteExpense = async (id) => {
-    if (window.confirm("¿Eliminar gasto?")) {
+    if (window.confirm("¿Anular este gasto?")) {
       try {
         await expensesService.delete(id);
         await loadExpenses();
-        setToast({ message: "Gasto eliminado", type: "success", zIndex: 70 });
+        setToast({ message: "Gasto anulado", type: "success", zIndex: 70 });
       } catch (error) {
-        console.error("Error eliminando gasto:", error);
-        setToast({ message: "Error al eliminar gasto", type: "error", zIndex: 70 });
+        console.error("Error anulando gasto:", error);
+        setToast({ message: "Error al anular gasto", type: "error", zIndex: 70 });
       }
     }
   };

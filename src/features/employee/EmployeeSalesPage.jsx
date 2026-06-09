@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, Eye, ChevronLeft, ChevronRight,
-  ShoppingCart, AlertCircle, DollarSign, Clock,
+  ShoppingCart, AlertCircle, DollarSign, Clock, TrendingDown, TrendingUp, Receipt
 } from "lucide-react";
 import { turnService } from "../sales/services/turnService";
 import { salesService } from "../sales/services/salesService";
+import { expensesService } from "../sales/services/expensesService";
 import { SaleDetailModal } from "../sales/components/SaleDetailModal";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 import { CloseShiftModal } from "../sales/components/CloseShiftModal";
+import ExpenseFormModal from "../services/appointments/components/ExpenseFormModal";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 
 const fmt = (v) =>
@@ -32,6 +34,8 @@ export const EmployeeSalesPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [isSaleDetailOpen, setIsSaleDetailOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [todayExpenses, setTodayExpenses] = useState([]);
   const itemsPerPage = 20;
 
   const loadSales = useCallback(async () => {
@@ -39,10 +43,10 @@ export const EmployeeSalesPage = () => {
       const data = await salesService.getAll();
       setSales(Array.isArray(data) ? data : []);
     } catch {
-      console.warn('Error loading sales');
       setSales([]);
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   }, []);
 
   const loadTurno = useCallback(async () => {
@@ -50,15 +54,25 @@ export const EmployeeSalesPage = () => {
       const turno = await turnService.getActiveTurn(user?.id);
       setCurrentTurn(turno);
     } catch {
-      console.warn('Error loading active turn');
       setCurrentTurn(null);
+    } finally {
+      setTurnoLoading(false);
     }
-    finally { setTurnoLoading(false); }
   }, [user?.id]);
+
+  const loadTodayExpenses = useCallback(async () => {
+    try {
+      const data = await expensesService.getTodayExpenses(user.id);
+      setTodayExpenses(Array.isArray(data) ? data : []);
+    } catch {
+      setTodayExpenses([]);
+    }
+  }, [user.id]);
 
   useEffect(() => {
     loadSales();
     loadTurno();
+    loadTodayExpenses();
     const handleSync = () => loadSales();
     window.addEventListener("sales:changed", handleSync);
     window.addEventListener("focus", handleSync);
@@ -66,18 +80,18 @@ export const EmployeeSalesPage = () => {
       window.removeEventListener("sales:changed", handleSync);
       window.removeEventListener("focus", handleSync);
     };
-  }, [loadSales, loadTurno]);
+  }, [loadSales, loadTurno, loadTodayExpenses]);
 
   const handleShiftOpened = (newTurn) => {
     setCurrentTurn(newTurn);
     setShowOpenShiftModal(false);
-    setToast({ message: `Turno abierto con ${fmt(newTurn.montoBase)}`, type: "success", zIndex: 70 });
+    setToast({ message: `Turno abierto con ${fmt(newTurn.montoBase)}`, type: "success" });
   };
 
   const handleShiftClosed = () => {
     setCurrentTurn(null);
     setShowCloseShiftModal(false);
-    setToast({ message: "Turno cerrado correctamente", type: "success", zIndex: 70 });
+    setToast({ message: "Turno cerrado correctamente", type: "success" });
     setTimeout(() => navigate("/login"), 2000);
   };
 
@@ -87,7 +101,11 @@ export const EmployeeSalesPage = () => {
     navigate("/employee/ventas/nueva");
   };
 
-  // KPIs del día
+  const handleSaveExpense = () => {
+    setToast({ message: "Gasto registrado exitosamente", type: "success" });
+    loadTodayExpenses();
+  };
+
   const ventasHoy = useMemo(() => {
     const today = new Date().toLocaleDateString("es-CO");
     return sales.filter(s => s.fechaVenta ? new Date(s.fechaVenta).toLocaleDateString("es-CO") === today : false);
@@ -96,10 +114,8 @@ export const EmployeeSalesPage = () => {
   const totalVentasHoy = useMemo(() =>
     ventasHoy.reduce((s, v) => s + (v.total || 0), 0), [ventasHoy]);
 
-  const totalProductosHoy = useMemo(() =>
-    ventasHoy.reduce((s, v) => s + (v.detalles || []).reduce((a, d) => a + d.cantidad, 0), 0), [ventasHoy]);
+  const totalGastosHoy = todayExpenses.reduce((sum, g) => sum + (g.monto || g.Monto || 0), 0);
 
-  // Filtrado
   const filteredSales = useMemo(() => sales.filter(s => {
     const term = searchTerm.toLowerCase();
     const matchSearch =
@@ -129,15 +145,22 @@ export const EmployeeSalesPage = () => {
           <h1 className="text-2xl font-bold text-gray-800">Mis Ventas</h1>
           <p className="text-gray-500 text-xs mt-0.5">Panel de ventas — {user.nombre}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-2">
-            <button onClick={() => setShowCloseShiftModal(true)} disabled={!currentTurn}
-              className={`px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all ${
-                currentTurn ? "bg-purple-600 hover:bg-purple-700 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}>
-              <DollarSign size={16} /> Cerrar Turno
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          {/* Botón registrar gasto */}
+          <button onClick={() => setIsExpenseModalOpen(true)}
+            className="px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all bg-red-600 hover:bg-red-700 text-white">
+            <TrendingDown size={16} /> Registrar Gasto
+          </button>
+
+          {/* Cerrar turno */}
+          <button onClick={() => setShowCloseShiftModal(true)} disabled={!currentTurn}
+            className={`px-4 py-2 rounded-lg font-bold shadow-sm text-xs flex items-center gap-1.5 transition-all ${
+              currentTurn ? "bg-purple-600 hover:bg-purple-700 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}>
+            <DollarSign size={16} /> Cerrar Turno
+          </button>
+
+          {/* Estado turno */}
           <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
             <Clock size={16} className="text-blue-600" />
             <div>
@@ -151,22 +174,32 @@ export const EmployeeSalesPage = () => {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 flex-shrink-0">
+      <div className="grid grid-cols-3 gap-3 flex-shrink-0">
         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-cyan-200 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <ShoppingCart className="text-cyan-600" size={18} />
             <h3 className="text-sm font-bold text-gray-800">Ventas de hoy</h3>
           </div>
           <div className="text-2xl font-bold text-cyan-600">{fmt(totalVentasHoy)}</div>
-          <div className="text-xs text-gray-500 mt-1">{totalProductosHoy} productos vendidos</div>
+          <div className="text-xs text-gray-500 mt-1">{ventasHoy.length} ventas</div>
         </div>
+
         <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-4 border border-emerald-200 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="text-emerald-600" size={18} />
+            <Receipt className="text-emerald-600" size={18} />
             <h3 className="text-sm font-bold text-gray-800">Total registros</h3>
           </div>
           <div className="text-2xl font-bold text-emerald-600">{sales.length}</div>
           <div className="text-xs text-gray-500 mt-1">{ventasHoy.length} hoy</div>
+        </div>
+
+        <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-4 border border-red-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingDown className="text-red-600" size={18} />
+            <h3 className="text-sm font-bold text-gray-800">Gastos hoy</h3>
+          </div>
+          <div className="text-2xl font-bold text-red-600">{fmt(totalGastosHoy)}</div>
+          <div className="text-xs text-gray-500 mt-1">{todayExpenses.length} gastos</div>
         </div>
       </div>
 
@@ -263,7 +296,12 @@ export const EmployeeSalesPage = () => {
         onCancel={() => setShowCloseShiftModal(false)} user={user} />
       <SaleDetailModal isOpen={isSaleDetailOpen}
         onClose={() => { setIsSaleDetailOpen(false); setSelectedSale(null); }} sale={selectedSale} />
-      {toast && <ToastNotification message={toast.message} type={toast.type} zIndex={toast.zIndex} onClose={() => setToast(null)} />}
+      <ExpenseFormModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => setIsExpenseModalOpen(false)}
+        onSave={handleSaveExpense}
+      />
+      {toast && <ToastNotification message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };
