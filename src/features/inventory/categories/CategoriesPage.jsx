@@ -90,7 +90,7 @@ export const CategoriesPage = () => {
 
   useEffect(() => {
     if (notification) {
-      const timer = setTimeout(() => setNotification(null), 4000); // 4 segundos para leer mensajes largos
+      const timer = setTimeout(() => setNotification(null), 4000);
       return () => clearTimeout(timer);
     }
   }, [notification]);
@@ -139,8 +139,6 @@ export const CategoriesPage = () => {
       await loadData();
     } catch (err) {
       console.error("Error al eliminar:", err);
-      
-      // --- MODIFICADO: Extrae el mensaje dinámico enviado por el Backend ---
       const errorMsg = err.response?.data?.message || "No se puede eliminar la categoría porque está relacionada a un producto.";
       setNotification({ message: errorMsg, type: "error" });
     } finally {
@@ -249,22 +247,29 @@ export const CategoriesPage = () => {
                         : <span className="text-gray-400">Sin asociar</span>}
                     </td>
                     <td className="py-1.5 px-3 text-center">
-                      <button
-                        onClick={() => { if (canToggleStatus) { setCategoryToToggle(cat); setIsStatusConfirmOpen(true); } }}
-                        disabled={!canToggleStatus}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${cat.estado ? theme.main : "bg-gray-400"} ${!canToggleStatus ? "opacity-50 cursor-not-allowed" : ""}`}
-                      >
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${cat.estado ? "translate-x-5" : "translate-x-0.5"}`} />
-                      </button>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${cat.estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        {cat.estado ? "Activo" : "Inactivo"}
+                      </span>
                     </td>
                     <td className="py-1.5 px-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => { setSelectedCategory(cat); setModalMode("view"); setIsModalOpen(true); }} className={`p-1 rounded border ${theme.border} ${theme.text} ${theme.hoverLight}`} title="Ver"><Eye size={14} /></button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => { setSelectedCategory(cat); setModalMode("view"); setIsModalOpen(true); }} className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
+                          <Eye size={16} />
+                        </button>
+                        {canToggleStatus && (
+                          <button onClick={() => { setCategoryToToggle(cat); setIsStatusConfirmOpen(true); }} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                            <CheckCircle size={16} />
+                          </button>
+                        )}
                         {canEdit && (
-                          <button onClick={() => { setSelectedCategory(cat); setModalMode("edit"); setIsModalOpen(true); }} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50" title="Editar"><Edit size={14} /></button>
+                          <button onClick={() => { setSelectedCategory(cat); setModalMode("edit"); setIsModalOpen(true); }} className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                            <Edit size={16} />
+                          </button>
                         )}
                         {canDelete && (
-                          <button onClick={() => { setCategoryToDelete(cat); setIsDeleteConfirmOpen(true); }} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50" title="Eliminar"><Trash2 size={14} /></button>
+                          <button onClick={() => { setCategoryToDelete(cat); setIsDeleteConfirmOpen(true); }} className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                            <Trash2 size={16} />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -336,7 +341,7 @@ export const CategoriesPage = () => {
         </div>
       )}
 
-      {/* MODIFICADO: Notificación adaptativa para alertas y éxitos */}
+      {/* Notificación */}
       {notification && (
         <div className="fixed bottom-4 left-4 max-w-xs animate-in fade-in slide-in-from-bottom-2 duration-300 z-50">
           <div className={`bg-white rounded-lg shadow-lg p-4 flex items-start gap-3 border ${

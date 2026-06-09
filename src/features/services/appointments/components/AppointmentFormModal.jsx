@@ -37,7 +37,7 @@ const getLocalToday = () => {
 const parseDateLocal = (isoDate) => {
   if (!isoDate) return new Date();
   const [year, month, day] = isoDate.split("-").map(Number);
-  return new Date(year, month - 1, day); // sin UTC, local puro
+  return new Date(year, month - 1, day);
 };
 
 const formatDateDisplay = (isoDate) => {
@@ -53,7 +53,6 @@ const AppointmentFormModal = ({
   onSave,
   appointment,
   doctors,
-  // availabilityService,
 }) => {
   const initialFormState = {
     paciente: "",
@@ -75,7 +74,29 @@ const AppointmentFormModal = ({
   );
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployee = currentUserRole === "Empleado";
-  const headerBgColor = isEmployee ? "bg-blue-600" : "bg-emerald-600";
+
+  // ── Theme tokens ────────────────────────────────────────────────
+ const headerBgColor   = "bg-blue-600";
+const focusBorder     = "focus:border-blue-400";
+const focusRing       = "focus:ring-blue-200";
+const slotSelected    = "bg-blue-600";
+const slotHover       = "hover:bg-blue-50";
+const btnSaveBg       = "bg-blue-600 hover:bg-blue-700";
+  // ────────────────────────────────────────────────────────────────
+
+  const inputClass = (hasError) =>
+    `w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+      hasError
+        ? "border-red-300 focus:ring-red-200"
+        : `border-gray-200 ${focusBorder} ${focusRing}`
+    }`;
+
+  const selectClass = (hasError) =>
+    `w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${
+      hasError
+        ? "border-red-300 focus:ring-red-200"
+        : `border-gray-200 ${focusBorder} ${focusRing}`
+    }`;
 
   const [formData, setFormData] = useState(initialFormState);
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -165,56 +186,54 @@ const AppointmentFormModal = ({
     return slots;
   };
 
-  // Cargar bloqueos y horario cuando cambia el médico
   useEffect(() => {
-  if (!formData.doctorId) {
-    setDiasBloqueados([]);
-    setHorarioMedico([]);
-    return;
-  }
-  const id = parseInt(formData.doctorId);
-  availabilityService.getDiasNoDisponibles(id)
-    .then(data => setDiasBloqueados(Array.isArray(data) ? data : []))
-    .catch(() => setDiasBloqueados([]));
-  availabilityService.getHorario(id)
-    .then(data => setHorarioMedico(Array.isArray(data) ? data : []))
-    .catch(() => setHorarioMedico([]));
-}, [formData.doctorId]);
-
-// REEMPLAZAR getDisabledDatesForDoctor completa:
-const getDisabledDatesForDoctor = () => {
-  const disabled = [];
-  const diasConHorario = new Set(horarioMedico.map((h) => h.diaSemana));
-
-  const today = new Date();
-  for (let i = 0; i < 90; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    if (!diasConHorario.has(d.getDay())) {
-      disabled.push({ date: getDateString(d), reason: "doctor" });
+    if (!formData.doctorId) {
+      setDiasBloqueados([]);
+      setHorarioMedico([]);
+      return;
     }
-  }
+    const id = parseInt(formData.doctorId);
+    availabilityService.getDiasNoDisponibles(id)
+      .then(data => setDiasBloqueados(Array.isArray(data) ? data : []))
+      .catch(() => setDiasBloqueados([]));
+    availabilityService.getHorario(id)
+      .then(data => setHorarioMedico(Array.isArray(data) ? data : []))
+      .catch(() => setHorarioMedico([]));
+  }, [formData.doctorId]);
 
-  diasBloqueados.forEach((bloqueo) => {
-    const start = new Date(bloqueo.fechaInicio + "T12:00:00");
-    const end = new Date(bloqueo.fechaFin + "T12:00:00");
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      disabled.push({ date: getDateString(d), reason: bloqueo.motivo || "no disponible" });
+  const getDisabledDatesForDoctor = () => {
+    const disabled = [];
+    const diasConHorario = new Set(horarioMedico.map((h) => h.diaSemana));
+
+    const today = new Date();
+    for (let i = 0; i < 90; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      if (!diasConHorario.has(d.getDay())) {
+        disabled.push({ date: getDateString(d), reason: "doctor" });
+      }
     }
-  });
 
-  return disabled;
-};
+    diasBloqueados.forEach((bloqueo) => {
+      const start = new Date(bloqueo.fechaInicio + "T12:00:00");
+      const end = new Date(bloqueo.fechaFin + "T12:00:00");
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        disabled.push({ date: getDateString(d), reason: bloqueo.motivo || "no disponible" });
+      }
+    });
+
+    return disabled;
+  };
 
   useEffect(() => {
-  if (!formData.doctorId || !formData.fecha) {
-    setAvailableSlots([]);
-    return;
-  }
-  availabilityService
-    .getSlots(parseInt(formData.doctorId), formData.fecha)
-    .then((slots) => setAvailableSlots(Array.isArray(slots) ? slots : []));
-}, [formData.doctorId, formData.fecha]);
+    if (!formData.doctorId || !formData.fecha) {
+      setAvailableSlots([]);
+      return;
+    }
+    availabilityService
+      .getSlots(parseInt(formData.doctorId), formData.fecha)
+      .then((slots) => setAvailableSlots(Array.isArray(slots) ? slots : []));
+  }, [formData.doctorId, formData.fecha]);
 
   const handleGenericInput = (e) => {
     const { name, value } = e.target;
@@ -244,8 +263,7 @@ const getDisabledDatesForDoctor = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.paciente.trim()) newErrors.paciente = "Nombre obligatorio";
-    if (!formData.documento.trim())
-      newErrors.documento = "Documento obligatorio";
+    if (!formData.documento.trim()) newErrors.documento = "Documento obligatorio";
     if (!formData.doctorId) newErrors.doctorId = "Seleccione médico";
     if (!formData.fecha) newErrors.fecha = "Seleccione fecha";
     if (!formData.hora) newErrors.hora = "Seleccione hora";
@@ -278,14 +296,10 @@ const getDisabledDatesForDoctor = () => {
       }
 
       if (appointment && appointment.id) {
-        await appointmentService.updateAppointment(
-          appointment.id,
-          appointmentData,
-        );
+        await appointmentService.updateAppointment(appointment.id, appointmentData);
         onSave && onSave(null);
       } else {
-        const created =
-          await appointmentService.createAppointment(appointmentData);
+        const created = await appointmentService.createAppointment(appointmentData);
         turnService.recordSale({
           userId: appointmentData.userId || currentUser.id,
           userName: currentUser.nombre || "Usuario",
@@ -296,8 +310,6 @@ const getDisabledDatesForDoctor = () => {
           referencia: created?.id || "CITA",
           paciente: formData.paciente,
         });
-        
-        // --- NUEVO: Llamar a onSave para recargar los datos en la creación ---
         onSave && onSave(null);
       }
       onClose();
@@ -315,9 +327,7 @@ const getDisabledDatesForDoctor = () => {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         {/* Header */}
-        <div
-          className={`${headerBgColor} px-6 py-4 flex justify-between items-center`}
-        >
+        <div className={`${headerBgColor} px-6 py-4 flex justify-between items-center`}>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Calendar size={20} />
             {appointment ? "Editar Cita Médica" : "Nueva Cita Médica"}
@@ -331,10 +341,7 @@ const getDisabledDatesForDoctor = () => {
         </div>
 
         {/* Body */}
-        <form
-          onSubmit={handleSubmit}
-          className="p-6 overflow-y-auto max-h-[75vh]"
-        >
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[75vh]">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* COLUMNA IZQUIERDA */}
             <div className="md:col-span-5 space-y-5 md:border-r md:border-gray-100 md:pr-6">
@@ -347,22 +354,17 @@ const getDisabledDatesForDoctor = () => {
                   Nombre Completo *
                 </label>
                 <div className="relative">
-                  <User
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    size={16}
-                  />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     name="paciente"
                     type="text"
-                    className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${errors.paciente ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                    className={inputClass(errors.paciente)}
                     value={formData.paciente}
                     onChange={handleGenericInput}
                   />
                 </div>
                 {errors.paciente && (
-                  <p className="text-[10px] text-red-500 mt-1">
-                    {errors.paciente}
-                  </p>
+                  <p className="text-[10px] text-red-500 mt-1">{errors.paciente}</p>
                 )}
               </div>
 
@@ -371,22 +373,17 @@ const getDisabledDatesForDoctor = () => {
                   Documento ID *
                 </label>
                 <div className="relative">
-                  <FileText
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    size={16}
-                  />
+                  <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     name="documento"
                     type="text"
-                    className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${errors.documento ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                    className={inputClass(errors.documento)}
                     value={formData.documento}
                     onChange={handleGenericInput}
                   />
                 </div>
                 {errors.documento && (
-                  <p className="text-[10px] text-red-500 mt-1">
-                    {errors.documento}
-                  </p>
+                  <p className="text-[10px] text-red-500 mt-1">{errors.documento}</p>
                 )}
               </div>
 
@@ -395,14 +392,11 @@ const getDisabledDatesForDoctor = () => {
                   Teléfono
                 </label>
                 <div className="relative">
-                  <Phone
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    size={16}
-                  />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     name="telefono"
                     type="tel"
-                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400"
+                    className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none ${focusBorder} ${focusRing} focus:ring-2`}
                     value={formData.telefono}
                     onChange={handleGenericInput}
                   />
@@ -422,7 +416,7 @@ const getDisabledDatesForDoctor = () => {
                 </label>
                 <select
                   name="doctorId"
-                  className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.doctorId ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                  className={selectClass(errors.doctorId)}
                   value={formData.doctorId}
                   onChange={handleDoctorChange}
                 >
@@ -430,10 +424,8 @@ const getDisabledDatesForDoctor = () => {
                   {doctors &&
                     doctors
                       .filter((d) => {
-                        if (d.estado === undefined || d.estado === null)
-                          return true;
-                        if (typeof d.estado === "boolean")
-                          return d.estado === true;
+                        if (d.estado === undefined || d.estado === null) return true;
+                        if (typeof d.estado === "boolean") return d.estado === true;
                         if (typeof d.estado === "number") return d.estado === 1;
                         return String(d.estado).toLowerCase() === "activo";
                       })
@@ -444,9 +436,7 @@ const getDisabledDatesForDoctor = () => {
                       ))}
                 </select>
                 {errors.doctorId && (
-                  <p className="text-[10px] text-red-500 mt-1">
-                    {errors.doctorId}
-                  </p>
+                  <p className="text-[10px] text-red-500 mt-1">{errors.doctorId}</p>
                 )}
                 {formData.doctorId && horarioMedico.length === 0 && (
                   <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
@@ -464,59 +454,40 @@ const getDisabledDatesForDoctor = () => {
                     <Calendar
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer"
                       size={16}
-                      onClick={() =>
-                        formData.doctorId &&
-                        setShowCalendarPicker(!showCalendarPicker)
-                      }
+                      onClick={() => formData.doctorId && setShowCalendarPicker(!showCalendarPicker)}
                     />
                     <input
                       name="fecha"
                       type="text"
                       readOnly
-                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 cursor-pointer ${errors.fecha ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 cursor-pointer ${errors.fecha ? "border-red-300" : `border-gray-200 ${focusBorder} ${focusRing}`}`}
                       value={formatDateDisplay(formData.fecha)}
-                      onClick={() =>
-                        formData.doctorId &&
-                        setShowCalendarPicker(!showCalendarPicker)
-                      }
+                      onClick={() => formData.doctorId && setShowCalendarPicker(!showCalendarPicker)}
                       placeholder="Seleccione fecha"
                     />
                   </div>
                   {errors.fecha && (
-                    <p className="text-[10px] text-red-500 mt-1">
-                      {errors.fecha}
-                    </p>
+                    <p className="text-[10px] text-red-500 mt-1">{errors.fecha}</p>
                   )}
-                  {formData.fecha &&
-                    formData.doctorId &&
-                    (() => {
-                      const dd = getDisabledDatesForDoctor();
-                      const found =
-                        Array.isArray(dd) &&
-                        dd.find((d) =>
-                          typeof d === "string"
-                            ? d === formData.fecha
-                            : d?.date === formData.fecha,
-                        );
-                      return found ? (
-                        <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                          <AlertCircle size={12} /> El médico no está disponible
-                        </p>
-                      ) : null;
-                    })()}
+                  {formData.fecha && formData.doctorId && (() => {
+                    const dd = getDisabledDatesForDoctor();
+                    const found = Array.isArray(dd) && dd.find((d) =>
+                      typeof d === "string" ? d === formData.fecha : d?.date === formData.fecha,
+                    );
+                    return found ? (
+                      <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                        <AlertCircle size={12} /> El médico no está disponible
+                      </p>
+                    ) : null;
+                  })()}
                   {showCalendarPicker && formData.doctorId && (
                     <div className="mt-3 absolute z-10 bg-white p-3 rounded-lg border border-gray-200 shadow-xl">
                       <CalendarPicker
                         selectedDate={formData.fecha}
                         onDateSelect={(date) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            fecha: date,
-                            hora: "",
-                          }));
+                          setFormData((prev) => ({ ...prev, fecha: date, hora: "" }));
                           setShowCalendarPicker(false);
-                          if (errors.fecha)
-                            setErrors((prev) => ({ ...prev, fecha: null }));
+                          if (errors.fecha) setErrors((prev) => ({ ...prev, fecha: null }));
                         }}
                         disabledDates={getDisabledDatesForDoctor()}
                         minDate={getLocalToday()}
@@ -544,8 +515,8 @@ const getDisabledDatesForDoctor = () => {
                             }}
                             className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${
                               formData.hora === slot
-                                ? "bg-emerald-600 text-white font-semibold"
-                                : "text-gray-700 hover:bg-emerald-50"
+                                ? `${slotSelected} text-white font-semibold`
+                                : `text-gray-700 ${slotHover}`
                             }`}
                           >
                             {slot}
@@ -567,7 +538,7 @@ const getDisabledDatesForDoctor = () => {
                   </label>
                   <select
                     name="servicioId"
-                    className={`w-full px-3 py-2 text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 ${errors.servicio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"}`}
+                    className={selectClass(errors.servicio)}
                     value={formData.servicioId}
                     onChange={handleServiceChange}
                   >
@@ -579,9 +550,7 @@ const getDisabledDatesForDoctor = () => {
                     ))}
                   </select>
                   {errors.servicio && (
-                    <p className="text-[10px] text-red-500 mt-1">
-                      {errors.servicio}
-                    </p>
+                    <p className="text-[10px] text-red-500 mt-1">{errors.servicio}</p>
                   )}
                 </div>
 
@@ -590,24 +559,19 @@ const getDisabledDatesForDoctor = () => {
                     Costo ($) *
                   </label>
                   <div className="relative">
-                    <DollarSign
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                      size={16}
-                    />
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input
                       name="precio"
                       type="number"
                       readOnly={servicesList.length > 0}
-                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg font-bold text-gray-700 focus:outline-none focus:ring-2 ${errors.precio ? "border-red-300" : "border-gray-200 focus:border-emerald-400"} ${servicesList.length > 0 ? "bg-gray-50 cursor-not-allowed" : "bg-white"}`}
+                      className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg font-bold text-gray-700 focus:outline-none focus:ring-2 ${errors.precio ? "border-red-300" : `border-gray-200 ${focusBorder} ${focusRing}`} ${servicesList.length > 0 ? "bg-gray-50 cursor-not-allowed" : "bg-white"}`}
                       placeholder="0.00"
                       value={formData.precio}
                       onChange={handleGenericInput}
                     />
                   </div>
                   {errors.precio && (
-                    <p className="text-[10px] text-red-500 mt-1">
-                      {errors.precio}
-                    </p>
+                    <p className="text-[10px] text-red-500 mt-1">{errors.precio}</p>
                   )}
                 </div>
               </div>
@@ -618,7 +582,7 @@ const getDisabledDatesForDoctor = () => {
                 </label>
                 <textarea
                   name="notas"
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 resize-none h-20"
+                  className={`w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none ${focusBorder} ${focusRing} focus:ring-2 resize-none h-20`}
                   placeholder="Observaciones..."
                   value={formData.notas}
                   onChange={handleGenericInput}
@@ -639,7 +603,7 @@ const getDisabledDatesForDoctor = () => {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={`${headerBgColor} px-4 py-2 text-sm font-medium text-white hover:opacity-90 rounded-lg transition-colors flex items-center gap-2`}
+            className={`${btnSaveBg} px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors flex items-center gap-2`}
           >
             {isSubmitting ? (
               <Loader2 size={16} className="animate-spin" />

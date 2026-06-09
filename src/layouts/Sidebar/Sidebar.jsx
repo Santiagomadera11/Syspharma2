@@ -6,6 +6,7 @@ import {
   DollarSign, ClipboardList, Stethoscope, Calendar, Settings,
   ChevronDown, ChevronRight, LogOut, X, BarChart3, TrendingUp,
 } from "lucide-react";
+import icono1 from "../../assets/icono1.png";
 
 const Sidebar = ({ onClose, onShowLogoutModal }) => {
   const location = useLocation();
@@ -30,8 +31,12 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
     <aside className="w-60 bg-[#2C3E50] flex flex-col text-white shadow-xl flex-shrink-0 border-l border-gray-700 h-full overflow-hidden">
       <div className="h-14 flex items-center justify-between gap-3 px-5 border-b border-gray-700 bg-[#243342] flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="bg-primary-400 p-1 rounded-md shadow-lg shadow-primary-400/20 flex-shrink-0">
-            <Stethoscope size={18} className="text-white" />
+          <div className="p-0.5 flex-shrink-0">
+            <img 
+              src={icono1}
+              alt="SysPharma Logo" 
+              className="w-7 h-7 object-contain rounded-full"
+            />
           </div>
           <div className="hidden sm:block min-w-0">
             <h1 className="text-base font-bold tracking-wide truncate">SysPharma</h1>
@@ -45,12 +50,10 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
 
       <nav className="flex-1 overflow-y-auto py-3 sm:py-4 space-y-0.5 px-1 sm:px-2 no-scrollbar">
 
-        {/* Inicio — requiere dashboard.view */}
         {has("dashboard.view") && (
           <MenuItem to="/admin/dashboard" icon={LayoutDashboard} label="Inicio" active={isActive("/admin/dashboard")} />
         )}
 
-        {/* ── Gestión ── */}
         {has("users.view", "users.create", "users.edit", "users.delete", "users.status",
               "purchase.view", "purchase.create", "purchase.edit", "purchase.delete",
               "products.view", "categories.view", "suppliers.view",
@@ -62,12 +65,10 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           </div>
         )}
 
-        {/* Usuarios */}
         {has("users.view", "users.create", "users.edit", "users.delete", "users.status") && (
           <MenuItem to="/admin/usuarios" icon={Users} label="Usuarios" active={isActive("/admin/usuarios")} />
         )}
 
-        {/* Compras — visible si tiene cualquier permiso de compras, productos, categorías o proveedores */}
         {has("purchase.view", "purchase.create", "purchase.edit", "purchase.delete", "purchase.status",
               "products.view", "products.create", "products.edit", "products.delete", "products.status",
               "categories.view", "categories.create", "categories.edit", "categories.delete", "categories.status",
@@ -92,7 +93,6 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           </MenuGroup>
         )}
 
-        {/* Ventas — visible si tiene cualquier permiso de ventas o pedidos */}
         {has("sales.view", "sales.create", "sales.cancel", "sales.return", "sales.invoice", "sales.export",
               "orders.view", "orders.create", "orders.edit", "orders.delete", "orders.status", "orders.export") && (
           <MenuGroup
@@ -109,7 +109,6 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           </MenuGroup>
         )}
 
-        {/* Servicios — visible si tiene cualquier permiso de servicios o citas */}
         {has("services.view", "services.create", "services.edit", "services.delete", "services.status",
               "appointments.create", "appointments.calendar", "appointments.list", "appointments.status",
               "appointments.availability", "appointments.doctors.view", "appointments.doctors.create",
@@ -130,7 +129,6 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           </MenuGroup>
         )}
 
-        {/* Reportes */}
         {has("reports.shifts", "reports.performance") && (
           <MenuGroup
             title="Reportes"
@@ -148,10 +146,8 @@ const Sidebar = ({ onClose, onShowLogoutModal }) => {
           </MenuGroup>
         )}
 
-        {/* Mi Perfil — siempre visible */}
         <MenuItem to="/admin/mi-perfil" icon={User} label="Mi Perfil" active={isActive("/admin/mi-perfil")} />
 
-        {/* Configuración */}
         {has("system.roles", "config.service_categories.create", "config.service_categories.edit",
               "config.service_categories.delete", "config.payment_methods.create", "config.payment_methods.edit",
               "config.payment_methods.delete", "config.document_types.create", "config.document_types.edit",

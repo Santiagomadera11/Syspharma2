@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, Edit2, Trash2, Save, X } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 import { ConfirmDialog } from "../../../shared/ui/ConfirmDialog.jsx";
 import {
   fetchDocumentTypes, createTipoDocumento, updateTipoDocumento, deleteTipoDocumento,
@@ -14,7 +14,6 @@ const TABS = [
 ];
 
 const ParameterManagement = ({ user }) => {
-  // ✅ Comparación case-insensitive — admite "administrador", "Administrador", "ADMINISTRADOR"
   const isAdmin = user?.rol?.toLowerCase() === "administrador";
   const userPerms = (user?.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const hasPerm = (perm) => isAdmin || userPerms.includes(perm);
@@ -195,12 +194,16 @@ const ParameterManagement = ({ user }) => {
                   <td className="px-5 py-3 text-sm text-slate-400">{i + 1}</td>
                   <td className="px-5 py-3 text-sm font-bold text-slate-700">{item.value}</td>
                   <td className="px-5 py-3">
-                    <div className="flex justify-center gap-2">
+                    <div className="flex justify-center gap-1.5">
                       {canEditType(type) && (
-                        <button onClick={() => openEditModal(type, item)} className="p-1.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Edit2 size={14} /></button>
+                        <button onClick={() => openEditModal(type, item)} className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                          <Edit size={16} />
+                        </button>
                       )}
                       {canDeleteType(type) && (
-                        <button onClick={() => handleDelete(type, item)} className="p-1.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"><Trash2 size={14} /></button>
+                        <button onClick={() => handleDelete(type, item)} className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                          <Trash2 size={16} />
+                        </button>
                       )}
                     </div>
                   </td>

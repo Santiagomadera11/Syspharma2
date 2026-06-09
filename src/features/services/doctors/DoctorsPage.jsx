@@ -78,7 +78,7 @@ export const DoctorsPage = () => {
       setNotification({ message: "Médico creado correctamente", type: "success" });
     }
     await loadDoctors();
-    window.dispatchEvent(new Event("doctors:changed")); // ← notifica al selector del modal
+    window.dispatchEvent(new Event("doctors:changed"));
     setIsModalOpen(false);
     setEditingDoctor(null);
   };
@@ -91,7 +91,7 @@ export const DoctorsPage = () => {
     try {
       await doctorService.toggleStatus(doctorToToggle.id, doctorToToggle.estado);
       await loadDoctors();
-      window.dispatchEvent(new Event("doctors:changed")); // ← notifica al selector del modal
+      window.dispatchEvent(new Event("doctors:changed"));
       const newStatus = !doctorToToggle.estado;
       setNotification({
         message: `Médico ${doctorToToggle.nombre} ${newStatus ? "activado" : "desactivado"}`,
@@ -113,24 +113,24 @@ export const DoctorsPage = () => {
     setShowDeleteConfirm(doctor);
   };
 
-  const confirmDelete = async () => {
-    if (!showDeleteConfirm) return;
-    if (!canDelete) {
-      setNotification({ message: "No tienes permiso para eliminar médicos", type: "error" });
-      setShowDeleteConfirm(null);
-      return;
-    }
-    try {
-      await doctorService.delete(showDeleteConfirm.id);
-      await loadDoctors();
-      window.dispatchEvent(new Event("doctors:changed")); // ← notifica al selector del modal
-      setNotification({ message: "Médico eliminado correctamente", type: "success" });
-    } catch {
-      setNotification({ message: "Error al eliminar médico", type: "error" });
-    } finally {
-      setShowDeleteConfirm(null);
-    }
-  };
+ const confirmDelete = async () => {
+  if (!showDeleteConfirm) return;
+  if (!canDelete) {
+    setNotification({ message: "No tienes permiso para eliminar médicos", type: "error" });
+    setShowDeleteConfirm(null);
+    return;
+  }
+  try {
+    await doctorService.delete(showDeleteConfirm.id);
+    await loadDoctors();
+    window.dispatchEvent(new Event("doctors:changed"));
+    setNotification({ message: "Médico eliminado correctamente", type: "success" });
+  } catch (error) {
+    setNotification({ message: error.message || "Error al eliminar médico", type: "warning" });
+  } finally {
+    setShowDeleteConfirm(null);
+  }
+};
 
   const filteredDoctors = doctors.filter((doc) => {
     const matchesSearch =
@@ -147,20 +147,12 @@ export const DoctorsPage = () => {
   const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
   const paginatedDoctors = filteredDoctors.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
-  const StatusToggle = ({ doctor }) => (
-    <button onClick={() => handleToggleStatus(doctor)}
-      disabled={!canChangeStatus}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${doctor.estado ? "bg-blue-600 shadow-md" : "bg-gray-300"} ${!canChangeStatus ? "opacity-50 cursor-not-allowed" : ""}`}>
-      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${doctor.estado ? "translate-x-6" : "translate-x-0.5"}`} />
-    </button>
-  );
-
   return (
     <div className="h-full flex flex-col gap-6 font-sans overflow-hidden no-scrollbar">
       {/* Header */}
       <div className="flex items-start justify-between flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-emerald-700">Gestión de Médicos</h1>
+          <h1 className="text-2xl font-bold text-blue-700">Gestión de Médicos</h1>
           <p className="text-gray-500 text-xs mt-0.5">Administra el registro completo de profesionales médicos</p>
         </div>
       </div>
@@ -170,11 +162,11 @@ export const DoctorsPage = () => {
         <div className="flex-1 min-w-[250px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input type="text" placeholder="Buscar por nombre, especialidad o email..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
             value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(0); }} />
         </div>
         <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(0); }}
-          className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white">
+          className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white">
           <option value="all">Todos</option>
           <option value="active">Activos</option>
           <option value="inactive">Inactivos</option>
@@ -199,14 +191,13 @@ export const DoctorsPage = () => {
                 <th className="px-4 py-3 text-left text-xs font-semibold">Especialidad</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold">Email</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold">Teléfono</th>
-                {/* <th className="px-4 py-3 text-left text-xs font-semibold">Días Laborales</th> */}
                 <th className="px-4 py-3 text-left text-xs font-semibold">Estado</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginatedDoctors.length === 0 ? (
-                <tr><td colSpan="7" className="px-4 py-8 text-center text-gray-500">No se encontraron médicos</td></tr>
+                <tr><td colSpan="6" className="px-4 py-8 text-center text-gray-500">No se encontraron médicos</td></tr>
               ) : (
                 paginatedDoctors.map((doctor) => (
                   <tr key={doctor.id} className="hover:bg-gray-50">
@@ -219,12 +210,31 @@ export const DoctorsPage = () => {
                     <td className="px-4 py-3 text-sm text-gray-600">{doctor.especialidad}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{doctor.email}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{doctor.telefono}</td>
-                    <td className="px-4 py-3"><StatusToggle doctor={doctor} /></td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => handleViewDetail(doctor)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Ver detalles"><Eye size={16} /></button>
-                        {canEdit && <button onClick={() => handleOpenEdit(doctor)} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Editar"><Edit size={16} /></button>}
-                        {canDelete && <button onClick={() => handleDeleteDoctor(doctor)} className="p-1 text-red-600 hover:bg-red-50 rounded" title="Eliminar"><Trash2 size={16} /></button>}
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${doctor.estado ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"}`}>
+                        {doctor.estado ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => handleViewDetail(doctor)} className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
+                          <Eye size={16} />
+                        </button>
+                        {canChangeStatus && (
+                          <button onClick={() => handleToggleStatus(doctor)} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                            <CheckCircle size={16} />
+                          </button>
+                        )}
+                        {canEdit && (
+                          <button onClick={() => handleOpenEdit(doctor)} className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                            <Edit size={16} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDeleteDoctor(doctor)} className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -267,9 +277,9 @@ export const DoctorsPage = () => {
       {isDetailModalOpen && selectedDoctor && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col">
-            <div className="px-6 py-4 flex items-center justify-between border-b border-emerald-100 bg-emerald-50">
-              <h2 className="text-lg font-semibold text-emerald-900">{selectedDoctor.nombre}</h2>
-              <button onClick={() => setIsDetailModalOpen(false)} className="p-1 hover:bg-emerald-100 rounded-lg text-emerald-600"><X size={20} /></button>
+            <div className="px-6 py-4 flex items-center justify-between border-b border-blue-100 bg-blue-50">
+              <h2 className="text-lg font-semibold text-blue-900">{selectedDoctor.nombre}</h2>
+              <button onClick={() => setIsDetailModalOpen(false)} className="p-1 hover:bg-blue-100 rounded-lg text-blue-600"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-4">
               {[
@@ -283,8 +293,8 @@ export const DoctorsPage = () => {
                   <p className="text-sm text-gray-900 font-medium">{value}</p>
                 </div>
               ))}
-              <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
-                <p className="text-xs text-emerald-700 font-medium">
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                <p className="text-xs text-blue-700 font-medium">
                   💡 El horario detallado se configura desde la pestaña <strong>Disponibilidad</strong>.
                 </p>
               </div>

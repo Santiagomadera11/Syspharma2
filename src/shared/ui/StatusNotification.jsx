@@ -14,11 +14,14 @@ export const StatusNotification = ({
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const isAdmin = (currentUser.rol || "").toLowerCase().trim() === "administrador";
+
   const getStyles = () => {
     switch (type) {
       case "success":
         return {
-          bg: "bg-emerald-500",
+          bg: isAdmin ? "bg-emerald-500" : "bg-blue-500",
           icon: <CheckCircle size={20} className="text-white" />,
           title: "¡Éxito!",
         };

@@ -58,8 +58,15 @@ export const doctorService = {
   },
 
   delete: async (id) => {
+  try {
     await apiClient.delete(`${ENDPOINT}/${id}`);
-  },
+  } catch (error) {
+    const message =
+      error?.response?.data?.message ||
+      "Error al eliminar médico";
+    throw new Error(message);
+  }
+},
 
   toggleStatus: async (id, estadoActual) => {
     await apiClient.patch(`${ENDPOINT}/${id}/estado`, !estadoActual);

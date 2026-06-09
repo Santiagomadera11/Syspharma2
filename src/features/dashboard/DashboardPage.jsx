@@ -9,12 +9,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend,
 } from "recharts";
-import axios from "axios";
-
-const API = "http://localhost:5055/api";
-const getAuthHeaders = () => ({
-  headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
-});
+import { apiClient } from "../../shared/utils/apiClient";
 
 const COLORS = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6"];
 
@@ -34,10 +29,10 @@ export const DashboardPage = () => {
     setLoading(true);
     try {
       const [vRes, cRes, ciRes, pRes] = await Promise.all([
-        axios.get(`${API}/Venta`, getAuthHeaders()),
-        axios.get(`${API}/Compra`, getAuthHeaders()),
-        axios.get(`${API}/Cita`, getAuthHeaders()),
-        axios.get(`${API}/Producto`, getAuthHeaders()),
+        apiClient.get("Venta"),
+        apiClient.get("Compra"),
+        apiClient.get("Cita"),
+        apiClient.get("Producto"),
       ]);
       setData({
         ventas: vRes.data || [],

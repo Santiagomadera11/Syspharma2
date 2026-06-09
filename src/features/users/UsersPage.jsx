@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Search, Plus, Info, Edit, Trash2,
+  Search, Plus, Eye, Edit, Trash2,
   ChevronLeft, ChevronRight, AlertCircle, CheckCircle, X,
 } from "lucide-react";
 import { permissionService } from "../settings/permissionService";
@@ -35,7 +35,6 @@ export const UsersPage = () => {
   const [confirmStatus, setConfirmStatus] = useState({ show: false, user: null });
   const [currentPage, setCurrentPage] = useState(0);
 
-  // ✅ 1. CORRECCIÓN: Paginado a 6 registros
   const itemsPerPage = 20; 
 
   useEffect(() => {
@@ -116,14 +115,10 @@ export const UsersPage = () => {
 
   const handleDelete = (user) => setConfirmDelete({ show: true, user });
 
-  // ✅ 2. CORRECCIÓN: Borrado real y actualización de interfaz inmediata
   const confirmDeleteUser = async () => {
     try {
       await userService.delete(confirmDelete.user.id); 
-      
-      // Actualizamos la lista local para que desaparezca de la tabla al instante
       setUsers(prev => prev.filter(u => u.id !== confirmDelete.user.id));
-      
       setNotification({ message: `${confirmDelete.user.nombre} ha sido eliminado permanentemente`, type: "success" });
     } catch (error) {
       setNotification({ message: "Error al eliminar usuario", type: "error" });
@@ -237,31 +232,30 @@ export const UsersPage = () => {
                         </td>
                         <td className="px-3 py-2.5 text-gray-500 font-mono">{user.documento || "---"}</td>
                         <td className="px-3 py-2.5 text-center">
-                        <button
-                          onClick={() => canToggleStatus ? handleToggleStatus(user) : null}
-                          className={`relative w-8 h-4 rounded-full transition-colors duration-200 
-                            ${user.estado ? "bg-primary-500" : "bg-gray-300"}
-                            ${!canToggleStatus ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
-                          `}
-                        >
-                          <span className={`absolute top-0.5 left-0.5 bg-white w-3 h-3 rounded-full shadow transition-transform duration-200 
-                            ${user.estado ? "translate-x-4" : "translate-x-0"}`} 
-                          />
-                        </button>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${user.estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                            {user.estado ? "Activo" : "Inactivo"}
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {canViewDetail && (
-                              <button onClick={() => handleOpenDetail(user)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-1.5 rounded-md border border-blue-200">
-                                <Info size={14} />
+                              <button onClick={() => handleOpenDetail(user)} className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
+                                <Eye size={16} />
                               </button>
                             )}
-                            {canEditUser && <button onClick={() => handleOpenEdit(user)} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 p-1.5 rounded-md border border-emerald-200"><Edit size={14} /></button>}
+                            {canToggleStatus && (
+                              <button onClick={() => handleToggleStatus(user)} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                                <CheckCircle size={16} />
+                              </button>
+                            )}
+                            {canEditUser && (
+                              <button onClick={() => handleOpenEdit(user)} className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                                <Edit size={16} />
+                              </button>
+                            )}
                             {canDeleteUser && (
-                              <button onClick={() => handleDelete(user)}
-                                className="bg-red-50 hover:bg-red-100 text-red-600 p-1.5 rounded-md border border-red-200"
-                                title="Eliminar permanentemente">
-                                <Trash2 size={14} />
+                              <button onClick={() => handleDelete(user)} className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                                <Trash2 size={16} />
                               </button>
                             )}
                           </div>
@@ -295,7 +289,6 @@ export const UsersPage = () => {
 
       {notification && <StatusNotification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
 
-      {/* ✅ CORRECCIÓN: Estilo del Modal de Eliminar (Rojo/Peligro) */}
       {confirmDelete.show && confirmDelete.user && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
@@ -320,7 +313,6 @@ export const UsersPage = () => {
         </div>
       )}
 
-      {/* Modal Toggle Estado */}
       {confirmStatus.show && confirmStatus.user && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">

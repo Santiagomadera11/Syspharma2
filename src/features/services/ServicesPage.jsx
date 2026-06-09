@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Plus, Search, Eye, Edit, Trash2,
-  ChevronLeft, ChevronRight, Filter, Stethoscope, Clock
+  ChevronLeft, ChevronRight, Filter, Stethoscope, Clock,
+  CheckCircle,
 } from "lucide-react";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog.jsx";
 import ServiceFormModal from "./components/ServiceFormModal";
@@ -227,17 +228,30 @@ export const ServicesPage = () => {
                       <div className="flex items-center justify-center gap-1"><Clock size={10} /> {srv.duracion} min</div>
                     </td>
                     <td className="py-1.5 px-3">
-                      <button onClick={() => handleToggleEstado(srv)}
-                        disabled={!canChangeStatus}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${srv.estado ? theme.main : "bg-gray-400"} ${!canChangeStatus ? "opacity-50 cursor-not-allowed" : ""}`}>
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${srv.estado ? "translate-x-5" : "translate-x-0.5"}`} />
-                      </button>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${srv.estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        {srv.estado ? "Activo" : "Inactivo"}
+                      </span>
                     </td>
                     <td className="py-1.5 px-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => handleView(srv)} className={`p-1 rounded border ${theme.border} ${theme.text} ${theme.hoverLight}`}><Eye size={14} /></button>
-                        {canEdit && <button onClick={() => handleEdit(srv)} className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50"><Edit size={14} /></button>}
-                        {canDelete && <button onClick={() => handleDelete(srv)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50"><Trash2 size={14} /></button>}
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => handleView(srv)} className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
+                          <Eye size={16} />
+                        </button>
+                        {canChangeStatus && (
+                          <button onClick={() => handleToggleEstado(srv)} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                            <CheckCircle size={16} />
+                          </button>
+                        )}
+                        {canEdit && (
+                          <button onClick={() => handleEdit(srv)} className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
+                            <Edit size={16} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => handleDelete(srv)} className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

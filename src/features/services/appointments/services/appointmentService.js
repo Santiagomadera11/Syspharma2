@@ -3,6 +3,16 @@ import { apiClient } from "../../../../shared/utils/apiClient";
 const APPOINTMENTS_ENDPOINT = "Cita";
 const DOCTORS_ENDPOINT = "Medico";
 
+// IDs reales de la tabla estados_cita
+const STATUS_MAP = {
+  "Confirmar Asistencia": 1,
+  "Confirmada": 2,
+  "Completada": 3,
+  "Cancelada": 4,
+  "No Asistió": 5,
+  "No asistió": 5,
+};
+
 // Mapear estructura del frontend a la API
 const mapToApiFormat = (appointmentData) => {
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
@@ -15,10 +25,7 @@ const mapToApiFormat = (appointmentData) => {
     pacienteEmail: appointmentData.email,
     fecha: appointmentData.fecha,
     hora: appointmentData.hora,
-    
-    // --- NUEVO: Mapear el ID del servicio convertido a número entero para la API ---
     servicioId: appointmentData.servicioId ? parseInt(appointmentData.servicioId, 10) : null,
-    
     servicioNombre: appointmentData.servicio || "Consulta",
     precio: appointmentData.precio || 0,
     notas: appointmentData.notas,
@@ -43,12 +50,10 @@ const mapFromApiFormat = (apiData) => ({
   hora: apiData.hora,
   servicio: apiData.servicioNombre,
   servicioNombre: apiData.servicioNombre,
-  
-  // --- NUEVO: Mapear el ID del servicio de regreso para que el modal lo precargue al editar ---
   servicioId: apiData.servicioId,
-
   precio: apiData.precio,
   notas: apiData.notas,
+  estadoId: apiData.estadoId,
   estado: apiData.estadoNombre || apiData.estado,
   estadoNombre: apiData.estadoNombre || apiData.estado,
   pedidoId: apiData.pedidoId,
@@ -128,10 +133,15 @@ export const appointmentService = {
 
   updateAppointmentStatus: async (id, newStatus) => {
     try {
-      const res = await apiClient.patch(`${APPOINTMENTS_ENDPOINT}/${id}/estado`, newStatus);
+      const estadoId = typeof newStatus === "string"
+        ? STATUS_MAP[newStatus]
+        : newStatus;
 
+      if (!estadoId) throw new Error(`Estado desconocido: ${newStatus}`);
+
+      await apiClient.patch(`${APPOINTMENTS_ENDPOINT}/${id}/estado`, estadoId);
       window.dispatchEvent(new Event("appointments:changed"));
-      return mapFromApiFormat(res.data);
+      return true;
     } catch (error) {
       console.error("Error actualizando estado:", error);
       throw error;

@@ -2,11 +2,13 @@ import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, DollarSign, Eye, ChevronLeft, ChevronRight,
-  ShoppingCart, TrendingUp, Receipt, Package, Globe, User
+  ShoppingCart, TrendingUp, Receipt, Package, Globe, User, TrendingDown
 } from "lucide-react";
 import { salesService } from "./services/salesService";
+import { expensesService } from "./services/expensesService";
 import { SaleDetailModal } from "./components/SaleDetailModal";
-import { ToastNotification } from "../../shared/ui/ToastNotification";
+import ExpenseFormModal from "../services/appointments/components/ExpenseFormModal";
+import { ToastNotification } from "/src/shared/ui/ToastNotification";
 
 const ESTADO_CONFIG = {
   completada: { label: "Completada", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
@@ -35,11 +37,16 @@ export const SalesPage = () => {
   const [isSaleDetailOpen, setIsSaleDetailOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [toast, setToast] = useState(null);
-  const itemsPerPage = 3; 
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [todayExpenses, setTodayExpenses] = useState([]);  // ← NUEVO
+
+  const itemsPerPage = 3;
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const canCreateSale = userRole === "administrador" || userPerms.includes("sales.create");
+
+  const fmt = (v) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v || 0);
 
   const getOriginBadge = (origen) => {
     const orig = (origen || "").toUpperCase();
@@ -57,8 +64,6 @@ export const SalesPage = () => {
     );
   };
 
-  const fmt = (v) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v || 0);
-
   const loadSales = useCallback(async () => {
     try {
       const data = await salesService.getAll();
@@ -67,9 +72,27 @@ export const SalesPage = () => {
     finally { setLoading(false); }
   }, []);
 
+  // ← NUEVO: cargar gastos de hoy
+  const loadTodayExpenses = useCallback(async () => {
+    try {
+      const data = await expensesService.getTodayExpenses(user.id);
+      console.log("💰 Gastos hoy raw:", data); // ← línea nueva
+      setTodayExpenses(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("Error gastos:", e);
+      setTodayExpenses([]);
+    }
+  }, [user.id]);
+
   useEffect(() => {
     loadSales();
-  }, [loadSales]);
+    loadTodayExpenses();
+  }, [loadSales, loadTodayExpenses]);
+
+  const handleSaveExpense = async () => {
+  setToast({ message: "Gasto registrado exitosamente", type: "success" });
+  loadTodayExpenses();
+};
 
   const filteredSales = useMemo(() => {
     return sales
@@ -85,9 +108,12 @@ export const SalesPage = () => {
   const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
   const displayedSales = filteredSales.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
+  // ← Total en pesos de gastos de hoy
+  const totalGastosHoy = todayExpenses.reduce((sum, g) => sum + (g.monto || g.Monto || 0), 0);
+
   return (
     <div className="h-full flex flex-col gap-3 font-sans p-2 bg-[#f8fafc]">
-      {/* Header Compacto */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Ventas</h1>
@@ -99,6 +125,10 @@ export const SalesPage = () => {
               <Plus size={14} /> NUEVA VENTA
             </button>
           )}
+          <button onClick={() => setIsExpenseModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-red-700">
+            <TrendingDown size={14} /> REGISTRAR GASTO
+          </button>
           <button onClick={() => navigate(`/${userRole === "administrador" ? "admin" : "employee"}/ventas/reporte`)}
             className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-blue-700">
             <TrendingUp size={14} /> REPORTE
@@ -106,14 +136,14 @@ export const SalesPage = () => {
         </div>
       </div>
 
-      {/* KPIs Pequeños */}
+      {/* KPIs — "Registros" reemplazado por "Gastos Hoy" */}
       <div className="grid grid-cols-3 gap-3">
-        <KPICard icon={DollarSign} label="Ingresos" value={fmt(sales.reduce((s,v)=>s+(v.total||0),0))} color="bg-blue-500" />
+        <KPICard icon={DollarSign} label="Ingresos" value={fmt(sales.reduce((s, v) => s + (v.total || 0), 0))} color="bg-blue-500" />
         <KPICard icon={Receipt} label="Ventas Hoy" value={sales.filter(s => new Date(s.fechaVenta).toDateString() === new Date().toDateString()).length} color="bg-emerald-500" />
-        <KPICard icon={TrendingUp} label="Registros" value={sales.length} color="bg-purple-500" />
+        <KPICard icon={TrendingDown} label="Gastos Hoy" value={fmt(totalGastosHoy)} color="bg-red-500" />
       </div>
 
-      {/* Buscador y Filtro Slim */}
+      {/* Buscador y Filtro */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
@@ -129,7 +159,7 @@ export const SalesPage = () => {
         </select>
       </div>
 
-      {/* Tabla Sin Scroll (3 filas) */}
+      {/* Tabla */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
@@ -177,7 +207,7 @@ export const SalesPage = () => {
           </tbody>
         </table>
 
-        {/* Paginación Slim */}
+        {/* Paginación */}
         <div className="bg-gray-50/50 px-3 py-2 flex items-center justify-between border-t border-gray-100">
           <span className="text-[9px] font-bold text-gray-400 uppercase">Pág {currentPage + 1} de {totalPages || 1}</span>
           <div className="flex gap-1">
@@ -189,7 +219,13 @@ export const SalesPage = () => {
         </div>
       </div>
 
+      {/* Modales */}
       <SaleDetailModal isOpen={isSaleDetailOpen} onClose={() => { setIsSaleDetailOpen(false); setSelectedSale(null); }} sale={selectedSale} />
+      <ExpenseFormModal
+        isOpen={isExpenseModalOpen}
+        onClose={() => setIsExpenseModalOpen(false)}
+        onSave={handleSaveExpense}
+      />
       {toast && <ToastNotification message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
