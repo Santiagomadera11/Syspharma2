@@ -208,6 +208,9 @@ export const ProductsSearchView = ({ cart, onAddProduct, onRemoveProduct, onUpda
                   <div className="flex-1">
                     <p className="font-semibold text-sm text-gray-900">{item.nombre}</p>
                     <p className="text-xs text-gray-500">{fmt(item.precio)} c/u</p>
+                    {item.stock != null && (
+                      <p className="text-xs text-gray-400">Stock disponible: {item.stock}</p>
+                    )}
                   </div>
                   <button onClick={() => onRemoveProduct(item.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
                     <X size={16} />
@@ -219,7 +222,12 @@ export const ProductsSearchView = ({ cart, onAddProduct, onRemoveProduct, onUpda
                       <Minus size={12} />
                     </button>
                     <span className="w-6 text-center text-xs font-bold">{item.cantidad}</span>
-                    <button onClick={() => onUpdateQty(item.id, item.cantidad + 1)} className="w-6 h-6 flex items-center justify-center hover:bg-gray-100">
+                    <button
+                      onClick={() => onUpdateQty(item.id, item.cantidad + 1)}
+                      disabled={item.stock != null && item.cantidad >= item.stock}
+                      className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={item.stock != null && item.cantidad >= item.stock ? "Stock máximo alcanzado" : "Aumentar cantidad"}
+                    >
                       <Plus size={12} />
                     </button>
                   </div>
@@ -227,6 +235,9 @@ export const ProductsSearchView = ({ cart, onAddProduct, onRemoveProduct, onUpda
                     {fmt(item.precio * item.cantidad)}
                   </p>
                 </div>
+                {item.stock != null && item.cantidad >= item.stock && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">⚠ Stock máximo alcanzado</p>
+                )}
               </div>
             ))}
           </div>
