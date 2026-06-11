@@ -19,7 +19,11 @@ export const ProductCardGrid = ({
   onOpenDetail,
   disabled,
   children,
-}) => (
+}) => {
+  const isOutOfStock = (product.stock ?? 0) <= 0;
+  const effectivelyDisabled = disabled || isOutOfStock;
+
+  return (
   <div
     className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition h-full flex flex-col relative cursor-pointer"
     onClick={() => onOpenDetail && onOpenDetail(product)}
@@ -40,6 +44,14 @@ export const ProductCardGrid = ({
       ) : (
         <Pill size={48} className="text-gray-300" />
       )}
+
+      {/* Overlay de agotado */}
+      {isOutOfStock && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+          <span className="text-white font-bold">Agotado</span>
+        </div>
+      )}
+
       {!children && (
         <button
           onClick={(e) => {
@@ -63,19 +75,27 @@ export const ProductCardGrid = ({
         {product.marca && (
           <p className="text-xs text-gray-500 mt-1">{product.marca}</p>
         )}
-        {typeof product.stock !== "undefined" && (
-          <div className="mt-2">
-            {product.stock === 0 ? (
-              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
-                Producto agotado
-              </span>
-            ) : product.stock < 50 ? (
-              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">
-                Pocas unidades
-              </span>
-            ) : null}
-          </div>
-        )}
+        {(() => {
+          const stockVal = product.stock ?? null;
+          if (stockVal === null) return null;
+          if (stockVal === 0)
+            return (
+              <div className="mt-2">
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
+                  Producto agotado
+                </span>
+              </div>
+            );
+          if (stockVal < 50)
+            return (
+              <div className="mt-2">
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">
+                  Pocas unidades
+                </span>
+              </div>
+            );
+          return null;
+        })()}
       </div>
       <div className="mt-3">
         <div className="text-emerald-600 font-semibold text-lg">
@@ -93,20 +113,23 @@ export const ProductCardGrid = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onAdd && onAdd(product.id);
+                if (!effectivelyDisabled) onAdd && onAdd(product.id);
               }}
-              disabled={disabled}
-              className={`${disabled ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 text-white"} p-2 rounded-full transition shadow-sm`}
-              title={disabled ? "Stock máximo alcanzado" : "Añadir"}
+              disabled={effectivelyDisabled}
+              className={`${effectivelyDisabled ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 text-white"} p-2 rounded-full transition shadow-sm`}
+              title={effectivelyDisabled ? "Stock máximo alcanzado" : "Añadir"}
             >
               <Plus size={14} />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onQuickBuy ? onQuickBuy(product) : onAdd && onAdd(product.id);
+                if (!effectivelyDisabled) {
+                  onQuickBuy ? onQuickBuy(product) : onAdd && onAdd(product.id);
+                }
               }}
-              className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition shadow-sm"
+              disabled={effectivelyDisabled}
+              className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
               title="Comprar ahora"
             >
               <svg
@@ -129,7 +152,8 @@ export const ProductCardGrid = ({
       )}
     </div>
   </div>
-);
+  );
+};
 
 export const ProductRowList = ({
   product,

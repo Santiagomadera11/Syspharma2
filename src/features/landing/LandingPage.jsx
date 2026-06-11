@@ -150,13 +150,14 @@ export const LandingPage = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {allProducts.map((product) => {
+                const stock = product.stock ?? product.existencia ?? 0;
                 const mapped = {
                   id: product.id,
                   name: product.nombre || product.name,
                   marca: product.proveedor || product.marca,
                   image: product.imagen || product.image || null,
                   price: Number(product.precio ?? product.price ?? 0),
-                  stock: product.stock ?? product.existencia ?? 0,
+                  stock,
                 };
                 return (
                   <ProductCardGrid

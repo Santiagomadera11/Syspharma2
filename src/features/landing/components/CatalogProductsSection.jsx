@@ -181,7 +181,7 @@ export const CatalogProductsSection = () => {
 
   const ProductCard = ({ product }) => {
     const isFav = favorites.includes(product.id);
-    const isOutOfStock = (product.stockTotal || 0) <= 0;
+    const isOutOfStock = (product.stock ?? product.stockTotal ?? 0) <= 0;
 
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition h-full flex flex-col">
@@ -232,19 +232,27 @@ export const CatalogProductsSection = () => {
             )}
 
             {/* Stock Status */}
-            {typeof product.stockTotal !== "undefined" && (
-              <div className="mt-2">
-                {product.stockTotal === 0 ? (
-                  <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
-                    Producto agotado
-                  </span>
-                ) : product.stockTotal < 50 ? (
-                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">
-                    Pocas unidades
-                  </span>
-                ) : null}
-              </div>
-            )}
+            {(() => {
+              const stockVal = product.stock ?? product.stockTotal ?? null;
+              if (stockVal === null) return null;
+              if (stockVal === 0)
+                return (
+                  <div className="mt-2">
+                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
+                      Producto agotado
+                    </span>
+                  </div>
+                );
+              if (stockVal < 50)
+                return (
+                  <div className="mt-2">
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">
+                      Pocas unidades
+                    </span>
+                  </div>
+                );
+              return null;
+            })()}
           </div>
 
           {/* Precio */}
