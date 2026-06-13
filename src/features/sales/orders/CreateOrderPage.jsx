@@ -154,8 +154,18 @@ export const CreateOrderPage = () => {
   }, []);
 
   const handleUpdateQty = useCallback((id, newQty) => {
-    if (newQty <= 0) handleRemoveProduct(id);
-    else setProductCart((prev) => prev.map((p) => p.id === id ? { ...p, cantidad: newQty } : p));
+    if (newQty <= 0) {
+      handleRemoveProduct(id);
+    } else {
+      setProductCart((prev) =>
+        prev.map((p) => {
+          if (p.id !== id) return p;
+          const maxStock = p.stock ?? Infinity;
+          const cappedQty = Math.min(newQty, maxStock);
+          return { ...p, cantidad: cappedQty };
+        })
+      );
+    }
   }, [handleRemoveProduct]);
 
   const handleAddService = useCallback((service) => {
@@ -225,13 +235,28 @@ export const CreateOrderPage = () => {
 
         console.log("📝 Enviando PEDIDO:", JSON.stringify(pedidoPayload, null, 2));
         const pedidoResponse = await ordersService.create(pedidoPayload);
-        const pedidoId = pedidoResponse?.id || pedidoResponse?.pedidoId;
-        
+
+        // ── Actualizar stock en localStorage para reflejar el pedido ──
+        try {
+          const stored = localStorage.getItem("syspharma_products");
+          if (stored) {
+            const localProds = JSON.parse(stored);
+            const updatedProds = localProds.map((lp) => {
+              const vendido = productCart.find((pc) => Number(pc.id) === Number(lp.id));
+              if (vendido) {
+                return { ...lp, stock: Math.max(0, (lp.stock ?? 0) - Number(vendido.cantidad)) };
+              }
+              return lp;
+            });
+            localStorage.setItem("syspharma_products", JSON.stringify(updatedProds));
+            window.dispatchEvent(new Event("syspharma_products_updated"));
+          }
+        } catch (_) { /* silencioso */ }
+
         window.dispatchEvent(new Event("orders:changed"));
         setNotification({ message: "Pedido guardado con éxito", type: "success" });
         
         setTimeout(() => {
-          // Redirigir a la lista de pedidos
           navigate(isEmployeePath ? "/employee/pedidos" : "/admin/pedidos");
         }, 1500);
 
@@ -243,10 +268,10 @@ export const CreateOrderPage = () => {
           clienteDocumento: clientInfo.documento || "",
           clienteTelefono: clientInfo.telefono || "",
           metodoPagoId: Number(clientInfo.metodoPagoId),
-          porcentajeIva: porcentajeIva, // ← CAMBIO
-          subtotal: subtotal,           // ← CAMBIO
-          iva: iva,                     // ← CAMBIO
-          total: total,                 // ← CAMBIO
+          porcentajeIva: porcentajeIva,
+          subtotal: subtotal,
+          iva: iva,
+          total: total,
           notas: [
             clientInfo.correo ? `Email: ${clientInfo.correo}` : "",
             ...serviceCart.map((s) => s.notas).filter(Boolean)
@@ -270,13 +295,28 @@ export const CreateOrderPage = () => {
 
         console.log("💰 Enviando VENTA:", JSON.stringify(ventaPayload, null, 2));
         const ventaResponse = await salesService.create(ventaPayload);
-        const ventaId = ventaResponse?.id || ventaResponse?.ventaId;
-        
+
+        // ── Actualizar stock en localStorage para reflejar la venta ──
+        try {
+          const stored = localStorage.getItem("syspharma_products");
+          if (stored) {
+            const localProds = JSON.parse(stored);
+            const updatedProds = localProds.map((lp) => {
+              const vendido = productCart.find((pc) => Number(pc.id) === Number(lp.id));
+              if (vendido) {
+                return { ...lp, stock: Math.max(0, (lp.stock ?? 0) - Number(vendido.cantidad)) };
+              }
+              return lp;
+            });
+            localStorage.setItem("syspharma_products", JSON.stringify(updatedProds));
+            window.dispatchEvent(new Event("syspharma_products_updated"));
+          }
+        } catch (_) { /* silencioso */ }
+
         window.dispatchEvent(new Event("sales:changed"));
         setNotification({ message: "Transacción exitosa", type: "success" });
         
         setTimeout(() => {
-          // Redirigir a la lista de ventas
           navigate(isEmployeePath ? "/employee/ventas" : "/admin/ventas");
         }, 1500);
       }
