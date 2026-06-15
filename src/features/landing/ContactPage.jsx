@@ -1,14 +1,10 @@
 import React from 'react';
-import { PublicNavbar } from './components/PublicNavbar';
+import { PublicLayout } from './PublicLayout';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 export const ContactPage = () => {
   return (
-    // CLAVE: flex flex-col min-h-screen
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <PublicNavbar />
-      
-      {/* flex-1 centra el contenido verticalmente si sobra espacio */}
+    <PublicLayout>
       <div className="flex-1 max-w-5xl mx-auto px-4 py-4 w-full">
         <div className="max-w-2xl mx-auto">
           <div className="flex flex-col justify-center">
@@ -24,11 +20,7 @@ export const ContactPage = () => {
           </div>
         </div>
       </div>
-
-      <footer className="bg-gray-900 text-gray-400 py-4 text-center text-xs mt-auto">
-        <p>© 2025 Syspharma - Farmacenter La 10.</p>
-      </footer>
-    </div>
+    </PublicLayout>
   );
 };
 

@@ -27,7 +27,7 @@ export const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-sans overflow-x-hidden flex flex-col">
+    <div className="min-h-screen bg-white font-sans flex flex-col">
       <PublicNavbar />
 
       {/* HERO SECTION */}
