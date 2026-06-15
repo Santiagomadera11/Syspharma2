@@ -29,6 +29,7 @@ import { UsersPage } from "../features/users/UsersPage";
 import SettingsPage from "../features/settings/SettingsPage";
 import SalesPage from "../features/sales/SalesPage";
 import { SalesReport } from "../features/sales/components/SalesReport";
+import { ReturnsPage } from "../features/returns/pages/ReturnsPage";
 
 // --- PÁGINAS DE INVENTARIO (ADMIN) ---
 import { ProductsPage } from "../features/inventory/products/ProductsPage";
@@ -192,6 +193,13 @@ export const AppRouter = () => {
             </ProtectedRoute>
           } />
 
+          {/* DEVOLUCIONES */}
+          <Route path="devoluciones" element={
+            <ProtectedRoute requiredPerm="sales.view">
+              <ReturnsPage />
+            </ProtectedRoute>
+          } />
+
           {/* PEDIDOS */}
           <Route path="pedidos" element={
             <ProtectedRoute requiredPerm="orders.view">
@@ -294,6 +302,11 @@ export const AppRouter = () => {
           <Route path="ventas/nueva/productos" element={
             <ProtectedRoute requiredPerm="sales.create">
               <CartProductsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="devoluciones" element={
+            <ProtectedRoute requiredPerm="sales.view">
+              <ReturnsPage />
             </ProtectedRoute>
           } />
           <Route path="productos" element={

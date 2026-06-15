@@ -79,8 +79,15 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           
-          {/* Info cliente y pago en una sola columna para ahorrar espacio */}
+          {/* Info cliente, pago e ID en una sola columna para ahorrar espacio */}
           <div className="space-y-2">
+            <div className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+              <Receipt size={14} className="text-gray-400" />
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold text-gray-400 uppercase leading-none">ID de Venta</p>
+                <p className="text-xs font-bold text-gray-800 truncate">{sale.id || sale.numeroVenta || "-"}</p>
+              </div>
+            </div>
             <div className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
               <User size={14} className="text-gray-400" />
               <div className="min-w-0">
