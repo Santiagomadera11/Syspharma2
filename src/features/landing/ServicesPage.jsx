@@ -1,262 +1,184 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  Plus, Search, Eye, Edit, Trash2,
-  ChevronLeft, ChevronRight, Filter, Stethoscope, Clock
-} from "lucide-react";
-import { ConfirmDialog } from "../../shared/ui/ConfirmDialog.jsx";
-import ServiceFormModal from "../services/components/ServiceFormModal";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Stethoscope, Clock, DollarSign, Tag, Search, CalendarCheck } from "lucide-react";
+import { PublicLayout } from "./PublicLayout";
 import axios from "axios";
 
 const API_URL = "http://localhost:5055/api/Servicio";
-const getAuthHeaders = () => ({
-  headers: {
-    Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}`,
-    "Content-Type": "application/json",
-  },
-});
+
+const getCategoryIcon = (categoria) => {
+  const cat = (categoria || "").toLowerCase();
+  if (cat.includes("vacu") || cat.includes("inyec")) return "💉";
+  if (cat.includes("médic") || cat.includes("medic") || cat.includes("consul")) return "🩺";
+  if (cat.includes("presión") || cat.includes("presion")) return "🩸";
+  if (cat.includes("odont") || cat.includes("dental")) return "🦷";
+  if (cat.includes("nutri")) return "🥗";
+  return "⚕️";
+};
 
 export const ServicesPage = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Todos");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [isViewMode, setIsViewMode] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [notification, setNotification] = useState(null);
-  const itemsPerPage = 5;
+  const [selectedCategory, setSelectedCategory] = useState("Todas");
 
-  const [confirmConfig, setConfirmConfig] = useState({
-    open: false, title: "", message: "", confirmText: "Confirmar", danger: true, onConfirm: null,
-  });
-
-  const loadServices = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(API_URL, getAuthHeaders());
-      setServices(Array.isArray(res.data) ? res.data : []);
-    } catch { setServices([]); }
-    finally { setLoading(false); }
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await axios.get(API_URL);
+        const data = Array.isArray(res.data) ? res.data : [];
+        setServices(data.filter((s) => s.estado));
+      } catch {
+        setServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
-  useEffect(() => {
-    loadServices();
-    const onChange = () => loadServices();
-    window.addEventListener("services:changed", onChange);
-    return () => window.removeEventListener("services:changed", onChange);
-  }, [loadServices]);
+  const categories = [
+    "Todas",
+    ...Array.from(new Set(services.map((s) => s.categoriaNombre).filter(Boolean))),
+  ];
 
-  useEffect(() => {
-    if (notification) {
-      const t = setTimeout(() => setNotification(null), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [notification]);
-
-  const handleCreate = () => { setEditingItem(null); setIsViewMode(false); setIsModalOpen(true); };
-
-  const handleEdit = (srv) => {
-    setConfirmConfig({
-      open: true, title: "Editar Servicio",
-      message: <><b>¿Editar el servicio "{srv.nombre}"?</b></>,
-      confirmText: "Editar", danger: false,
-      onConfirm: () => { setEditingItem(srv); setIsViewMode(false); setIsModalOpen(true); },
-    });
-  };
-
-  const handleView = (srv) => { setEditingItem(srv); setIsViewMode(true); setIsModalOpen(true); };
-
-  const handleDelete = (srv) => {
-    setConfirmConfig({
-      open: true, title: "Eliminar Servicio",
-      message: <><b>¿Eliminar el servicio "{srv.nombre}"?</b><br /><span className="text-xs text-gray-500">Esta acción no se puede deshacer.</span></>,
-      confirmText: "Eliminar", danger: true,
-      onConfirm: async () => {
-        try {
-          await axios.delete(`${API_URL}/${srv.id}`, getAuthHeaders());
-          setNotification({ message: "Servicio eliminado correctamente", type: "success" });
-          await loadServices();
-        } catch (err) {
-          setNotification({ message: err?.response?.data?.message || "Error al eliminar", type: "error" });
-        }
-      },
-    });
-  };
-
-  const handleToggleEstado = (srv) => {
-    const newEstado = !srv.estado;
-    setConfirmConfig({
-      open: true, title: `Cambiar estado`,
-      message: `¿Cambiar el estado de "${srv.nombre}" a ${newEstado ? "Activo" : "Inactivo"}?`,
-      confirmText: newEstado ? "Activar" : "Desactivar", danger: false,
-      onConfirm: async () => {
-        try {
-          await axios.patch(`${API_URL}/${srv.id}/estado`, newEstado, getAuthHeaders());
-          await loadServices();
-        } catch (err) {
-          setNotification({ message: err?.response?.data?.message || "Error al cambiar estado", type: "error" });
-        }
-      },
-    });
-  };
-
-  const handleSave = async (formData) => {
-    try {
-      if (editingItem) {
-        // ServicioUpdateDto — requiere id y estado como bool
-        const payload = {
-          id: editingItem.id,
-          nombre: formData.nombre,
-          categoriaId: parseInt(formData.categoriaId, 10),
-          precio: parseFloat(formData.precio),
-          duracion: formData.duracion ? parseInt(formData.duracion, 10) : null,
-          descripcion: formData.descripcion || null,
-          estado: formData.estado === true || formData.estado === "Activo",
-        };
-        await axios.put(`${API_URL}/${editingItem.id}`, JSON.stringify(payload), { headers: getAuthHeaders().headers });
-        setNotification({ message: "Servicio actualizado correctamente", type: "success" });
-      } else {
-        // ServicioCreateDto — sin id ni estado
-        const payload = {
-          nombre: formData.nombre,
-          categoriaId: parseInt(formData.categoriaId, 10),
-          precio: parseFloat(formData.precio),
-          duracion: formData.duracion ? parseInt(formData.duracion, 10) : null,
-          descripcion: formData.descripcion || null,
-        };
-        await axios.post(API_URL, JSON.stringify(payload), { headers: getAuthHeaders().headers });
-        setNotification({ message: "Servicio creado correctamente", type: "success" });
-      }
-
-      await loadServices();
-      setIsModalOpen(false);
-      setEditingItem(null);
-      window.dispatchEvent(new CustomEvent("services:changed"));
-    } catch (err) {
-      setNotification({ message: err?.response?.data?.message || "Error al guardar", type: "error" });
-    }
-  };
-
-  const filteredItems = services.filter((srv) => {
-    const texto = searchTerm.toLowerCase();
-    const matchTexto = (srv.nombre || "").toLowerCase().includes(texto) ||
-      (srv.categoriaNombre || "").toLowerCase().includes(texto);
-    const matchEstado = statusFilter === "Todos" ||
-      (statusFilter === "Activo" ? srv.estado : !srv.estado);
-    return matchTexto && matchEstado;
+  const filtered = services.filter((srv) => {
+    const matchSearch =
+      (srv.nombre || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (srv.categoriaNombre || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchCat = selectedCategory === "Todas" || srv.categoriaNombre === selectedCategory;
+    return matchSearch && matchCat;
   });
 
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentItems = filteredItems.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-
   return (
-    <div className="h-full flex flex-col p-6 font-sans text-gray-800 bg-white md:bg-transparent relative">
-      <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <div>
-          <h1 className="text-lg font-bold text-gray-800">Servicios</h1>
-          <p className="text-xs text-gray-500">Catálogo de procedimientos</p>
-        </div>
-        <button onClick={handleCreate}
-          className="flex items-center gap-1.5 bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md text-sm font-medium shadow-sm transition-colors">
-          <Plus size={16} /> Nuevo
-        </button>
-      </div>
-
-      <div className="flex gap-3 mb-3 flex-shrink-0">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          <input type="text" placeholder="Buscar servicio..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-md border border-gray-300 text-sm focus:outline-none focus:border-emerald-500"
-            value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} />
-        </div>
-        <div className="relative w-36">
-          <select className="w-full pl-3 pr-8 py-1.5 rounded-md border border-gray-300 text-sm bg-white appearance-none cursor-pointer focus:outline-none focus:border-emerald-500"
-            value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
-            <option value="Todos">Todos</option>
-            <option value="Activo">Activo</option>
-            <option value="Inactivo">Inactivo</option>
-          </select>
-          <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
+    <PublicLayout>
+      {/* Banner cita */}
+      <div className="bg-emerald-50 border-b border-emerald-100 px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-center gap-2 text-sm text-emerald-700">
+          <CalendarCheck size={16} className="shrink-0" />
+          <span>
+            ¿Quieres agendar una cita?{" "}
+            <Link to="/registro" className="font-semibold underline hover:text-emerald-900 transition-colors">
+              Regístrate gratis
+            </Link>{" "}
+            y agenda en minutos.
+          </span>
         </div>
       </div>
 
-      <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-emerald-600 text-white sticky top-0 z-10">
-              <tr>
-                {["ID", "Nombre", "Categoría", "Precio", "Duración", "Estado", "Acciones"].map(h => (
-                  <th key={h} className="py-2 px-3 text-[10px] font-bold uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <tr><td colSpan={7} className="py-8 text-center text-gray-400 text-xs">Cargando servicios...</td></tr>
-              ) : currentItems.length === 0 ? (
-                <tr><td colSpan={7} className="py-8 text-center text-gray-400 text-xs">No se encontraron servicios.</td></tr>
-              ) : (
-                currentItems.map((srv) => (
-                  <tr key={srv.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-1.5 px-3 text-xs font-medium text-gray-900">{srv.id}</td>
-                    <td className="py-1.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <Stethoscope size={12} className="text-emerald-600" />
-                        <span className="text-xs font-bold text-gray-700">{srv.nombre}</span>
-                      </div>
-                    </td>
-                    <td className="py-1.5 px-3 text-xs text-gray-600">{srv.categoriaNombre}</td>
-                    <td className="py-1.5 px-3 text-xs font-bold text-emerald-600 text-right">$ {Number(srv.precio).toLocaleString()}</td>
-                    <td className="py-1.5 px-3 text-xs text-center text-gray-500">
-                      <div className="flex items-center justify-center gap-1"><Clock size={10} /> {srv.duracion} min</div>
-                    </td>
-                    <td className="py-1.5 px-3">
-                      <button onClick={() => handleToggleEstado(srv)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all ${srv.estado ? "bg-emerald-600" : "bg-gray-400"}`}>
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${srv.estado ? "translate-x-5" : "translate-x-0.5"}`} />
-                      </button>
-                    </td>
-                    <td className="py-1.5 px-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => handleView(srv)} className="p-1 rounded border border-emerald-200 text-emerald-600 hover:bg-emerald-50"><Eye size={14} /></button>
-                        <button onClick={() => handleEdit(srv)} className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50"><Edit size={14} /></button>
-                        <button onClick={() => handleDelete(srv)} className="p-1 rounded border border-red-200 text-red-600 hover:bg-red-50"><Trash2 size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="bg-gray-50 px-3 py-1.5 border-t border-gray-200 flex items-center justify-between flex-shrink-0">
-          <span className="text-[10px] text-gray-500">Pág {currentPage} de {totalPages || 1}</span>
-          <div className="flex gap-1">
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
-              className="p-1 rounded border border-gray-300 bg-white disabled:opacity-50"><ChevronLeft size={14} /></button>
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0}
-              className="p-1 rounded border border-gray-300 bg-white disabled:opacity-50"><ChevronRight size={14} /></button>
+      {/* Hero */}
+      <div className="bg-emerald-700 text-white py-16 px-4 text-center">
+        <div className="flex justify-center mb-4">
+          <div className="bg-white/20 rounded-full p-4">
+            <Stethoscope size={40} className="text-white" />
           </div>
         </div>
+        <h1 className="text-4xl font-bold mb-3">Nuestros Servicios</h1>
+        <p className="text-emerald-100 text-lg max-w-xl mx-auto">
+          Atención profesional y personalizada para tu salud y bienestar.
+          Contamos con un equipo de expertos listos para ayudarte.
+        </p>
       </div>
 
-      <ServiceFormModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingItem(null); }}
-        onSave={handleSave} initialData={editingItem} isViewMode={isViewMode} />
-
-      <ConfirmDialog open={confirmConfig.open} title={confirmConfig.title} message={confirmConfig.message}
-        confirmText={confirmConfig.confirmText} danger={confirmConfig.danger}
-        onCancel={() => setConfirmConfig(c => ({ ...c, open: false }))}
-        onConfirm={() => { confirmConfig.onConfirm && confirmConfig.onConfirm(); setConfirmConfig(c => ({ ...c, open: false })); }} />
-
-      {notification && (
-        <div className={`fixed bottom-4 left-4 px-4 py-3 rounded-lg shadow-lg z-50 text-sm font-medium ${notification.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
-          {notification.message}
+      {/* Contenido */}
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Filtros */}
+        <div className="flex flex-col md:flex-row gap-3 mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar servicio..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:border-emerald-500 shadow-sm"
+            />
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                  selectedCategory === cat
+                    ? "bg-emerald-600 text-white border-emerald-600"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-emerald-400 hover:text-emerald-600"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
-    </div>
+
+        {/* Cards */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-pulse">
+                <div className="w-12 h-12 bg-gray-200 rounded-full mb-4" />
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                <div className="h-3 bg-gray-100 rounded w-1/2 mb-4" />
+                <div className="h-3 bg-gray-100 rounded w-full mb-2" />
+                <div className="h-3 bg-gray-100 rounded w-5/6" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">
+            <Stethoscope size={48} className="mx-auto mb-3 opacity-30" />
+            <p className="text-lg font-medium">No se encontraron servicios</p>
+            <p className="text-sm mt-1">Intenta con otro término de búsqueda</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-gray-500 mb-5">
+              Mostrando <span className="font-semibold text-gray-700">{filtered.length}</span> servicio{filtered.length !== 1 ? "s" : ""}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((srv) => (
+                <div
+                  key={srv.id}
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 transition-all group"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-2xl group-hover:bg-emerald-100 transition-colors">
+                      {getCategoryIcon(srv.categoriaNombre)}
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full font-medium border border-emerald-100">
+                      <Tag size={10} />
+                      {srv.categoriaNombre || "General"}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-gray-800 mb-2 group-hover:text-emerald-700 transition-colors">
+                    {srv.nombre}
+                  </h3>
+                  {srv.descripcion && (
+                    <p className="text-xs text-gray-500 mb-4 line-clamp-2 leading-relaxed">
+                      {srv.descripcion}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-1 text-emerald-600">
+                      <DollarSign size={14} />
+                      <span className="text-sm font-bold">
+                        {Number(srv.precio).toLocaleString("es-CO")}
+                      </span>
+                    </div>
+                    {srv.duracion && (
+                      <div className="flex items-center gap-1 text-gray-400 text-xs">
+                        <Clock size={12} />
+                        <span>{srv.duracion} min</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </PublicLayout>
   );
 };
 
