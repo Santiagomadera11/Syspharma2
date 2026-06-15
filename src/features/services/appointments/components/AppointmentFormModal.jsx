@@ -75,14 +75,14 @@ const AppointmentFormModal = ({
   const currentUserRole = currentUser.rol || "Administrador";
   const isEmployee = currentUserRole === "Empleado";
 
-  // ── Theme tokens ────────────────────────────────────────────────
- const headerBgColor   = "bg-blue-600";
-const focusBorder     = "focus:border-blue-400";
-const focusRing       = "focus:ring-blue-200";
-const slotSelected    = "bg-blue-600";
-const slotHover       = "hover:bg-blue-50";
-const btnSaveBg       = "bg-blue-600 hover:bg-blue-700";
-  // ────────────────────────────────────────────────────────────────
+  // ── Theme tokens (Cambiados de azul al verde esmeralda del sistema) ──
+  const headerBgColor   = "bg-emerald-600";
+  const focusBorder     = "focus:border-emerald-400";
+  const focusRing       = "focus:ring-emerald-200";
+  const slotSelected    = "bg-emerald-600";
+  const slotHover       = "hover:bg-emerald-50";
+  const btnSaveBg       = "bg-emerald-600 hover:bg-emerald-700";
+  // ─────────────────────────────────────────────────────────────────────
 
   const inputClass = (hasError) =>
     `w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${

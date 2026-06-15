@@ -76,6 +76,11 @@ export const salesService = {
     return res.data;
   },
 
+  anular: async (id) => {
+    const res = await apiClient.patch(`${ENDPOINT}/${id}/anular`, {});
+    return res.data;
+  },
+
   delete: async (id) => {
     const res = await apiClient.delete(`${ENDPOINT}/${id}`);
     return res.data;

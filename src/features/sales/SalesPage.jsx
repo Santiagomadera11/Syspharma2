@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search, Plus, DollarSign, Eye, ChevronLeft, ChevronRight,
-  ShoppingCart, TrendingUp, Receipt, Package, Globe, User, TrendingDown
+  ShoppingCart, TrendingUp, Receipt, Package, Globe, User, TrendingDown, RotateCcw, X
 } from "lucide-react";
 import { salesService } from "./services/salesService";
 import { expensesService } from "./services/expensesService";
@@ -12,7 +12,17 @@ import { ToastNotification } from "/src/shared/ui/ToastNotification";
 
 const ESTADO_CONFIG = {
   completada: { label: "Completada", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
-  devolucion: { label: "Devolución", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+  devolucion: { label: "Devolución", bg: "bg-amber-50",   text: "text-amber-700",   dot: "bg-amber-500"  },
+  anulada:    { label: "Anulada",    bg: "bg-red-50",     text: "text-red-700",     dot: "bg-red-500"    },
+  pendiente:  { label: "Pendiente",  bg: "bg-blue-50",    text: "text-blue-700",    dot: "bg-blue-500"   },
+};
+
+const normalizeText = (str) => {
+  return String(str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 };
 
 const KPICard = ({ icon: Icon, label, value, color }) => (
@@ -29,6 +39,7 @@ const KPICard = ({ icon: Icon, label, value, color }) => (
 
 export const SalesPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,9 +49,11 @@ export const SalesPage = () => {
   const [selectedSale, setSelectedSale] = useState(null);
   const [toast, setToast] = useState(null);
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
-  const [todayExpenses, setTodayExpenses] = useState([]);  // ← NUEVO
+  const [todayExpenses, setTodayExpenses] = useState([]);  
+  const [confirmAnular, setConfirmAnular] = useState(null); 
 
-  const itemsPerPage = 3;
+  const itemsPerPage = 8; 
+
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
@@ -72,11 +85,9 @@ export const SalesPage = () => {
     finally { setLoading(false); }
   }, []);
 
-  // ← NUEVO: cargar gastos de hoy
   const loadTodayExpenses = useCallback(async () => {
     try {
       const data = await expensesService.getTodayExpenses(user.id);
-      console.log("💰 Gastos hoy raw:", data); // ← línea nueva
       setTodayExpenses(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Error gastos:", e);
@@ -87,20 +98,38 @@ export const SalesPage = () => {
   useEffect(() => {
     loadSales();
     loadTodayExpenses();
-  }, [loadSales, loadTodayExpenses]);
+  }, [loadSales, loadTodayExpenses, location]);
 
   const handleSaveExpense = async () => {
-  setToast({ message: "Gasto registrado exitosamente", type: "success" });
-  loadTodayExpenses();
-};
+    setToast({ message: "Gasto registrado exitosamente", type: "success" });
+    loadTodayExpenses();
+  };
+
+  const handleAnular = async () => {
+    try {
+      await salesService.anular(confirmAnular.id);
+      setToast({ message: "Venta anulada correctamente", type: "success" });
+      setConfirmAnular(null);
+      loadSales();
+    } catch (ex) {
+      setToast({ message: ex.response?.data?.message || "Error al anular", type: "error" });
+      setConfirmAnular(null);
+    }
+  };
 
   const filteredSales = useMemo(() => {
     return sales
       .filter((s) => {
+        const estadoSeleccionado = normalizeText(filterEstado);
+        if (estadoSeleccionado === "todos") return true;
+        return normalizeText(s?.estadoNombre) === estadoSeleccionado;
+      })
+      .filter((s) => {
         const term = searchTerm.toLowerCase();
-        const matchSearch = (s?.clienteNombre || "").toLowerCase().includes(term) || String(s?.numeroVenta || "").toLowerCase().includes(term);
-        const matchEstado = filterEstado === "todos" || s?.estadoNombre?.toLowerCase() === filterEstado;
-        return matchSearch && matchEstado;
+        return (
+          (s?.clienteNombre || "").toLowerCase().includes(term) ||
+          String(s?.numeroVenta || "").toLowerCase().includes(term)
+        );
       })
       .sort((a, b) => new Date(b.fechaVenta || 0) - new Date(a.fechaVenta || 0));
   }, [sales, searchTerm, filterEstado]);
@@ -108,13 +137,12 @@ export const SalesPage = () => {
   const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
   const displayedSales = filteredSales.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
-  // ← Total en pesos de gastos de hoy
   const totalGastosHoy = todayExpenses.reduce((sum, g) => sum + (g.monto || g.Monto || 0), 0);
 
   return (
-    <div className="h-full flex flex-col gap-3 font-sans p-2 bg-[#f8fafc]">
+    <div className="h-full flex flex-col gap-3 font-sans p-2 bg-[#f8fafc] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Ventas</h1>
         </div>
@@ -125,6 +153,10 @@ export const SalesPage = () => {
               <Plus size={14} /> NUEVA VENTA
             </button>
           )}
+          <button onClick={() => navigate(`/${userRole === "administrador" ? "admin" : "employee"}/devoluciones`)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-amber-700">
+            <RotateCcw size={14} /> DEVOLUCIONES
+          </button>
           <button onClick={() => setIsExpenseModalOpen(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-red-700">
             <TrendingDown size={14} /> REGISTRAR GASTO
@@ -136,15 +168,15 @@ export const SalesPage = () => {
         </div>
       </div>
 
-      {/* KPIs — "Registros" reemplazado por "Gastos Hoy" */}
-      <div className="grid grid-cols-3 gap-3">
-        <KPICard icon={DollarSign} label="Ingresos" value={fmt(sales.reduce((s, v) => s + (v.total || 0), 0))} color="bg-blue-500" />
-        <KPICard icon={Receipt} label="Ventas Hoy" value={sales.filter(s => new Date(s.fechaVenta).toDateString() === new Date().toDateString()).length} color="bg-emerald-500" />
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3 flex-shrink-0">
+        <KPICard icon={DollarSign} label="Ingresos" value={fmt(sales.filter(v => !["devolucion", "anulada"].includes(normalizeText(v.estadoNombre))).reduce((s, v) => s + (v.total || 0), 0) - totalGastosHoy)} color="bg-blue-500" />
+        <KPICard icon={Receipt} label="Ventas Hoy" value={sales.filter(s => new Date(s.fechaVenta).toDateString() === new Date().toDateString() && !["devolucion", "anulada"].includes(normalizeText(s.estadoNombre))).length} color="bg-emerald-500" />
         <KPICard icon={TrendingDown} label="Gastos Hoy" value={fmt(totalGastosHoy)} color="bg-red-500" />
       </div>
 
       {/* Buscador y Filtro */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-shrink-0">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
           <input type="text" placeholder="Buscar venta..."
@@ -156,59 +188,81 @@ export const SalesPage = () => {
           <option value="todos">Todos</option>
           <option value="completada">Completadas</option>
           <option value="devolucion">Devoluciones</option>
+          <option value="anulada">Anuladas</option>
+          <option value="pendiente">Pendientes</option>
         </select>
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              {["#", "Fecha", "Origen", "Cliente", "Items", "Pago", "Total", "Estado", ""].map(h => (
-                <th key={h} className="px-3 py-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {displayedSales.map((sale) => {
-              const config = ESTADO_CONFIG[sale.estadoNombre?.toLowerCase()] || ESTADO_CONFIG.completada;
-              const totalItems =
-                (sale.detalles?.length || sale.Detalles?.length || 0) +
-                (sale.servicios?.length || sale.Servicios?.length || 0);
-              return (
-                <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-3 py-2 text-[10px] font-bold text-gray-400">{sale.numeroVenta?.split('-')[1] || sale.numeroVenta || sale.id}</td>
-                  <td className="px-3 py-2 text-[10px] text-gray-500">{new Date(sale.fechaVenta).toLocaleDateString()}</td>
-                  <td className="px-3 py-2">{getOriginBadge(sale.origen)}</td>
-                  <td className="px-3 py-2">
-                    <span className="text-[10px] font-bold text-gray-700 truncate block max-w-[100px]">{sale.clienteNombre || "C. Final"}</span>
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    <span className="bg-blue-50 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-blue-100">
-                      {totalItems} ITEMS
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-[10px] text-gray-400 font-bold uppercase">{sale.metodoPagoNombre?.substring(0, 8)}</td>
-                  <td className="px-3 py-2 text-right text-[11px] font-black text-gray-900">{fmt(sale.total)}</td>
-                  <td className="px-3 py-2">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${config.bg} ${config.text}`}>
-                      {config.label}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    <button onClick={() => { setSelectedSale(sale); setIsSaleDetailOpen(true); }}
-                      className="w-6 h-6 bg-white border border-gray-200 rounded-lg flex items-center justify-center mx-auto text-gray-400 hover:text-emerald-600 transition-all">
-                      <Eye size={12} />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* Tabla Adaptativa */}
+      <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between">
+        {/* Contenedor del scroll de la tabla */}
+        <div className="overflow-auto flex-1">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+              <tr>
+                {["#", "Fecha", "Origen", "Cliente", "Items", "Pago", "Total", "Estado", ""].map(h => (
+                  <th key={h} className={`px-3 py-2 text-[9px] font-black text-gray-400 uppercase tracking-widest ${h === "" ? "text-right" : ""}`}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {displayedSales.map((sale) => {
+                const estadoNormalizado = normalizeText(sale.estadoNombre);
+                const config = ESTADO_CONFIG[estadoNormalizado] || ESTADO_CONFIG.completada;
+                const totalItems =
+                  (sale.detalles?.length || sale.Detalles?.length || 0) +
+                  (sale.servicios?.length || sale.Servicios?.length || 0);
+                return (
+                  <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-3 py-2 text-[10px] font-bold text-gray-400">{sale.numeroVenta?.split('-')[1] || sale.numeroVenta || sale.id}</td>
+                    <td className="px-3 py-2 text-[10px] text-gray-500">{new Date(sale.fechaVenta).toLocaleDateString()}</td>
+                    <td className="px-3 py-2">{getOriginBadge(sale.origen)}</td>
+                    <td className="px-3 py-2">
+                      <span className="text-[10px] font-bold text-gray-700 truncate block max-w-[100px]">{sale.clienteNombre || "C. Final"}</span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className="bg-blue-50 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded border border-blue-100">
+                        {totalItems} ITEMS
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-[10px] text-gray-400 font-bold uppercase">{sale.metodoPagoNombre?.substring(0, 8)}</td>
+                    <td className="px-3 py-2 text-right text-[11px] font-black text-gray-900">{fmt(sale.total)}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${config.bg} ${config.text}`}>
+                        {config.label}
+                      </span>
+                    </td>
+                    {/* Acciones */}
+                    <td className="px-3 py-2 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button onClick={() => { setSelectedSale(sale); setIsSaleDetailOpen(true); }}
+                          className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors"
+                          title="Ver detalle">
+                          <Eye size={16} />
+                        </button>
+                        
+                        {userRole === "administrador" && 
+                         estadoNormalizado !== "anulada" && 
+                         estadoNormalizado !== "devolucion" && (
+                          <button onClick={() => setConfirmAnular(sale)}
+                            className="p-1.5 rounded-md text-red-600 hover:bg-red-50 transition-colors"
+                            title="Anular venta">
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
-        {/* Paginación */}
-        <div className="bg-gray-50/50 px-3 py-2 flex items-center justify-between border-t border-gray-100">
+        {/* Paginación fijada en la parte inferior */}
+        <div className="bg-gray-50/50 px-3 py-2 flex items-center justify-between border-t border-gray-100 flex-shrink-0">
           <span className="text-[9px] font-bold text-gray-400 uppercase">Pág {currentPage + 1} de {totalPages || 1}</span>
           <div className="flex gap-1">
             <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}
@@ -226,6 +280,38 @@ export const SalesPage = () => {
         onClose={() => setIsExpenseModalOpen(false)}
         onSave={handleSaveExpense}
       />
+      
+      {/* Modal de confirmación de anulación */}
+      {confirmAnular && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+            <div className="bg-red-600 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">Anular venta {confirmAnular.numeroVenta}</h2>
+              <button onClick={() => setConfirmAnular(null)} className="text-white hover:bg-red-700 p-1 rounded">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                ¿Estás seguro? Se devolverá el stock y se descontará <span className="font-bold">{fmt(confirmAnular.total)}</span> del turno activo.
+              </p>
+            </div>
+
+            <div className="flex gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+              <button onClick={() => setConfirmAnular(null)}
+                className="flex-1 py-2 rounded-xl border border-gray-200 text-[11px] font-bold text-gray-500 hover:bg-gray-50">
+                CANCELAR
+              </button>
+              <button onClick={handleAnular}
+                className="flex-1 py-2 rounded-xl bg-red-600 text-white text-[11px] font-bold hover:bg-red-700">
+                ANULAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {toast && <ToastNotification message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
