@@ -24,6 +24,14 @@ export const ReturnList = ({ devoluciones = [], loading, onRefresh }) => {
 
   const itemsPerPage = 5;
 
+  // Validar permisos
+  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (user.rol || "").toLowerCase().trim();
+  const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const canCreateReturn = userRole === "administrador" || userPerms.includes("sales.create") || userPerms.includes("sales.return");
+  const canViewReturns = userRole === "administrador" || userPerms.includes("sales.view") || userPerms.includes("sales.return");
+  const colorClass = userRole === "administrador" ? "emerald" : "blue";
+
   const filteredReturns = useMemo(() => {
     return devoluciones.filter((d) => {
       const term = searchTerm.toLowerCase();
@@ -99,8 +107,19 @@ export const ReturnList = ({ devoluciones = [], loading, onRefresh }) => {
               />
             </div>
             <button
-              onClick={() => setIsFormOpen(true)}
-              className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2 font-medium text-sm"
+              onClick={() => {
+                if (!canCreateReturn) {
+                  alert("No tienes permisos para crear devoluciones. Contacta al administrador.");
+                  return;
+                }
+                setIsFormOpen(true);
+              }}
+              disabled={!canCreateReturn}
+              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-medium text-sm ${
+                canCreateReturn
+                  ? userRole === "administrador" ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
             >
               <Plus size={18} /> Nueva devolución
             </button>
@@ -121,7 +140,7 @@ export const ReturnList = ({ devoluciones = [], loading, onRefresh }) => {
                   }}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                     isActive
-                      ? "bg-emerald-600 text-white"
+                      ? userRole === "administrador" ? "bg-emerald-600 text-white" : "bg-blue-600 text-white"
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
@@ -177,7 +196,9 @@ export const ReturnList = ({ devoluciones = [], loading, onRefresh }) => {
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {devolucion.motivo}
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-emerald-600">
+                        <td className="px-4 py-3 text-sm font-semibold" style={{
+                          color: userRole === "administrador" ? "#059669" : "#2563eb"
+                        }}>
                           {fmt(devolucion.totalDevolucion)}
                         </td>
                         <td className="px-4 py-3 text-sm">
@@ -192,7 +213,11 @@ export const ReturnList = ({ devoluciones = [], loading, onRefresh }) => {
                         <td className="px-4 py-3 text-center">
                           <button
                             onClick={() => handleViewDetail(devolucion)}
-                            className="text-emerald-600 hover:text-emerald-700 font-medium text-sm inline-flex items-center gap-1"
+                            className={`font-medium text-sm inline-flex items-center gap-1 ${
+                              userRole === "administrador" 
+                                ? "text-emerald-600 hover:text-emerald-700" 
+                                : "text-blue-600 hover:text-blue-700"
+                            }`}
                           >
                             <Eye size={16} /> Ver detalle
                           </button>

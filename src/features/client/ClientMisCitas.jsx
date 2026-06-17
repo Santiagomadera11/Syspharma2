@@ -93,7 +93,7 @@ export const ClientMisCitas = () => {
   const getStatusColor = (estado) => {
     switch (estado) {
       case "Confirmar Asistencia": return "bg-yellow-100 text-yellow-700";
-      case "En Consulta": return "bg-blue-100 text-blue-700";
+      case "En Consulta": return "bg-emerald-100 text-emerald-700";
       case "Completada": return "bg-emerald-100 text-emerald-700";
       case "No Asistió": return "bg-red-100 text-red-700";
       case "Cancelada": return "bg-gray-100 text-gray-700";

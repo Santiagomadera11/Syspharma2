@@ -15,6 +15,14 @@ export const CalendarPicker = ({
   minDate,
   maxDate,
 }) => {
+  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const currentUserRole = (currentUser.rol || "Empleado").toLowerCase();
+  const isEmployeePanel = currentUserRole === "empleado";
+  const selectedBgClass = isEmployeePanel ? "bg-blue-600" : "bg-emerald-600";
+  const selectedBorderClass = isEmployeePanel ? "border-blue-700" : "border-emerald-700";
+  const hoverBgClass = isEmployeePanel ? "hover:bg-blue-50" : "hover:bg-emerald-50";
+  const hoverBorderClass = isEmployeePanel ? "hover:border-blue-300" : "hover:border-emerald-300";
+  
   const [currentMonth, setCurrentMonth] = useState(() => {
     if (selectedDate) {
       const [year, month] = selectedDate.split("-");
@@ -176,11 +184,11 @@ export const CalendarPicker = ({
 
           // Determinar clases según motivo
           let badgeClass =
-            "bg-white text-gray-700 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-300";
+            `bg-white text-gray-700 border border-gray-200 ${hoverBgClass} ${hoverBorderClass}`;
           let title = "";
 
           if (isSelected) {
-            badgeClass = "bg-emerald-600 text-white border border-emerald-700";
+            badgeClass = `${selectedBgClass} text-white border ${selectedBorderClass}`;
           } else if (isDisabled) {
             const reason = String(disabledInfo.reason || "").toLowerCase();
             if (reason.includes("doctor") || reason.includes("medic")) {
@@ -225,7 +233,7 @@ export const CalendarPicker = ({
       {/* Leyenda */}
       <div className="mt-4 pt-3 border-t border-gray-200 space-y-2">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-emerald-600" />
+          <div className={`w-4 h-4 rounded ${selectedBgClass}`} />
           <span className="text-[10px] text-gray-600">Día seleccionado</span>
         </div>
         <div className="flex items-center gap-2">

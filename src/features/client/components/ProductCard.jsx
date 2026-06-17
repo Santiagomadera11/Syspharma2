@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, Heart, Pill } from "lucide-react";
+import { Plus, Pill } from "lucide-react";
 
 export const fmt = (v) => {
   const n = Number(v) || 0;
@@ -12,8 +12,6 @@ export const fmt = (v) => {
 
 export const ProductCardGrid = ({
   product,
-  isFav,
-  onToggleFav,
   onAdd,
   onQuickBuy,
   onOpenDetail,
@@ -50,21 +48,6 @@ export const ProductCardGrid = ({
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
           <span className="text-white font-bold">Agotado</span>
         </div>
-      )}
-
-      {!children && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFav && onToggleFav(product.id);
-          }}
-          className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition"
-        >
-          <Heart
-            size={18}
-            className={isFav ? "text-red-500 fill-red-500" : "text-gray-400"}
-          />
-        </button>
       )}
     </div>
     <div className="p-4 flex flex-col flex-1">
@@ -129,7 +112,7 @@ export const ProductCardGrid = ({
                 }
               }}
               disabled={effectivelyDisabled}
-              className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="bg-emerald-600 text-white p-2 rounded-full hover:bg-emerald-700 transition shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
               title="Comprar ahora"
             >
               <svg
@@ -202,15 +185,6 @@ export const ProductRowList = ({
       </div>
       {!children && (
         <>
-          <button
-            onClick={() => onToggleFav && onToggleFav(product.id)}
-            className="p-1 text-gray-400 hover:text-red-500 transition"
-          >
-            <Heart
-              size={18}
-              className={isFav ? "text-red-500 fill-red-500" : ""}
-            />
-          </button>
           <button
             onClick={() => onAdd && onAdd(product.id)}
             disabled={disabled}

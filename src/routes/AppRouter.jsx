@@ -74,7 +74,6 @@ import ClientProductos from "../features/client/ClientProductos";
 import ClientMisPedidos from "../features/client/ClientMisPedidos";
 import ClientMisCitas from "../features/client/ClientMisCitas";
 import ClientMiPerfil from "../features/client/ClientMiPerfil";
-import FavoritosPage from "../features/client/FavoritosPage";
 import CarritoPage from "../features/client/CarritoPage";
 
 const CONFIG_PERMS = [
@@ -194,7 +193,7 @@ export const AppRouter = () => {
           } />
 
           {/* DEVOLUCIONES */}
-          <Route path="devoluciones" element={
+          <Route path="ventas/devoluciones" element={
             <ProtectedRoute requiredPerm="sales.view">
               <ReturnsPage />
             </ProtectedRoute>
@@ -304,7 +303,7 @@ export const AppRouter = () => {
               <CartProductsPage />
             </ProtectedRoute>
           } />
-          <Route path="devoluciones" element={
+          <Route path="ventas/devoluciones" element={
             <ProtectedRoute requiredPerm="sales.view">
               <ReturnsPage />
             </ProtectedRoute>
@@ -392,7 +391,6 @@ export const AppRouter = () => {
           <Route path="inicio" element={<ClientInicio />} />
           <Route path="catalogo" element={<ClientCatalogo />} />
           <Route path="productos" element={<ClientProductos />} />
-          <Route path="favoritos" element={<FavoritosPage />} />
           <Route path="carrito" element={<CarritoPage />} />
           <Route path="mis-pedidos" element={<ClientMisPedidos />} />
           <Route path="mis-citas" element={<ClientMisCitas />} />

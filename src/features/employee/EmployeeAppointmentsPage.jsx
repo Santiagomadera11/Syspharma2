@@ -23,8 +23,8 @@ import { appointmentService } from "../services/appointments/services/appointmen
 import { availabilityService } from "../services/appointments/services/availabilityService";
 import AppointmentFormModal from "../services/appointments/components/AppointmentFormModal";
 import AppointmentDetailModal from "../services/appointments/components/AppointmentDetailModal";
-import { AvailabilityConfigPage } from "../services/appointments/AvailabilityConfigPage";
-import DoctorsPage from "../services/doctors/DoctorsPage";
+import { EmployeeAvailabilityConfigPage } from "./services/appointments/EmployeeAvailabilityConfigPage";
+import EmployeeDoctorsPage from "./services/doctors/EmployeeDoctorsPage";
 
 export const EmployeeAppointmentsPage = () => {
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
@@ -594,8 +594,8 @@ export const EmployeeAppointmentsPage = () => {
       <div className="flex-1 overflow-auto">
         {activeTab === "calendario" && canCalendar && renderCalendar()}
         {activeTab === "citas" && canList && renderAppointmentsList()}
-        {activeTab === "disponibilidad" && hasPerm("appointments.availability") && <AvailabilityConfigPage />}
-        {activeTab === "medicos" && hasPerm("appointments.doctors.view") && <DoctorsPage />}
+        {activeTab === "disponibilidad" && hasPerm("appointments.availability") && <EmployeeAvailabilityConfigPage />}
+        {activeTab === "medicos" && hasPerm("appointments.doctors.view") && <EmployeeDoctorsPage />}
       </div>
 
       {/* Modales */}

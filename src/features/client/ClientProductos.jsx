@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Heart, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import ProductCardGrid from "./components/ProductCard";
 import FilterSidebar from "./components/FilterSidebar";
+import ProductDetailModal from "../../shared/ui/ProductDetailModal";
 import useCart from "../../shared/context/CartContext";
 
 // Map product schema used by backend to the interface expected by ProductCardGrid
-const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
+const ProductCard = ({ product, onAdd, onOpenDetail }) => {
   const mappedProduct = {
     id: product.id,
     name: product.nombre,
@@ -17,9 +18,8 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
   return (
     <ProductCardGrid
       product={mappedProduct}
-      isFav={isFav}
-      onToggleFav={onToggleFav}
       onAdd={() => onAdd(product.id)}
+      onOpenDetail={() => onOpenDetail(product)}
       disabled={(product.stock ?? 0) <= 0}
     />
   );
@@ -27,23 +27,13 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
 
 const ClientProductos = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [favorites, setFavorites] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const [allProducts, setAllProducts] = useState([]);
   const [priceRange, setPriceRange] = useState([0, 500000]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const cart = useCart();
 
   useEffect(() => {
-    // Cargar favoritos
-    try {
-      const fav = JSON.parse(
-        localStorage.getItem("syspharma_favorites") || "[]",
-      );
-      setFavorites(Array.isArray(fav) ? fav : []);
-    } catch {
-      setFavorites([]);
-    }
-
     // Cargar productos desde localStorage
     try {
       const products = JSON.parse(
@@ -75,14 +65,7 @@ const ClientProductos = () => {
     };
   }, []);
 
-  const toggleFavorite = (id) => {
-    const next = favorites.includes(id)
-      ? favorites.filter((f) => f !== id)
-      : [...favorites, id];
-    setFavorites(next);
-    localStorage.setItem("syspharma_favorites", JSON.stringify(next));
-    window.dispatchEvent(new Event("syspharma_favorites_updated"));
-  };
+
 
   const saveCartAndNotify = (id) => {
     try {
@@ -170,16 +153,15 @@ const ClientProductos = () => {
                       <ProductCard
                         key={product.id}
                         product={product}
-                        isFav={favorites.includes(product.id)}
-                        onToggleFav={toggleFavorite}
                         onAdd={saveCartAndNotify}
+                        onOpenDetail={setSelectedProduct}
                       />
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="mb-12 bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                  <p className="text-blue-800 text-sm">
+                <div className="mb-12 bg-emerald-50 border border-emerald-200 rounded-lg p-6 text-center">
+                  <p className="text-emerald-800 text-sm">
                     ℹ️ No hay productos que coincidan con los filtros. Agrega productos desde el administrador.
                   </p>
                 </div>
@@ -188,6 +170,12 @@ const ClientProductos = () => {
           </div>
         </main>
       </div>
+
+      {/* Product Detail Modal */}
+      <ProductDetailModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+      />
     </div>
   );
 };

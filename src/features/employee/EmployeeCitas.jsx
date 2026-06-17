@@ -268,7 +268,7 @@ export const EmployeeCitas = () => {
                       <span
                         className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${
                           apt.estado === "Completada"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                            ? "bg-blue-50 text-blue-700 border-blue-100"
                             : apt.estado === "Confirmar Asistencia"
                             ? "bg-amber-50 text-amber-700 border-amber-100"
                             : apt.estado === "Cancelada"
@@ -417,7 +417,7 @@ const StatusMenuButton = ({ appointment }) => {
         className={`p-1.5 rounded-md transition-all ${
           updating
             ? "text-gray-400 cursor-wait"
-            : "text-emerald-600 hover:bg-emerald-50"
+            : "text-blue-600 hover:bg-blue-50"
         }`}
         title="Cambiar estado"
       >

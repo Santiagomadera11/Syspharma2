@@ -34,6 +34,8 @@ export const purchaseService = {
         productoId: p.productoId || p.id,
         cantidad: p.cantidad,
         precioUnitario: p.precioUnitario || p.precio,
+        lote: p.lote || null,
+        fechaVencimiento: p.fechaVencimiento || null,
       })),
     };
     const res = await apiClient.post(ENDPOINT, payload);
@@ -53,6 +55,8 @@ export const purchaseService = {
         productoId: p.productoId || p.id,
         cantidad: p.cantidad,
         precioUnitario: p.precioUnitario || p.precio,
+        lote: p.lote || null,
+        fechaVencimiento: p.fechaVencimiento || null,
       })),
     };
     const res = await apiClient.put(ENDPOINT, payload);

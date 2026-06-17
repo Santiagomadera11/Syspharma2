@@ -58,6 +58,8 @@ export const SalesPage = () => {
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const canCreateSale = userRole === "administrador" || userPerms.includes("sales.create");
+  const canAccessReturns = userRole === "administrador" || userPerms.includes("sales.view") || userPerms.includes("sales.return");
+  const canExportSales = userRole === "administrador" || userPerms.includes("sales.export");
 
   const fmt = (v) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v || 0);
 
@@ -153,17 +155,37 @@ export const SalesPage = () => {
               <Plus size={14} /> NUEVA VENTA
             </button>
           )}
-          <button onClick={() => navigate(`/${userRole === "administrador" ? "admin" : "employee"}/devoluciones`)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-amber-700">
-            <RotateCcw size={14} /> DEVOLUCIONES
-          </button>
+          {canAccessReturns ? (
+            <button onClick={() => navigate(`/${userRole === "administrador" ? "admin" : "employee"}/ventas/devoluciones`)}
+              className={`flex items-center gap-2 px-3 py-1.5 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 ${
+                userRole === "administrador" 
+                  ? "bg-emerald-600 hover:bg-emerald-700" 
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}>
+              <RotateCcw size={14} /> DEVOLUCIONES
+            </button>
+          ) : (
+            <button disabled
+              title="No tienes permisos para ver devoluciones"
+              className="flex items-center gap-2 px-3 py-1.5 bg-gray-300 text-gray-500 rounded-lg font-bold text-[11px] shadow-md cursor-not-allowed opacity-60">
+              <RotateCcw size={14} /> DEVOLUCIONES
+            </button>
+          )}
+          {canExportSales ? (
+            <button onClick={() => navigate(`/${userRole === "administrador" ? "admin" : "employee"}/ventas/reporte`)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-blue-700">
+              <TrendingUp size={14} /> REPORTE
+            </button>
+          ) : (
+            <button disabled
+              title="No tienes permisos para exportar"
+              className="flex items-center gap-2 px-3 py-1.5 bg-gray-300 text-gray-500 rounded-lg font-bold text-[11px] shadow-md cursor-not-allowed opacity-60">
+              <TrendingUp size={14} /> REPORTE
+            </button>
+          )}
           <button onClick={() => setIsExpenseModalOpen(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-red-700">
             <TrendingDown size={14} /> REGISTRAR GASTO
-          </button>
-          <button onClick={() => navigate(`/${userRole === "administrador" ? "admin" : "employee"}/ventas/reporte`)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[11px] shadow-md transition-all active:scale-95 hover:bg-blue-700">
-            <TrendingUp size={14} /> REPORTE
           </button>
         </div>
       </div>

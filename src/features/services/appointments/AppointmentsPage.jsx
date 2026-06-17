@@ -19,6 +19,12 @@ const getAuthHeaders = () => ({
 export const AppointmentsPage = () => {
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
   const currentUserRole = (currentUser.rol || "Empleado").toLowerCase();
+  const isEmployeePanel = currentUserRole === "empleado";
+  
+  // Theme colors based on role
+  const theme = isEmployeePanel
+    ? { main: "bg-blue-600", hover: "hover:bg-blue-700", ring: "ring-blue-500", border: "border-blue-200", badge: "bg-blue-600" }
+    : { main: "bg-emerald-600", hover: "hover:bg-emerald-700", ring: "ring-emerald-500", border: "border-emerald-200", badge: "bg-emerald-600" };
 
   const [activeTab, setActiveTab] = useState("calendario");
   const [appointments, setAppointments] = useState([]);
@@ -154,7 +160,7 @@ export const AppointmentsPage = () => {
   const getStatusPillStyle = (estadoNombre) => {
     const est = (estadoNombre || "").toLowerCase();
     if (est.includes("completada")) {
-      return "bg-emerald-50 text-emerald-700 border-emerald-100";
+      return "bg-blue-50 text-blue-700 border-blue-100";
     }
     if (est.includes("cancelada")) {
       return "bg-red-50 text-red-700 border-red-100";
@@ -170,7 +176,7 @@ export const AppointmentsPage = () => {
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-visible">
       <div className="p-4 border-b border-gray-50 bg-gray-50/30">
         <input type="text" placeholder="Buscar paciente o servicio..."
-          className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+          className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 font-medium"
           value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
       <table className="w-full text-left">
@@ -200,7 +206,7 @@ export const AppointmentsPage = () => {
                   <p className="text-[10px] text-gray-400 font-bold">{formatHora(apt.hora)}</p>
                 </td>
                 <td className="p-4 text-sm font-medium text-gray-600">{apt.servicioNombre}</td>
-                <td className="p-4 font-black text-emerald-600">${Number(apt.precio || 0).toLocaleString()}</td>
+                <td className="p-4 font-black text-blue-600">${Number(apt.precio || 0).toLocaleString()}</td>
                 
                 <td className="p-4">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border ${getStatusPillStyle(apt.estadoNombre)}`}>
@@ -222,7 +228,7 @@ export const AppointmentsPage = () => {
                     <div className="relative">
                       <button 
                         onClick={() => setActiveStatusPopover(activeStatusPopover === apt.id ? null : apt.id)} 
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
                         title="Cambiar estado"
                       >
                         <CheckCircle size={16} />
@@ -239,11 +245,11 @@ export const AppointmentsPage = () => {
                                 setActiveStatusPopover(null);
                               }}
                               className={`w-full text-left px-3 py-2 text-xs font-bold transition-colors hover:bg-gray-50 flex items-center gap-2 ${
-                                apt.estadoNombre === est.nombre ? "text-emerald-600 bg-emerald-50/30" : "text-gray-600"
+                                apt.estadoNombre === est.nombre ? "text-blue-600 bg-blue-50/30" : "text-gray-600"
                               }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${
-                                est.nombre.toLowerCase().includes("completada") ? "bg-emerald-500" :
+                                est.nombre.toLowerCase().includes("completada") ? "bg-blue-500" :
                                 est.nombre.toLowerCase().includes("cancelada") ? "bg-red-500" :
                                 est.nombre.toLowerCase().includes("pendiente") || est.nombre.toLowerCase().includes("asistencia") ? "bg-amber-500" : "bg-blue-500"
                               }`} />
@@ -317,10 +323,10 @@ export const AppointmentsPage = () => {
           ))}
           {days.map((d, i) => (
             <div key={i} onClick={() => { setSelectedDate(d.date); setIsDaySummaryModalOpen(true); }}
-              className={`min-h-[100px] p-2 border rounded-2xl cursor-pointer transition-all ${d.isCurrentMonth ? "bg-white" : "bg-gray-50/50 text-gray-300 border-transparent"} ${d.isToday ? "ring-2 ring-emerald-500" : "hover:border-emerald-200"}`}>
+              className={`min-h-[100px] p-2 border rounded-2xl cursor-pointer transition-all ${d.isCurrentMonth ? "bg-white" : "bg-gray-50/50 text-gray-300 border-transparent"} ${d.isToday ? `ring-2 ${theme.ring}` : `hover:${theme.border}`}`}>
               <span className="text-xs font-black">{d.date.getDate()}</span>
               {d.appts.length > 0 && (
-                <div className="mt-1 bg-emerald-600 text-white text-[9px] font-black uppercase py-1 rounded-md text-center">{d.appts.length} Citas</div>
+                <div className={`mt-1 ${theme.badge} text-white text-[9px] font-black uppercase py-1 rounded-md text-center`}>{d.appts.length} Citas</div>
               )}
             </div>
           ))}
@@ -339,7 +345,7 @@ export const AppointmentsPage = () => {
           <p className="text-sm text-gray-500 font-medium">Agenda y administración médica</p>
         </div>
         <button onClick={() => { setEditingAppointment(null); setIsAppointmentModalOpen(true); }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-black shadow-lg shadow-emerald-100 flex items-center gap-2 text-xs uppercase transition-all">
+          className={`${theme.main} ${theme.hover} text-white px-6 py-3 rounded-2xl font-black shadow-lg flex items-center gap-2 text-xs uppercase transition-all`} style={{ boxShadow: `0 10px 15px -3px ${isEmployeePanel ? 'rgba(37, 99, 235, 0.1)' : 'rgba(5, 150, 105, 0.1)'}` }}>
           <Plus size={18} /> Nueva Cita
         </button>
       </div>
@@ -355,7 +361,7 @@ export const AppointmentsPage = () => {
           if (tab.adminOnly && currentUserRole !== "administrador") return null;
           return (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? "text-emerald-600 border-emerald-600" : "text-gray-400 border-transparent hover:text-gray-600"}`}>
+              className={`pb-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === tab.id ? isEmployeePanel ? "text-blue-600 border-blue-600" : "text-emerald-600 border-emerald-600" : "text-gray-400 border-transparent hover:text-gray-600"}`}>
               <tab.icon size={16} /> {tab.label}
             </button>
           );
@@ -366,7 +372,7 @@ export const AppointmentsPage = () => {
       {(activeTab === "calendario" || activeTab === "citas") && (
         <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-50 p-2.5 rounded-xl text-emerald-600"><Filter size={20} /></div>
+            <div className={`${isEmployeePanel ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"} p-2.5 rounded-xl`}><Filter size={20} /></div>
             <span className="font-black text-gray-800 text-[10px] uppercase">Rango de datos</span>
           </div>
           <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-2xl border">
@@ -441,12 +447,12 @@ export const AppointmentsPage = () => {
       onClick={(e) => e.stopPropagation()}>
       
       {/* Header */}
-      <div className="bg-emerald-600 px-5 py-4 flex items-center justify-between">
+      <div className={`${theme.main} px-5 py-4 flex items-center justify-between`}>
         <div>
           <h3 className="text-white font-black text-sm uppercase tracking-wide">
             {selectedDate.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
           </h3>
-          <p className="text-emerald-100 text-xs mt-0.5">
+          <p className={`${isEmployeePanel ? "text-blue-100" : "text-emerald-100"} text-xs mt-0.5`}>
             {getAppointmentsForDate(selectedDate).length} cita(s) programada(s)
           </p>
         </div>
@@ -468,7 +474,7 @@ export const AppointmentsPage = () => {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     {/* Hora */}
-                    <div className="bg-emerald-50 text-emerald-700 font-black text-xs px-2 py-1 rounded-lg min-w-[48px] text-center">
+                    <div className={`${isEmployeePanel ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"} font-black text-xs px-2 py-1 rounded-lg min-w-[48px] text-center`}>
                       {apt.hora ? formatHora(apt.hora) : "--"}
                     </div>
                     <div>
@@ -494,7 +500,7 @@ export const AppointmentsPage = () => {
             setEditingAppointment(null);
             setIsAppointmentModalOpen(true);
           }}
-          className="text-xs font-black text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+          className={`text-xs font-black flex items-center gap-1 ${isEmployeePanel ? "text-blue-600 hover:text-blue-700" : "text-emerald-600 hover:text-emerald-700"}`}>
           + Nueva cita este día
         </button>
         <button onClick={() => setIsDaySummaryModalOpen(false)}

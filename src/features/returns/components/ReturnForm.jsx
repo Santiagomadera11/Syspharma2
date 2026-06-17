@@ -17,6 +17,19 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
   const [searchError, setSearchError] = useState("");
 
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (user.rol || "").toLowerCase().trim();
+  const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
+  const canCreateReturn = userRole === "administrador" || userPerms.includes("sales.create") || userPerms.includes("sales.return");
+
+  React.useEffect(() => {
+    if (isOpen && !canCreateReturn) {
+      setToast({ 
+        message: "No tienes permisos para crear devoluciones", 
+        type: "error" 
+      });
+      setTimeout(() => onClose?.(), 1500);
+    }
+  }, [isOpen, canCreateReturn, onClose]);
 
   const handleSearchVenta = async () => {
     if (!searchVentaId.trim()) {
@@ -137,11 +150,15 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
           {/* Header */}
-          <div className="bg-emerald-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <div className={`px-6 py-4 flex items-center justify-between flex-shrink-0 ${
+            userRole === "administrador" ? "bg-emerald-600" : "bg-blue-600"
+          }`}>
             <h2 className="text-lg font-bold text-white">Nueva Devolución</h2>
             <button
               onClick={handleClose}
-              className="text-white hover:bg-emerald-700 p-1 rounded transition-colors"
+              className={`text-white hover:opacity-75 p-1 rounded transition-colors ${
+                userRole === "administrador" ? "hover:bg-emerald-700" : "hover:bg-blue-700"
+              }`}
             >
               <X size={24} />
             </button>
@@ -163,12 +180,18 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
                       value={searchVentaId}
                       onChange={(e) => setSearchVentaId(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && handleSearchVenta()}
-                      className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className={`flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 ${
+                        userRole === "administrador" ? "focus:ring-emerald-500" : "focus:ring-blue-500"
+                      }`}
                     />
                     <button
                       onClick={handleSearchVenta}
                       disabled={loading}
-                      className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50 font-medium flex items-center gap-2"
+                      className={`text-white px-4 py-2 rounded-lg disabled:opacity-50 font-medium flex items-center gap-2 ${
+                        userRole === "administrador" 
+                          ? "bg-emerald-600 hover:bg-emerald-700" 
+                          : "bg-blue-600 hover:bg-blue-700"
+                      }`}
                     >
                       {loading ? (
                         <Loader size={18} className="animate-spin" />
@@ -230,7 +253,9 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
                           max={detalle.cantidad}
                           value={cantidades[detalle.id] || 0}
                           onChange={(e) => handleCantidadChange(detalle.id, e.target.value)}
-                          className="w-16 px-2 py-1 text-center border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                          className={`w-16 px-2 py-1 text-center border border-gray-300 rounded focus:outline-none focus:ring-2 ${
+                            userRole === "administrador" ? "focus:ring-emerald-500" : "focus:ring-blue-500"
+                          } text-sm`}
                           placeholder="0"
                         />
                       </div>
@@ -248,7 +273,9 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
                     placeholder="Ej: Producto defectuoso"
                     value={motivo}
                     onChange={(e) => setMotivo(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className={`w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 ${
+                        userRole === "administrador" ? "focus:ring-emerald-500" : "focus:ring-blue-500"
+                      }`}
                   />
                 </div>
 
@@ -262,14 +289,22 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
                     value={observaciones}
                     onChange={(e) => setObservaciones(e.target.value)}
                     rows="3"
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                    className={`w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 ${
+                      userRole === "administrador" ? "focus:ring-emerald-500" : "focus:ring-blue-500"
+                    } resize-none`}
                   />
                 </div>
 
                 {/* Total */}
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <div className={`border rounded-lg p-4 ${
+                  userRole === "administrador" 
+                    ? "bg-emerald-50 border-emerald-200" 
+                    : "bg-blue-50 border-blue-200"
+                }`}>
                   <div className="text-sm text-gray-600 mb-1">Total a Devolver</div>
-                  <div className="text-2xl font-bold text-emerald-600">
+                  <div className={`text-2xl font-bold ${
+                    userRole === "administrador" ? "text-emerald-600" : "text-blue-600"
+                  }`}>
                     $
                     {totalDevolucion.toLocaleString("es-CO", {
                       maximumFractionDigits: 0,
@@ -294,7 +329,11 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
             <button
               onClick={step === 1 ? handleSearchVenta : handleSubmit}
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              className={`flex-1 px-4 py-2 text-white rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 ${
+                userRole === "administrador" 
+                  ? "bg-emerald-600 hover:bg-emerald-700" 
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
             >
               {loading ? (
                 <Loader size={18} className="animate-spin" />

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { 
-  ShoppingBag, Calendar, Heart, Clock, 
+  ShoppingBag, Calendar, Clock, 
   User, ChevronRight, PlusCircle, ArrowRight 
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +11,6 @@ import { appointmentService } from "../services/appointments/services/appointmen
 const ClientInicio = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [favorites, setFavorites] = useState([]);
   const [orders, setOrders] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,11 +97,10 @@ const ClientInicio = () => {
       </div>
 
       {/* 2. MÉTRICAS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
-          { label: "Mis Pedidos", value: orders.length, icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Mis Pedidos", value: orders.length, icon: ShoppingBag, color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "Mis Citas", value: appointments.length, icon: Calendar, color: "text-purple-600", bg: "bg-purple-50" },
-          { label: "Mis Favoritos", value: favorites.length, icon: Heart, color: "text-rose-600", bg: "bg-rose-50" },
         ].map((item, i) => (
           <div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
             <div className={`${item.bg} ${item.color} p-3 rounded-xl`}><item.icon size={22} /></div>
@@ -142,21 +140,21 @@ const ClientInicio = () => {
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-center justify-between mb-4 border-b pb-3">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="text-blue-500" size={18} />
+                <ShoppingBag className="text-emerald-500" size={18} />
                 <h3 className="text-sm font-black text-gray-800 uppercase">Último Pedido</h3>
               </div>
-              <button onClick={() => navigate("/client/mis-pedidos")} className="text-xs font-bold text-blue-600">Historial</button>
+              <button onClick={() => navigate("/client/mis-pedidos")} className="text-xs font-bold text-emerald-600">Historial</button>
             </div>
             {lastOrder ? (
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-blue-50 rounded-xl text-blue-500"><ShoppingBag size={20} /></div>
+                  <div className="p-3 bg-emerald-50 rounded-xl text-emerald-500"><ShoppingBag size={20} /></div>
                   <div>
                     <p className="text-sm font-black text-gray-900">{lastOrder.numeroPedido}</p>
                     <p className="text-xs text-gray-500">{new Date(lastOrder.fechaCreacion).toLocaleDateString()}</p>
                   </div>
                 </div>
-                <p className="text-lg font-black text-blue-600">${(lastOrder.total || 0).toLocaleString()}</p>
+                <p className="text-lg font-black text-emerald-600">${(lastOrder.total || 0).toLocaleString()}</p>
               </div>
             ) : <p className="text-sm text-gray-400 italic text-center py-2">Sin pedidos recientes.</p>}
           </div>

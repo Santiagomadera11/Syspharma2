@@ -151,6 +151,7 @@ export const SettingsPage = () => {
   const [toast, setToast] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, id: null, name: "" });
   const [statusLoading, setStatusLoading] = useState(null);
+  const [diasAlerta, setDiasAlerta] = useState("30");
 
   const [roleName, setRoleName] = useState("");
   const [roleDesc, setRoleDesc] = useState("");
@@ -161,6 +162,24 @@ export const SettingsPage = () => {
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
 
   React.useEffect(() => { loadRoles(); }, []);
+
+  // Cargar configuración de días de alerta
+  React.useEffect(() => {
+    const cargarConfiguracion = async () => {
+      try {
+        const token = sessionStorage.getItem("syspharma_token");
+        const res = await fetch(
+          "http://localhost:5055/api/Configuracion/dias_alerta_vencimiento",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setDiasAlerta(data.valor);
+        }
+      } catch {}
+    };
+    cargarConfiguracion();
+  }, []);
 
   const loadRoles = async () => {
     try {
@@ -222,6 +241,26 @@ export const SettingsPage = () => {
     }
   };
 
+  const guardarDiasAlerta = async () => {
+    try {
+      const token = sessionStorage.getItem("syspharma_token");
+      await fetch(
+        "http://localhost:5055/api/Configuracion/dias_alerta_vencimiento",
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(diasAlerta),
+        }
+      );
+      setToast({ message: "Configuración guardada", type: "success" });
+    } catch {
+      setToast({ message: "Error al guardar configuración", type: "error" });
+    }
+  };
+
   const togglePerm = (id) =>
     setSelectedPerms((prev) => ({ ...prev, [id]: !prev[id] }));
 
@@ -267,6 +306,16 @@ export const SettingsPage = () => {
         message: editRole ? "Rol actualizado correctamente" : "Rol creado correctamente",
         type: "success",
       });
+      
+      // 🔄 Actualizar sessionStorage si el usuario logueado tiene este rol
+      const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+      if (currentUser.rolId === payload.id || currentUser.rol === payload.nombre) {
+        currentUser.permisos = permissions;
+        sessionStorage.setItem("syspharma_user", JSON.stringify(currentUser));
+        // Disparar evento para que los componentes se actualicen
+        window.dispatchEvent(new Event("permissionsUpdated"));
+      }
+      
       setShowModal(false);
       await loadRoles();
       setEditRole(null);
@@ -466,7 +515,42 @@ export const SettingsPage = () => {
       )}
 
       {/* ── SECCIÓN PARÁMETROS ── */}
-      {activeSection === "params" && <ParameterManagement user={user} />}
+      {activeSection === "params" && (
+        <div className="space-y-6">
+          {/* Alertas de Vencimiento */}
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="text-2xl">⚠️</div>
+              <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Alertas de Vencimiento</h3>
+            </div>
+            <div className="max-w-sm space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">
+                  Días de anticipación
+                </label>
+                <input
+                  type="number"
+                  value={diasAlerta}
+                  onChange={(e) => setDiasAlerta(e.target.value)}
+                  className="w-24 px-3 py-2 border-2 border-slate-100 rounded-xl text-sm font-bold focus:border-emerald-500 outline-none"
+                />
+              </div>
+              <button
+                onClick={guardarDiasAlerta}
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-md shadow-emerald-100 transition-all active:scale-95"
+              >
+                Guardar
+              </button>
+              <p className="text-xs text-slate-500">
+                El sistema alertará cuando un producto venza en menos de <strong>{diasAlerta}</strong> días.
+              </p>
+            </div>
+          </div>
+
+          {/* Parámetros del Sistema */}
+          <ParameterManagement user={user} />
+        </div>
+      )}
 
       {/* ── Confirm Delete ── */}
       {deleteConfirm.show && (

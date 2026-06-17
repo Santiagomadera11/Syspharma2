@@ -9,24 +9,24 @@ import {
   Eye,
   AlertCircle,
 } from "lucide-react";
-import { formValidations } from "../../../shared/utils/formValidations";
-import { getServiceCategories } from "../../settings/services/parameterService";
-import { ToastNotification } from "../../../shared/ui/ToastNotification";
+import { formValidations } from "../../../../shared/utils/formValidations";
+import { getServiceCategories } from "../../../settings/services/parameterService";
+import { ToastNotification } from "../../../../shared/ui/ToastNotification";
 
-const ServiceFormModal = ({
+const EmployeeServiceFormModal = ({
   isOpen,
   onClose,
   onSave,
   initialData,
   isViewMode,
 }) => {
-  // 🟢 VERSIÓN ADMIN - SIEMPRE VERDE
-  const headerBgColor = "bg-emerald-600";
-  const buttonBgColor = "bg-emerald-600 hover:bg-emerald-700";
-  const focusBorderColor = "focus:border-emerald-500";
+  // 🔵 VERSIÓN EMPLEADO - SIEMPRE AZUL
+  const headerBgColor = "bg-blue-600";
+  const buttonBgColor = "bg-blue-600 hover:bg-blue-700";
+  const focusBorderColor = "focus:border-blue-500";
 
   const [formData, setFormData] = useState({
-    id: "", // <-- AGREGADO AL ESTADO INICIAL
+    id: "",
     nombre: "",
     categoriaId: "",
     estado: "Activo",
@@ -47,14 +47,12 @@ const ServiceFormModal = ({
     if (initialData) {
       setFormData({
         ...initialData,
-        // Normalizar estado a string "Activo"/"Inactivo" para el select
         estado: initialData.estado === true || initialData.estado === "Activo" ? "Activo" : "Inactivo",
-        // Asegurar que categoriaId sea string para que el select lo muestre bien
         categoriaId: String(initialData.categoriaId ?? ""),
       });
     } else {
       setFormData({
-        id: "", // <-- LIMPIAR ID AL CREAR NUEVO
+        id: "",
         nombre: "",
         categoriaId: String(defaultCat),
         estado: "Activo",
@@ -99,14 +97,10 @@ const ServiceFormModal = ({
 
     const dataToSave = {
       nombre: formData.nombre,
-      // parseInt garantiza que llegue como número entero, nunca como string
       categoriaId: parseInt(formData.categoriaId, 10),
       precio: parseFloat(formData.precio),
-      // null si viene vacío para respetar el int? del DTO
       duracion: formData.duracion ? parseInt(formData.duracion, 10) : null,
-      // null si viene vacío para respetar el string? del DTO
       descripcion: formData.descripcion || null,
-      // bool para respetar el bool del ServicioUpdateDto
       estado: formData.estado === "Activo",
     };
 
@@ -145,7 +139,6 @@ const ServiceFormModal = ({
         <div className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             
-            {/* Campo ID - Se muestra solo si el servicio ya existe (Edición o Vista de Detalles) */}
             {formData.id && (
               <div className="col-span-1">
                 <label className="block text-xs font-bold text-gray-700 mb-1">ID</label>
@@ -158,7 +151,6 @@ const ServiceFormModal = ({
               </div>
             )}
 
-            {/* Campo Nombre - Ocupa la mitad si se muestra el ID, o el ancho completo si es nuevo */}
             <div className={formData.id ? "col-span-1" : "col-span-2"}>
               <label className="block text-xs font-bold text-gray-700 mb-1">Nombre</label>
               <input
@@ -282,4 +274,4 @@ const ServiceFormModal = ({
   );
 };
 
-export default ServiceFormModal;
+export default EmployeeServiceFormModal;

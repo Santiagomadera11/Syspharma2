@@ -228,7 +228,7 @@ export const ServicesPage = () => {
                       <div className="flex items-center justify-center gap-1"><Clock size={10} /> {srv.duracion} min</div>
                     </td>
                     <td className="py-1.5 px-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${srv.estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${srv.estado ? `${theme.light} ${theme.text}` : "bg-gray-100 text-gray-500"}`}>
                         {srv.estado ? "Activo" : "Inactivo"}
                       </span>
                     </td>
@@ -238,7 +238,7 @@ export const ServicesPage = () => {
                           <Eye size={16} />
                         </button>
                         {canChangeStatus && (
-                          <button onClick={() => handleToggleEstado(srv)} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                          <button onClick={() => handleToggleEstado(srv)} className={`p-1.5 rounded-md ${theme.text} ${theme.hoverLight} transition-colors`} title="Cambiar estado">
                             <CheckCircle size={16} />
                           </button>
                         )}

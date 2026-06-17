@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Heart, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { LS, read, write } from "../../shared/services/lsService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import ProductCardGrid, { ProductRowList } from "./components/ProductCard";
 
-const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
+const ProductCard = ({ product, onAdd }) => {
   // Map from product schema to ProductCardGrid schema, asegurando todos los campos
   const mappedProduct = {
     id: product.id,
@@ -18,8 +18,6 @@ const ProductCard = ({ product, isFav, onToggleFav, onAdd }) => {
   return (
     <ProductCardGrid
       product={mappedProduct}
-      isFav={isFav}
-      onToggleFav={onToggleFav}
       onAdd={() => onAdd(product.id)}
       disabled={(product.stock ?? 0) <= 0}
     />
@@ -35,7 +33,6 @@ const ClientCatalogo = () => {
     new Set((products || []).map((p) => p.categoria)),
   ).filter(Boolean);
   // Mostrar todos los productos sin filtros
-  const [favorites, setFavorites] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   // no view mode toggle on home, always grid view
@@ -60,7 +57,7 @@ const ClientCatalogo = () => {
     }
   }, []);
 
-  // load products & favorites
+  // load products
   useEffect(() => {
     const load = () => {
       try {
@@ -84,13 +81,6 @@ const ClientCatalogo = () => {
       } catch (e) {
         console.error("[DEBUG] Error cargando productos:", e);
         setProducts([]);
-      }
-
-      try {
-        const fav = read(LS.FAVORITES) || [];
-        setFavorites(Array.isArray(fav) ? fav : []);
-      } catch {
-        setFavorites([]);
       }
     };
 
@@ -149,24 +139,7 @@ const ClientCatalogo = () => {
     });
   };
 
-  const toggleFavorite = (id) => {
-    try {
-      const raw = read(LS.FAVORITES) || [];
-      const arr = Array.isArray(raw) ? raw : [];
-      const exists = arr.find((it) =>
-        it && typeof it === "object" ? it.id === id : it === id,
-      );
-      let next;
-      if (exists)
-        next = arr.filter((it) =>
-          it && typeof it === "object" ? it.id !== id : it !== id,
-        );
-      else next = [...arr, id];
-      write(LS.FAVORITES, next);
-    } catch {
-      write(LS.FAVORITES, [id]);
-    }
-  };
+
 
   // Generar categorías a partir de los productos cargados
 
@@ -255,8 +228,6 @@ const ClientCatalogo = () => {
               <ProductCardGrid
                 key={p.id}
                 product={p}
-                isFav={favorites.includes(p.id)}
-                onToggleFav={toggleFavorite}
                 onAdd={saveCartAndNotify}
                 disabled={(p.stock || 0) <= 0}
               />

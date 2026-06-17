@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Heart, Search, Plus } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Search, Plus } from "lucide-react";
 import useCart from "../../../shared/context/CartContext";
 import GuestOrderModal from "./GuestOrderModal";
 import ProductDetailModal from "../../../shared/ui/ProductDetailModal";
@@ -18,7 +19,6 @@ export const CatalogProductsSection = () => {
   const [priceRange, setPriceRange] = useState([0, 500000]);
   const [minPriceInput, setMinPriceInput] = useState("");
   const [maxPriceInput, setMaxPriceInput] = useState("");
-  const [favorites, setFavorites] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [guestProduct, setGuestProduct] = useState(null);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
@@ -80,16 +80,6 @@ export const CatalogProductsSection = () => {
       console.error("❌ Error loading products:", error);
       setProductosOriginales([]);
       setCategorias([]);
-    }
-
-    // Cargar favoritos
-    try {
-      const fav = JSON.parse(
-        localStorage.getItem("syspharma_favorites") || "[]",
-      );
-      setFavorites(Array.isArray(fav) ? fav : []);
-    } catch {
-      setFavorites([]);
     }
   };
 
@@ -170,17 +160,9 @@ export const CatalogProductsSection = () => {
     setMaxPriceInput("");
   };
 
-  const toggleFavorite = (id) => {
-    const next = favorites.includes(id)
-      ? favorites.filter((f) => f !== id)
-      : [...favorites, id];
-    setFavorites(next);
-    localStorage.setItem("syspharma_favorites", JSON.stringify(next));
-    window.dispatchEvent(new Event("syspharma_favorites_updated"));
-  };
+
 
   const ProductCard = ({ product }) => {
-    const isFav = favorites.includes(product.id);
     const isOutOfStock = (product.stock ?? product.stockTotal ?? 0) <= 0;
 
     return (
@@ -203,17 +185,6 @@ export const CatalogProductsSection = () => {
               <span className="text-white font-bold">Agotado</span>
             </div>
           )}
-
-          {/* Botón Favorito */}
-          <button
-            onClick={() => toggleFavorite(product.id)}
-            className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow opacity-0 group-hover:opacity-100 transition"
-          >
-            <Heart
-              size={18}
-              className={isFav ? "text-red-500 fill-red-500" : "text-gray-400"}
-            />
-          </button>
         </div>
 
         {/* Contenido */}
@@ -473,12 +444,14 @@ export const CatalogProductsSection = () => {
       </main>
 
       {/* MODALES */}
-      {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-        />
-      )}
+      {selectedProduct &&
+        createPortal(
+          <ProductDetailModal
+            product={selectedProduct}
+            onClose={() => setSelectedProduct(null)}
+          />,
+          document.body
+        )}
       {guestProduct && (
         <GuestOrderModal
           isOpen={isGuestModalOpen}

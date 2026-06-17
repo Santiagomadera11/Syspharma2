@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Bell, Menu, Eye } from 'lucide-react';
+import { Bell, Menu, Eye, ShoppingBag } from 'lucide-react';
 import { appointmentService } from '../../features/services/appointments/services/appointmentService';
+import { ordersService } from '../../features/sales/orders/services/ordersService';
 import { useNavigate } from 'react-router-dom';
 import icono1 from '../../assets/icono1.png'; // ← NUEVO: import del logo
 
@@ -23,29 +24,118 @@ export const Header = ({ onMenuClick }) => {
   useEffect(() => {
     const storedUser = sessionStorage.getItem('syspharma_user');
     if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
+    // Escuchar cambios de foto/permisos
+    const handleUpdate = () => {
+      const updated = sessionStorage.getItem("syspharma_user");
+      if (updated) setUser(JSON.parse(updated));
+    };
+    window.addEventListener("permissionsUpdated", handleUpdate);
+    return () => window.removeEventListener("permissionsUpdated", handleUpdate);  }, []);
 
   useEffect(() => {
+    const loadVencimientos = async () => {
+      try {
+        const token = sessionStorage.getItem("syspharma_token");
+        console.log("Token:", token ? "existe" : "NO HAY TOKEN"); // ✅ Log
+
+        const res = await fetch("http://localhost:5055/api/Producto/proximos-a-vencer", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        console.log("Status vencimientos:", res.status); // ✅ Log
+
+        if (!res.ok) return [];
+        const data = await res.json();
+        console.log("Productos próximos a vencer:", data); // ✅ Log
+        return data.map(p => ({
+          id: `venc-${p.id}`,
+          tipo: "vencimiento",
+          titulo: `⚠️ ${p.nombre}`,
+          descripcion: `Vence en ${p.diasRestantes} día(s) — Stock: ${p.stock}`,
+          fechaCreacion: new Date().toISOString(),
+        }));
+      } catch (err) {
+        console.error("Error vencimientos:", err); // ✅ Log
+        return [];
+      }
+    };
+
     const loadNotifications = async () => {
-      const lastSeen = localStorage.getItem('lastSeenAppointmentsAt');
-      const all = await appointmentService.getAppointments();
-      const newOnes = all.filter((a) => {
-        if (!a.fechaCreacion) return false;
-        if (!lastSeen) return true;
-        try {
-          return new Date(a.fechaCreacion) > new Date(lastSeen);
-        } catch (e) {
-          return true;
-        }
-      });
-      setNotifications(newOnes.sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion)));
+      try {
+        const lastSeen = localStorage.getItem('lastSeenNotificationsAt');
+        
+        // Cargar citas
+        const allAppointments = await appointmentService.getAppointments();
+        const newAppointments = allAppointments
+          .filter((a) => {
+            if (!a.fechaCreacion) return false;
+            if (!lastSeen) return true;
+            try {
+              return new Date(a.fechaCreacion) > new Date(lastSeen);
+            } catch (e) {
+              return true;
+            }
+          })
+          .map(a => ({
+            ...a,
+            tipo: 'cita',
+            titulo: `Nueva cita: ${a.paciente}`,
+            descripcion: `${a.servicio} - ${a.fecha} ${a.hora || ''}`
+          }));
+
+        // Cargar pedidos
+        const allOrders = await ordersService.getAll();
+        const newOrders = allOrders
+          .filter((o) => {
+            if (!o.fechaCreacion) return false;
+            if (!lastSeen) return true;
+            try {
+              return new Date(o.fechaCreacion) > new Date(lastSeen);
+            } catch (e) {
+              return true;
+            }
+          })
+          .map(o => ({
+            ...o,
+            tipo: 'pedido',
+            titulo: `Nuevo pedido: ${o.clienteNombre}`,
+            descripcion: `Total: $${o.total?.toLocaleString() || '0'}`
+          }));
+
+        // Cargar vencimientos
+        const vencimientos = await loadVencimientos();
+
+        // Combinar y ordenar por fecha
+        const combined = [...newAppointments, ...newOrders, ...vencimientos]
+          .sort((a, b) => {
+            const dateA = new Date(a.fechaCreacion || 0);
+            const dateB = new Date(b.fechaCreacion || 0);
+            return dateB - dateA;
+          });
+
+        setNotifications(combined);
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+        setNotifications([]);
+      }
     };
 
     loadNotifications();
 
-    const onChange = () => loadNotifications();
-    window.addEventListener('appointments:changed', onChange);
-    return () => window.removeEventListener('appointments:changed', onChange);
+    // Función que recarga con delay para permitir actualización de BD
+    const onChangeWithDelay = () => {
+      setTimeout(loadNotifications, 500);
+    };
+    
+    window.addEventListener('appointments:changed', onChangeWithDelay);
+    window.addEventListener('syspharma_orders_updated', onChangeWithDelay);
+    window.addEventListener('sales:changed', onChangeWithDelay);
+    
+    return () => {
+      window.removeEventListener('appointments:changed', onChangeWithDelay);
+      window.removeEventListener('syspharma_orders_updated', onChangeWithDelay);
+      window.removeEventListener('sales:changed', onChangeWithDelay);
+    };
   }, []);
 
   return (
@@ -90,9 +180,15 @@ export const Header = ({ onMenuClick }) => {
                 Notification.requestPermission().then((perm) => {
                   if (perm === 'granted') {
                     notifications.forEach((n) => {
-                      const title = `Nueva cita: ${n.paciente}`;
-                      const body = `${n.servicio} - ${n.fecha} ${n.hora || ''}`;
-                      try { new Notification(title, { body }); } catch (e) {}
+                      if (n.tipo === 'cita') {
+                        const title = `Nueva cita: ${n.paciente}`;
+                        const body = `${n.servicio} - ${n.fecha} ${n.hora || ''}`;
+                        try { new Notification(title, { body }); } catch (e) {}
+                      } else if (n.tipo === 'pedido') {
+                        const title = `Nuevo pedido: ${n.clienteNombre}`;
+                        const body = `Total: $${n.total?.toLocaleString() || '0'}`;
+                        try { new Notification(title, { body }); } catch (e) {}
+                      }
                     });
                   }
                 });
@@ -113,23 +209,52 @@ export const Header = ({ onMenuClick }) => {
               <div className="p-2 border-b flex items-center justify-between">
                 <strong className="text-sm">Notificaciones</strong>
                 <button
-                  onClick={() => { setOpen(false); }}
+                  onClick={() => { 
+                    localStorage.setItem('lastSeenNotificationsAt', new Date().toISOString());
+                    setNotifications([]);
+                    setOpen(false);
+                  }}
                   className="text-xs text-gray-500 hover:text-gray-700 px-2"
-                >Cerrar</button>
+                >Marcar como visto</button>
               </div>
               <div className="max-h-64 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="p-3 text-sm text-gray-500">No hay notificaciones</div>
                 ) : (
                   notifications.map((n) => (
-                    <div key={n.id} className="p-3 hover:bg-gray-50 border-b last:border-b-0 flex items-start gap-2">
+                    <div key={`${n.tipo}-${n.id}`} className={`p-3 hover:bg-gray-50 border-b last:border-b-0 flex items-start gap-2 ${
+                      n.tipo === 'pedido' ? 'bg-blue-50' : n.tipo === 'vencimiento' ? 'bg-yellow-50' : ''
+                    }`}>
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-gray-800 truncate">{n.paciente}</div>
-                        <div className="text-xs text-gray-500">{n.servicio} • {n.fecha} {n.hora}</div>
-                        <div className="text-[11px] text-gray-400 mt-1">Estado: {n.estado}</div>
+                        <div className="text-sm font-bold text-gray-800 truncate flex items-center gap-1">
+                          {n.tipo === 'pedido' && <ShoppingBag size={14} className="text-blue-600 flex-shrink-0" />}
+                          {n.tipo === 'vencimiento' && <span className="text-yellow-600 flex-shrink-0">⚠️</span>}
+                          {n.tipo === 'cita' ? n.paciente : n.clienteNombre || n.titulo}
+                        </div>
+                        <div className={`text-xs mt-0.5 ${n.tipo === 'vencimiento' ? 'text-yellow-700' : 'text-gray-500'}`}>
+                          {n.tipo === 'cita' 
+                            ? `${n.servicio} • ${n.fecha} ${n.hora || ''}`
+                            : n.tipo === 'pedido'
+                            ? `Total: $${n.total?.toLocaleString() || '0'} • Estado: ${n.estadoNombre || 'Pendiente'}`
+                            : n.descripcion
+                          }
+                        </div>
+                        {n.tipo === 'cita' && <div className="text-[11px] text-gray-400 mt-1">Estado: {n.estado}</div>}
                       </div>
                       <div className="flex flex-col items-center gap-1">
-                        <button onClick={() => { setOpen(false); navigate(getAppointmentsRoute(user.rol)); }} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Ver"> <Eye size={14} /> </button>
+                        <button 
+                          onClick={() => { 
+                            setOpen(false);
+                            const route = n.tipo === 'cita' 
+                              ? getAppointmentsRoute(user.rol)
+                              : '/admin/productos'; // Para pedidos y vencimientos, vamos a la lista de productos
+                            navigate(route);
+                          }} 
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
+                          title="Ver"
+                        > 
+                          <Eye size={14} /> 
+                        </button>
                       </div>
                     </div>
                   ))
@@ -147,7 +272,13 @@ export const Header = ({ onMenuClick }) => {
             <p className="text-[10px] text-primary-100 font-medium uppercase mt-0.5">{user.rol}</p>
           </div>
           <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-primary-600 rounded-full flex items-center justify-center font-bold border-2 border-primary-200 shadow-sm text-xs flex-shrink-0">
-            {user.nombre.charAt(0)}
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.nombre} className="w-full h-full rounded-full object-cover border-2 border-primary-200 shadow-sm" />
+            ) : (
+              <div className="w-full h-full bg-white text-primary-600 rounded-full flex items-center justify-center font-bold">
+                {user.nombre?.charAt(0)}
+              </div>
+            )}
           </div>
         </div>
       </div>

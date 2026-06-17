@@ -13,9 +13,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-// ✅ REUTILIZAMOS EL MODAL QUE YA CREASTE PARA EL ADMIN
-// Así, si cambias el diseño del formulario, cambia para todos.
-import ServiceFormModal from "../services/components/ServiceFormModal";
+// ✅ IMPORTA LA VERSIÓN AZUL PARA EMPLEADO
+import EmployeeServiceFormModal from "./services/components/EmployeeServiceFormModal";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 import { apiClient } from "../../shared/utils/apiClient";
 import { turnService } from "../sales/services/turnService";
@@ -343,7 +342,7 @@ export const EmployeeServicesPage = () => {
                         {/* EDITAR */}
                         <button
                           onClick={() => handleEdit(srv)}
-                          className="p-1 rounded border border-green-200 text-green-600 hover:bg-green-50"
+                          className="p-1 rounded border border-blue-200 text-blue-600 hover:bg-blue-50"
                           title="Editar"
                         >
                           <Edit size={14} />
@@ -389,8 +388,8 @@ export const EmployeeServicesPage = () => {
         </div>
       </div>
 
-      {/* ✅ MODAL REUTILIZADO */}
-      <ServiceFormModal
+      {/* ✅ MODAL PARA EMPLEADO - VERSIÓN AZUL */}
+      <EmployeeServiceFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSave}

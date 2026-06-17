@@ -16,10 +16,18 @@ const EmployeeSidebar = ({ isOpen, onClose, onShowLogoutModal }) => {
     servicios: false,
     reportes: false,
   });
+  const [, setRefresh] = useState(0);
 
   const toggleMenu = (menu) => setOpenMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
   const isActive = (path) => location.pathname === path;
   const isGroupActive = (path) => location.pathname.startsWith(path);
+
+  // Escuchar cambios de permisos
+  React.useEffect(() => {
+    const handlePermissionsUpdate = () => setRefresh(r => r + 1);
+    window.addEventListener("permissionsUpdated", handlePermissionsUpdate);
+    return () => window.removeEventListener("permissionsUpdated", handlePermissionsUpdate);
+  }, []);
 
   const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
   const userRole = (currentUser.rol || "").toLowerCase().trim();

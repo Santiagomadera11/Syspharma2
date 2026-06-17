@@ -1,5 +1,6 @@
 import { apiClient } from "../../../shared/utils/apiClient";
 
+const API_BASE = "http://localhost:5055";
 const USER_ENDPOINT = "Usuario";
 const ROLES_ENDPOINT = "RolMaestro";
 
@@ -9,7 +10,12 @@ const mapUser = (u) => ({
   estado: u.estado,
   tipoDocumentoId: u.tipoDocumentoId || null,
   tipoDocumento: u.tipoDocumento || "",
-  avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.nombre || u.id)}`,
+  // ✅ Si tiene avatar real del backend usa URL completa, si no usa DiceBear
+  avatar: u.avatar
+    ? u.avatar.startsWith("http")
+      ? u.avatar
+      : `${API_BASE}${u.avatar}`
+    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.nombre || u.id)}`,
 });
 
 export const userService = {
@@ -65,5 +71,33 @@ export const userService = {
 
   delete: async (id) => {
     await apiClient.delete(`${USER_ENDPOINT}/${id}`);
+  },
+
+  uploadFoto: async (userId, file) => {
+    const formData = new FormData();
+    formData.append("foto", file);
+    
+    const token = sessionStorage.getItem("syspharma_token");
+    const response = await fetch(
+      `${API_BASE}/api/Usuario/${userId}/foto`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || `Error ${response.status}`);
+    }
+
+    // ✅ Devolver URL completa para que sessionStorage quede bien
+    return {
+      avatar: data.avatar.startsWith("http")
+        ? data.avatar
+        : `${API_BASE}${data.avatar}`
+    };
   },
 };
