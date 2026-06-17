@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Bell, Menu, Stethoscope, Eye } from "lucide-react";
+import { Bell, Menu, Stethoscope, Eye, ShoppingBag } from "lucide-react";
 import { appointmentService } from "../../features/services/appointments/services/appointmentService";
+import { ordersService } from "../../features/sales/orders/services/ordersService";
 import { useNavigate } from "react-router-dom";
 
 export const EmployeeHeader = ({ onMenuClick }) => {
@@ -12,19 +13,90 @@ export const EmployeeHeader = ({ onMenuClick }) => {
   useEffect(() => {
     const storedUser = sessionStorage.getItem("syspharma_user");
     if (storedUser) setUser(JSON.parse(storedUser));
+
+    // Escuchar cambios de foto/permisos
+    const handleUpdate = () => {
+      const updated = sessionStorage.getItem("syspharma_user");
+      if (updated) setUser(JSON.parse(updated));
+    };
+    window.addEventListener("permissionsUpdated", handleUpdate);
+    return () => window.removeEventListener("permissionsUpdated", handleUpdate);
   }, []);
 
   useEffect(() => {
     const loadNotifications = async () => {
-      const lastSeen = localStorage.getItem('lastSeenAppointmentsAt');
-      const all = await appointmentService.getAppointments();
-      const newOnes = all.filter(a => a.fechaCreacion && (!lastSeen || new Date(a.fechaCreacion) > new Date(lastSeen)));
-      setNotifications(newOnes.sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion)));
-    }
+      try {
+        const lastSeen = localStorage.getItem('lastSeenNotificationsAt');
+        
+        // Cargar citas
+        const allAppointments = await appointmentService.getAppointments();
+        const newAppointments = allAppointments
+          .filter((a) => {
+            if (!a.fechaCreacion) return false;
+            if (!lastSeen) return true;
+            try {
+              return new Date(a.fechaCreacion) > new Date(lastSeen);
+            } catch (e) {
+              return true;
+            }
+          })
+          .map(a => ({
+            ...a,
+            tipo: 'cita',
+            titulo: `Nueva cita: ${a.paciente}`,
+            descripcion: `${a.servicio} - ${a.fecha} ${a.hora || ''}`
+          }));
+
+        // Cargar pedidos
+        const allOrders = await ordersService.getAll();
+        const newOrders = allOrders
+          .filter((o) => {
+            if (!o.fechaCreacion) return false;
+            if (!lastSeen) return true;
+            try {
+              return new Date(o.fechaCreacion) > new Date(lastSeen);
+            } catch (e) {
+              return true;
+            }
+          })
+          .map(o => ({
+            ...o,
+            tipo: 'pedido',
+            titulo: `Nuevo pedido: ${o.clienteNombre}`,
+            descripcion: `Total: $${o.total?.toLocaleString() || '0'}`
+          }));
+
+        // Combinar y ordenar por fecha
+        const combined = [...newAppointments, ...newOrders]
+          .sort((a, b) => {
+            const dateA = new Date(a.fechaCreacion || 0);
+            const dateB = new Date(b.fechaCreacion || 0);
+            return dateB - dateA;
+          });
+
+        setNotifications(combined);
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+        setNotifications([]);
+      }
+    };
+
     loadNotifications();
-    const onChange = () => loadNotifications();
-    window.addEventListener('appointments:changed', onChange);
-    return () => window.removeEventListener('appointments:changed', onChange);
+
+    // Función que recarga con delay para permitir actualización de BD
+    const onChangeWithDelay = () => {
+      setTimeout(loadNotifications, 500);
+    };
+    
+    window.addEventListener('appointments:changed', onChangeWithDelay);
+    window.addEventListener('syspharma_orders_updated', onChangeWithDelay);
+    window.addEventListener('sales:changed', onChangeWithDelay);
+    
+    return () => {
+      window.removeEventListener('appointments:changed', onChangeWithDelay);
+      window.removeEventListener('syspharma_orders_updated', onChangeWithDelay);
+      window.removeEventListener('sales:changed', onChangeWithDelay);
+    };
   }, []);
 
   return (
@@ -62,8 +134,16 @@ export const EmployeeHeader = ({ onMenuClick }) => {
                 Notification.requestPermission().then(perm => {
                   if (perm === 'granted') {
                     notifications.forEach(n => {
-                      try { new Notification(`Nueva cita: ${n.paciente}`, { body: `${n.servicio} - ${n.fecha} ${n.hora || ''}` }); } catch(e) {}
-                    })
+                      if (n.tipo === 'cita') {
+                        const title = `Nueva cita: ${n.paciente}`;
+                        const body = `${n.servicio} - ${n.fecha} ${n.hora || ''}`;
+                        try { new Notification(title, { body }); } catch (e) {}
+                      } else if (n.tipo === 'pedido') {
+                        const title = `Nuevo pedido: ${n.clienteNombre}`;
+                        const body = `Total: $${n.total?.toLocaleString() || '0'}`;
+                        try { new Notification(title, { body }); } catch (e) {}
+                      }
+                    });
                   }
                 })
               }
@@ -81,20 +161,28 @@ export const EmployeeHeader = ({ onMenuClick }) => {
             <div className="absolute right-0 mt-2 w-80 bg-white text-gray-800 rounded-lg shadow-lg border border-gray-100 z-50">
               <div className="p-2 border-b flex items-center justify-between">
                 <strong className="text-sm">Notificaciones</strong>
-                <button onClick={() => { setOpen(false); localStorage.setItem('lastSeenAppointmentsAt', new Date().toISOString()); setNotifications([]); }} className="text-xs text-gray-500 hover:text-gray-700 px-2">Cerrar</button>
+                <button onClick={() => { localStorage.setItem('lastSeenNotificationsAt', new Date().toISOString()); setNotifications([]); setOpen(false); }} className="text-xs text-gray-500 hover:text-gray-700 px-2">Marcar como visto</button>
               </div>
               <div className="max-h-64 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="p-3 text-sm text-gray-500">No hay notificaciones</div>
                 ) : (
                   notifications.map(n => (
-                    <div key={n.id} className="p-3 hover:bg-gray-50 border-b last:border-b-0 flex items-start gap-2">
+                    <div key={`${n.tipo}-${n.id}`} className={`p-3 hover:bg-gray-50 border-b last:border-b-0 flex items-start gap-2 ${n.tipo === 'pedido' ? 'bg-blue-50' : ''}`}>
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-gray-800 truncate">{n.paciente}</div>
-                        <div className="text-xs text-gray-500">{n.servicio} • {n.fecha} {n.hora}</div>
+                        <div className="text-sm font-bold text-gray-800 truncate flex items-center gap-1">
+                          {n.tipo === 'pedido' && <ShoppingBag size={14} className="text-blue-600 flex-shrink-0" />}
+                          {n.tipo === 'cita' ? n.paciente : n.clienteNombre}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {n.tipo === 'cita' 
+                            ? `${n.servicio} • ${n.fecha} ${n.hora || ''}`
+                            : `Total: $${n.total?.toLocaleString() || '0'} • Estado: ${n.estadoNombre || 'Pendiente'}`
+                          }
+                        </div>
                       </div>
                       <div className="flex flex-col items-center gap-1">
-                        <button onClick={() => { setOpen(false); navigate('/employee/citas'); }} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Ver"> <Eye size={14} /> </button>
+                        <button onClick={() => { setOpen(false); navigate(n.tipo === 'cita' ? '/employee/citas' : '/employee/pedidos'); }} className="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Ver"> <Eye size={14} /> </button>
                       </div>
                     </div>
                   ))
@@ -115,8 +203,14 @@ export const EmployeeHeader = ({ onMenuClick }) => {
               {user.rol}
             </p>
           </div>
-          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold border-2 border-blue-200 shadow-sm text-xs flex-shrink-0">
-            {user.nombre.charAt(0)}
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold border-2 border-blue-200 shadow-sm text-xs flex-shrink-0 overflow-hidden">
+            {user.avatar ? (
+              <img src={user.avatar} alt={user.nombre} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-white text-blue-600 flex items-center justify-center font-bold">
+                {user.nombre?.charAt(0)}
+              </div>
+            )}
           </div>
         </div>
       </div>

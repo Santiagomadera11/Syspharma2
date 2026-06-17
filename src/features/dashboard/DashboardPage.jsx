@@ -28,17 +28,17 @@ export const DashboardPage = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [vRes, cRes, ciRes, pRes] = await Promise.all([
+      const [vRes, cRes, ciRes, pRes] = await Promise.allSettled([
         apiClient.get("Venta"),
         apiClient.get("Compra"),
         apiClient.get("Cita"),
         apiClient.get("Producto"),
       ]);
       setData({
-        ventas: vRes.data || [],
-        compras: cRes.data || [],
-        citas: ciRes.data || [],
-        productos: pRes.data || []
+        ventas: vRes.status === "fulfilled" ? (vRes.value.data || []) : [],
+        compras: cRes.status === "fulfilled" ? (cRes.value.data || []) : [],
+        citas: ciRes.status === "fulfilled" ? (ciRes.value.data || []) : [],
+        productos: pRes.status === "fulfilled" ? (pRes.value.data || []) : []
       });
     } catch (err) {
       console.error("Error cargando dashboard:", err);

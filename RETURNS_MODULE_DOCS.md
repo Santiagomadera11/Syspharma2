@@ -22,10 +22,10 @@ src/features/returns/
 ## 🛣️ Rutas Disponibles
 
 ### Admin Dashboard
-- `GET /admin/devoluciones` - Acceso solo con permiso `sales.view`
+- `GET /admin/ventas/devoluciones` - Acceso solo con permiso `sales.view`
 
 ### Employee Panel
-- `GET /employee/devoluciones` - Acceso solo con permiso `sales.view`
+- `GET /employee/ventas/devoluciones` - Acceso solo con permiso `sales.view`
 
 ## 🔧 Funcionalidades Implementadas
 
@@ -90,7 +90,7 @@ src/features/returns/
 
 ### 1. **Acceder al módulo desde Admin**
 ```
-Ir a: http://localhost:5173/admin/devoluciones
+Ir a: http://localhost:5173/admin/ventas/devoluciones
 ```
 
 ### 2. **Crear una nueva devolución**

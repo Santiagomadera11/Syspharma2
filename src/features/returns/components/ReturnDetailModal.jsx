@@ -19,6 +19,7 @@ export const ReturnDetailModal = ({ isOpen, onClose, devolucion, onRefresh }) =>
   const [toast, setToast] = useState(null);
 
   const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const userRole = (user.rol || "").toLowerCase().trim();
 
   if (!isOpen || !devolucion) return null;
 
@@ -107,7 +108,9 @@ export const ReturnDetailModal = ({ isOpen, onClose, devolucion, onRefresh }) =>
 
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="text-xs text-gray-600 font-semibold uppercase mb-1">Total Devolución</div>
-                <div className="text-lg font-bold text-emerald-600">
+                <div className="text-lg font-bold" style={{
+                  color: userRole === "administrador" ? "#059669" : "#2563eb"
+                }}>
                   {fmt(devolucion.totalDevolucion)}
                 </div>
               </div>
@@ -150,7 +153,9 @@ export const ReturnDetailModal = ({ isOpen, onClose, devolucion, onRefresh }) =>
             {/* Productos Devueltos */}
             <div>
               <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <Package size={18} className="text-emerald-600" /> Productos Devueltos
+                <Package size={18} style={{
+                  color: userRole === "administrador" ? "#059669" : "#2563eb"
+                }} /> Productos Devueltos
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -174,7 +179,9 @@ export const ReturnDetailModal = ({ isOpen, onClose, devolucion, onRefresh }) =>
                         <td className="px-3 py-2 text-right text-gray-700">
                           {fmt(detalle.precioUnitario)}
                         </td>
-                        <td className="px-3 py-2 text-right font-semibold text-emerald-600">
+                        <td className="px-3 py-2 text-right font-semibold" style={{
+                          color: userRole === "administrador" ? "#059669" : "#2563eb"
+                        }}>
                           {fmt(detalle.subtotalDevuelto)}
                         </td>
                       </tr>
@@ -192,7 +199,11 @@ export const ReturnDetailModal = ({ isOpen, onClose, devolucion, onRefresh }) =>
                 <button
                   onClick={handleAprobar}
                   disabled={loading}
-                  className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                  className={`flex-1 text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 transition-colors ${
+                    userRole === "administrador" 
+                      ? "bg-emerald-600 hover:bg-emerald-700" 
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
                 >
                   {loading ? (
                     <Loader size={18} className="animate-spin" />

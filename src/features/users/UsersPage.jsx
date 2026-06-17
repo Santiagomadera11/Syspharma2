@@ -217,7 +217,13 @@ export const UsersPage = () => {
                         <td className="px-3 py-2.5 font-mono">{user.id}</td>
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-2.5">
-                            <img src={user.avatar} alt="" className="w-8 h-8 rounded-full border border-gray-200 flex-shrink-0" />
+                            <div className="w-8 h-8 rounded-full border border-gray-200 flex-shrink-0 flex items-center justify-center bg-gray-100 text-gray-600 font-bold text-xs overflow-hidden">
+                              {user.avatar ? (
+                                <img src={user.avatar} alt={user.nombre} className="w-full h-full object-cover" />
+                              ) : (
+                                user.nombre?.charAt(0)
+                              )}
+                            </div>
                             <span className="font-bold text-gray-700 truncate max-w-[140px]">{user.nombre}</span>
                           </div>
                         </td>

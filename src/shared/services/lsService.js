@@ -3,7 +3,6 @@ export const LS = {
   PRODUCTS: 'syspharma_products',
   USERS: 'syspharma_users',
   USER: 'syspharma_user',
-  FAVORITES: 'syspharma_favorites',
   CART: 'syspharma_cart',
   NOTIFICATIONS: 'syspharma_notifications',
   PEDIDOS: 'syspharma_pedidos'

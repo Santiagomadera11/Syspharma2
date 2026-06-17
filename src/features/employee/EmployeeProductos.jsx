@@ -50,7 +50,7 @@ export const EmployeeProductos = () => {
 
   const StateBadge = ({ estado }) => (
     <span className={`inline-block px-3 py-1.5 rounded-full text-[10px] font-bold ${
-      estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-700"
+      estado ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-700"
     }`}>
       {estado ? "Activo" : "Inactivo"}
     </span>

@@ -4,6 +4,7 @@ import { CartProvider } from "./shared/context/CartContext";
 import CartDrawer from "./features/landing/components/CartDrawer";
 import { ToastHost } from "./shared/ui/ToastHost";
 import { authService } from "./features/auth/authService";
+import { usePermissionsSync } from "./hooks/usePermissionsSync";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -36,6 +37,8 @@ class ErrorBoundary extends React.Component {
 }
 
 function App() {
+  usePermissionsSync(); // 🔄 Sincronizar permisos cada 30 segundos
+
   useEffect(() => {
     const user = authService.getCurrentUser();
     const token = sessionStorage.getItem("syspharma_token");

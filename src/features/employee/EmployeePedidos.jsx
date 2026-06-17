@@ -71,18 +71,6 @@ export const EmployeePedidos = () => {
     navigate("/employee/pedidos/crear");
   };
 
-  const handleCompleteOrder = async (order) => {
-    const estadoEntregado = estados.find(e => e.nombre.toLowerCase() === "entregado");
-    if (!estadoEntregado) { setNotification({ message: "No se encontró el estado Entregado", type: "error", zIndex: 1000 }); return; }
-    try {
-      await ordersService.updateStatus(order.id, estadoEntregado.id);
-      setNotification({ message: `Pedido ${order.numeroPedido} completado`, type: "success", zIndex: 1000 });
-      await loadOrders();
-    } catch (err) {
-      setNotification({ message: err?.response?.data?.message || "Error al completar", type: "error", zIndex: 1000 });
-    }
-  };
-
   const handleEditOrder = (order) => {
     sessionStorage.setItem("syspharma_edit_order", JSON.stringify(order));
     navigate("/employee/pedidos/crear");
@@ -224,7 +212,7 @@ export const EmployeePedidos = () => {
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 font-bold text-emerald-600 text-right">{fmt(order.total)}</td>
+                    <td className="px-3 py-2.5 font-bold text-blue-600 text-right">{fmt(order.total)}</td>
                     <td className="px-3 py-2.5 text-center">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${getStatusColor(order.estadoNombre)}`}>
                         {order.estadoNombre}
@@ -236,12 +224,6 @@ export const EmployeePedidos = () => {
                           className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
                           <Eye size={16} />
                         </button>
-                        {(order.estadoNombre || "").toLowerCase() === "pendiente" && (
-                          <button onClick={() => handleCompleteOrder(order)}
-                            className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Completar">
-                            <CheckCircle size={16} />
-                          </button>
-                        )}
                         {(order.estadoNombre || "").toLowerCase() === "pendiente" && canEditOrder && (
                           <button onClick={() => handleEditOrder(order)}
                             className="p-1.5 rounded-md text-yellow-600 hover:bg-yellow-50 transition-colors" title="Editar">
@@ -249,7 +231,7 @@ export const EmployeePedidos = () => {
                           </button>
                         )}
                         <button onClick={() => { setOrderToChangeStatus(order); setIsStatusModalOpen(true); }}
-                          className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
+                          className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Cambiar estado">
                           <CheckCircle size={16} />
                         </button>
                       </div>

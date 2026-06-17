@@ -200,7 +200,7 @@ export const DashboardEmpleado = () => {
               <h3 className="font-bold text-gray-800 mb-3 text-sm">Accesos Rápidos</h3>
               <div className="grid grid-cols-2 gap-3">
                 <QuickAction icon={ShoppingCart} label="Ventas" onClick={() => navigate("/employee/ventas")} color="blue" />
-                <QuickAction icon={Calendar} label="Citas" onClick={() => navigate("/employee/citas")} color="emerald" />
+                <QuickAction icon={Calendar} label="Citas" onClick={() => navigate("/employee/citas")} color="blue" />
                 <QuickAction icon={Users} label="Pedidos" onClick={() => navigate("/employee/pedidos")} color="purple" />
                 <QuickAction icon={Package} label="Inventario" onClick={() => navigate("/employee/productos")} color="orange" />
               </div>
@@ -245,7 +245,7 @@ export const DashboardEmpleado = () => {
 const QuickAction = ({ label, onClick, color }) => {
   const colors = {
     blue: "bg-blue-50 text-blue-600 hover:bg-blue-100",
-    emerald: "bg-emerald-50 text-emerald-600 hover:bg-emerald-100",
+    emerald: "bg-blue-50 text-blue-600 hover:bg-blue-100",
     purple: "bg-purple-50 text-purple-600 hover:bg-purple-100",
     orange: "bg-orange-50 text-orange-600 hover:bg-orange-100",
   };

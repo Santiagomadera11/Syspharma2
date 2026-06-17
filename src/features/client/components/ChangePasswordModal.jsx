@@ -122,14 +122,14 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
         {/* Modal */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-md w-full mx-4">
           {/* Header */}
-          <div className="px-6 py-5 border-b border-cyan-100 bg-cyan-50 flex items-center justify-between">
+          <div className="px-6 py-5 border-b border-emerald-100 bg-emerald-50 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Lock className="text-cyan-700" size={20} />
+              <Lock className="text-emerald-700" size={20} />
               <div>
-                <h2 className="text-lg font-semibold text-cyan-900">
+                <h2 className="text-lg font-semibold text-emerald-900">
                   Cambiar Contraseña
                 </h2>
-                <p className="text-xs text-cyan-700">
+                <p className="text-xs text-emerald-700">
                   {step === 1
                     ? "Verificación de seguridad"
                     : "Nueva contraseña"}
@@ -138,7 +138,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
             </div>
             <button
               onClick={handleClose}
-              className="text-cyan-600 hover:bg-cyan-100 transition-colors p-1 rounded-lg"
+              className="text-emerald-600 hover:bg-emerald-100 transition-colors p-1 rounded-lg"
             >
               <X size={20} />
             </button>
@@ -152,12 +152,12 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
                 onSubmit={handleValidateCurrentPassword}
                 className="space-y-4"
               >
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-2">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex gap-2">
                   <AlertCircle
-                    className="text-blue-600 flex-shrink-0"
+                    className="text-emerald-600 flex-shrink-0"
                     size={18}
                   />
-                  <p className="text-sm text-blue-700">
+                  <p className="text-sm text-emerald-700">
                     Por seguridad, ingresa tu contraseña actual para continuar
                   </p>
                 </div>
@@ -171,7 +171,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Ingresa tu contraseña actual"
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-blue-50 text-gray-900"
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 focus:bg-emerald-50 text-gray-900"
                     disabled={loading}
                   />
                 </div>
@@ -192,7 +192,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
                   className={`w-full py-2.5 rounded-lg font-bold text-white transition-all ${
                     loading
                       ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700 active:scale-95"
+                      : "bg-emerald-600 hover:bg-emerald-700 active:scale-95"
                   }`}
                 >
                   {loading ? "Validando..." : "Continuar"}
@@ -203,12 +203,12 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
             {/* Paso 2: Nueva contraseña */}
             {step === 2 && (
               <form onSubmit={handleChangePassword} className="space-y-4">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex gap-2">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex gap-2">
                   <CheckCircle
-                    className="text-green-600 flex-shrink-0"
+                    className="text-emerald-600 flex-shrink-0"
                     size={18}
                   />
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-emerald-700">
                     ✓ Verificación completada. Ingresa tu nueva contraseña
                   </p>
                 </div>
@@ -222,7 +222,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Mínimo 6 caracteres"
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-blue-50 text-gray-900"
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 focus:bg-emerald-50 text-gray-900"
                     disabled={loading}
                   />
                 </div>
@@ -236,7 +236,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repite la nueva contraseña"
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 focus:bg-blue-50 text-gray-900"
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400 focus:bg-emerald-50 text-gray-900"
                     disabled={loading}
                   />
                 </div>
@@ -271,7 +271,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
                     className={`flex-1 py-2.5 rounded-lg font-bold text-white transition-all ${
                       loading
                         ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-green-600 hover:bg-green-700 active:scale-95"
+                        : "bg-emerald-600 hover:bg-emerald-700 active:scale-95"
                     }`}
                   >
                     {loading ? "Actualizando..." : "Cambiar Contraseña"}

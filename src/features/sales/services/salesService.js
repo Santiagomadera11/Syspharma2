@@ -54,6 +54,7 @@ export const salesService = {
     }
 
     const res = await apiClient.post(ENDPOINT, payload);
+    window.dispatchEvent(new Event('sales:changed'));
     return res.data;
   },
 

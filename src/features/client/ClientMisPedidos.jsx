@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   ShoppingBag, DollarSign, Search, ChevronLeft, ChevronRight,
-  Clock, Eye, X, Package, FileText, Printer,
+  Clock, Eye, X, Package, FileText, Printer, AlertCircle,
 } from "lucide-react";
 import { ordersService } from "../sales/orders/services/ordersService";
 
@@ -22,7 +22,7 @@ const getEstadoStyle = (estadoId) => {
     case ESTADO.ENTREGADO:  return "bg-emerald-50 text-emerald-700 border-emerald-100";
     case ESTADO.CANCELADO:  return "bg-red-50 text-red-700 border-red-100";
     case ESTADO.LISTO:      return "bg-yellow-50 text-yellow-700 border-yellow-100";
-    case ESTADO.EN_PROCESO: return "bg-blue-50 text-blue-700 border-blue-100";
+    case ESTADO.EN_PROCESO: return "bg-emerald-50 text-emerald-700 border-emerald-100";
     default:                return "bg-gray-50 text-gray-700 border-gray-100";   // Pendiente y resto
   }
 };
@@ -191,6 +191,8 @@ export const ClientMisPedidos = () => {
   const [facturaOrder, setFacturaOrder]   = useState(null);
   const [cancellingId, setCancellingId]   = useState(null);
   const [notification, setNotification]   = useState(null);
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState(null);
 
   const recordsPerPage = 4;
 
@@ -254,20 +256,27 @@ export const ClientMisPedidos = () => {
 
   // 3. CANCELAR PEDIDO
   const handleCancelar = async (order) => {
-    if (!window.confirm(`¿Cancelar el pedido ${order.numeroPedido}?`)) return;
-    setCancellingId(order.id);
+    setOrderToCancel(order);
+    setShowConfirmCancel(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!orderToCancel) return;
+    
+    setCancellingId(orderToCancel.id);
     try {
-      // Usamos el ID directamente, sin buscar por nombre
-      await ordersService.updateStatus(order.id, ESTADO.CANCELADO);
+      await ordersService.updateStatus(orderToCancel.id, ESTADO.CANCELADO);
 
       setOrders(prev =>
         prev.map(o =>
-          o.id === order.id
+          o.id === orderToCancel.id
             ? { ...o, estadoId: ESTADO.CANCELADO, estadoNombre: "Cancelado" }
             : o
         )
       );
       showNotif("Pedido cancelado correctamente");
+      setShowConfirmCancel(false);
+      setOrderToCancel(null);
     } catch (err) {
       showNotif(err?.response?.data?.message || "No se pudo cancelar el pedido", "error");
     } finally {
@@ -302,7 +311,7 @@ export const ClientMisPedidos = () => {
       {/* Resumen */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm flex items-center gap-4">
-          <div className="bg-blue-50 p-3 rounded-xl text-blue-600"><ShoppingBag size={24} /></div>
+          <div className="bg-emerald-50 p-3 rounded-xl text-emerald-600"><ShoppingBag size={24} /></div>
           <div>
             <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Total Pedidos</p>
             <p className="text-2xl font-black text-gray-900">{orders.length}</p>
@@ -391,7 +400,7 @@ export const ClientMisPedidos = () => {
               <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 justify-end">
                 <button
                   onClick={() => setSelectedOrder(o)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors">
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors">
                   <Eye size={13} /> Ver detalle
                 </button>
 
@@ -511,6 +520,66 @@ export const ClientMisPedidos = () => {
       {/* Modal factura */}
       {facturaOrder && (
         <FacturaModal order={facturaOrder} onClose={() => setFacturaOrder(null)} />
+      )}
+
+      {/* Modal de confirmación de cancelación */}
+      {showConfirmCancel && orderToCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+            {/* Header */}
+            <div className="bg-red-50 px-5 py-3 border-b border-red-200 flex justify-between items-center">
+              <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                <AlertCircle size={18} className="text-red-600" />
+                ¿Cancelar pedido?
+              </h3>
+              <button
+                onClick={() => {
+                  setShowConfirmCancel(false);
+                  setOrderToCancel(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              <p className="text-sm text-gray-700">
+                ¿Estás seguro de que deseas cancelar el pedido <strong>{orderToCancel.numeroPedido}</strong>?
+              </p>
+              <p className="text-xs text-gray-500 mt-3">
+                Esta acción no se puede deshacer y se registrará en tu historial de pedidos.
+              </p>
+              <div className="mt-4 bg-gray-50 rounded-lg p-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Total a cancelar</p>
+                <p className="text-xl font-black text-gray-900">
+                  ${(orderToCancel.total || 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-red-50 px-5 py-3 border-t border-red-200 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowConfirmCancel(false);
+                  setOrderToCancel(null);
+                }}
+                className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                No, mantener
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                disabled={cancellingId === orderToCancel.id}
+                className="px-4 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancellingId === orderToCancel.id ? "Cancelando..." : "Sí, cancelar"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

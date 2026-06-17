@@ -28,6 +28,10 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
   const [selectedProduct, setSelectedProduct] = useState("");
   const [productCost, setProductCost] = useState("");
   const [productQuantity, setProductQuantity] = useState(1);
+  const [productLote, setProductLote] = useState("");
+  const [productFechaVencimiento, setProductFechaVencimiento] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
@@ -114,6 +118,11 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
   if (!isOpen) return null;
   const isView = mode === "view";
 
+  // Productos filtrados por búsqueda
+  const filteredProducts = products.filter(p =>
+    p.nombre.toLowerCase().includes(productSearch.toLowerCase())
+  );
+
   const handleAddProduct = () => {
     if (!selectedProduct) { alert("Selecciona un producto"); return; }
     if (!productCost || Number(productCost) <= 0) { alert("Ingresa un costo válido"); return; }
@@ -129,8 +138,15 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
       cantidad,
       precioUnitario: precio,
       subtotal: cantidad * precio,
+      lote: productLote || null,
+      fechaVencimiento: productFechaVencimiento || null,
     }]);
-    setSelectedProduct(""); setProductCost(""); setProductQuantity(1);
+    setSelectedProduct("");
+    setProductSearch("");
+    setProductCost("");
+    setProductQuantity(1);
+    setProductLote("");
+    setProductFechaVencimiento("");
   };
 
   const handleRemoveItem = (id) => setPurchaseItems(prev => prev.filter(i => i.id !== id));
@@ -154,6 +170,8 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
           productoId: i.productoId,
           cantidad: i.cantidad,
           precioUnitario: i.precioUnitario,
+          lote: i.lote || null,
+          fechaVencimiento: i.fechaVencimiento || null,
         })),
       };
 
@@ -297,13 +315,46 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
                   <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 border-b border-gray-200 pb-1">Agregar Productos</h4>
                   <div className="flex flex-col md:flex-row gap-3 items-end">
-                    <div className="flex-1">
+                    <div className="flex-1 relative">
                       <label className="block text-[10px] font-bold text-gray-600 mb-1">Producto</label>
-                      <select className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorder} bg-white`}
-                        value={selectedProduct} onChange={e => setSelectedProduct(e.target.value)}>
-                        <option value="">Seleccionar...</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                      </select>
+                      <input
+                        type="text"
+                        placeholder="Buscar producto..."
+                        value={productSearch}
+                        onChange={(e) => {
+                          setProductSearch(e.target.value);
+                          setSelectedProduct("");
+                          setShowProductDropdown(true);
+                        }}
+                        onFocus={() => setShowProductDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowProductDropdown(false), 200)}
+                        className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorder} bg-white`}
+                      />
+                      {/* Dropdown de resultados */}
+                      {showProductDropdown && productSearch && filteredProducts.length > 0 && (
+                        <div className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                          {filteredProducts.map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedProduct(String(p.id));
+                                setProductSearch(p.nombre);
+                                setShowProductDropdown(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                            >
+                              {p.nombre}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {/* Sin resultados */}
+                      {showProductDropdown && productSearch && filteredProducts.length === 0 && (
+                        <div className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg z-10 px-3 py-4 text-center text-xs text-gray-400">
+                          No se encontraron productos
+                        </div>
+                      )}
                     </div>
                     <div className="w-32">
                       <label className="block text-[10px] font-bold text-gray-600 mb-1">Costo Unit.</label>
@@ -313,6 +364,16 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
                     <div className="w-24">
                       <label className="block text-[10px] font-bold text-gray-600 mb-1">Cantidad</label>
                       <input type="number" placeholder="1" value={productQuantity} onChange={e => setProductQuantity(e.target.value)}
+                        className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorder}`} />
+                    </div>
+                    <div className="w-28">
+                      <label className="block text-[10px] font-bold text-gray-600 mb-1">Lote</label>
+                      <input type="text" placeholder="Lote" value={productLote} onChange={e => setProductLote(e.target.value)}
+                        className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorder}`} />
+                    </div>
+                    <div className="w-32">
+                      <label className="block text-[10px] font-bold text-gray-600 mb-1">Fecha Venc.</label>
+                      <input type="date" value={productFechaVencimiento} onChange={e => setProductFechaVencimiento(e.target.value)}
                         className={`w-full text-sm border border-gray-300 rounded-md px-2 py-1.5 focus:outline-none ${focusBorder}`} />
                     </div>
                     <button onClick={handleAddProduct}
@@ -330,19 +391,23 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
                         <th className="px-4 py-2 text-left">Producto</th>
                         <th className="px-4 py-2 text-center">Cant</th>
                         <th className="px-4 py-2 text-right">Costo Unit.</th>
+                        <th className="px-4 py-2 text-center">Lote</th>
+                        <th className="px-4 py-2 text-center">Vencimiento</th>
                         <th className="px-4 py-2 text-right">Subtotal</th>
                         <th className="px-4 py-2"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {purchaseItems.length === 0 ? (
-                        <tr><td colSpan={5} className="px-4 py-6 text-center text-xs text-gray-400 italic">No hay productos agregados</td></tr>
+                        <tr><td colSpan={7} className="px-4 py-6 text-center text-xs text-gray-400 italic">No hay productos agregados</td></tr>
                       ) : (
                         purchaseItems.map(item => (
                           <tr key={item.id}>
                             <td className="px-4 py-2 text-xs font-medium text-gray-700">{item.nombre}</td>
                             <td className="px-4 py-2 text-center text-xs text-gray-600">{item.cantidad}</td>
                             <td className="px-4 py-2 text-right text-xs text-gray-600">${Number(item.precioUnitario).toLocaleString()}</td>
+                            <td className="px-4 py-2 text-center text-xs text-gray-600">{item.lote || "---"}</td>
+                            <td className="px-4 py-2 text-center text-xs text-gray-600">{item.fechaVencimiento || "---"}</td>
                             <td className="px-4 py-2 text-right text-xs font-bold text-gray-800">${Number(item.subtotal).toLocaleString()}</td>
                             <td className="px-4 py-2 text-center">
                               <button onClick={() => handleRemoveItem(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
@@ -353,7 +418,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
                     </tbody>
                     <tfoot className="bg-gray-50 border-t border-gray-200">
                       <tr>
-                        <td colSpan={3} className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total:</td>
+                        <td colSpan={5} className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total:</td>
                         <td className={`px-4 py-3 text-right text-sm font-bold ${iconColor}`}>${total.toLocaleString()}</td>
                         <td></td>
                       </tr>

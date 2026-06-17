@@ -13,11 +13,11 @@ import {
   Loader2,
   DollarSign,
 } from "lucide-react";
-import { appointmentService } from "../services/appointmentService";
-import { apiClient } from "../../../../shared/utils/apiClient";
-import CalendarPicker from "./CalendarPicker";
-import { turnService } from "../../../sales/services/turnService";
-import { availabilityService } from "../services/availabilityService";
+import { appointmentService } from "../../services/appointments/services/appointmentService";
+import { apiClient } from "../../../shared/utils/apiClient";
+import CalendarPicker from "../../services/appointments/components/CalendarPicker";
+import { turnService } from "../../sales/services/turnService";
+import { availabilityService } from "../../services/appointments/services/availabilityService";
 
 const getDateString = (date) => {
   const year = date.getFullYear();
@@ -47,7 +47,7 @@ const formatDateDisplay = (isoDate) => {
   return isoDate;
 };
 
-const AppointmentFormModal = ({
+const ClientAppointmentFormModal = ({
   isOpen,
   onClose,
   onSave,
@@ -72,17 +72,14 @@ const AppointmentFormModal = ({
   const currentUser = JSON.parse(
     sessionStorage.getItem("syspharma_user") || "{}",
   );
-  const currentUserRole = (currentUser.rol || "Administrador").toLowerCase().trim();
-  const isEmployee = currentUserRole === "empleado";
 
-  // ── Theme tokens (Emerald para clientes, Azul para empleados) ──
-  const headerBgColor   = isEmployee ? "bg-blue-600" : "bg-emerald-600";
-  const focusBorder     = isEmployee ? "focus:border-blue-400" : "focus:border-emerald-400";
-  const focusRing       = isEmployee ? "focus:ring-blue-200" : "focus:ring-emerald-200";
-  const slotSelected    = isEmployee ? "bg-blue-600" : "bg-emerald-600";
-  const slotHover       = isEmployee ? "hover:bg-blue-50" : "hover:bg-emerald-50";
-  const btnSaveBg       = isEmployee ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700";
-  // ─────────────────────────────────────────────────────────────────────
+  // 🟢 VERDE PARA CLIENTE
+  const headerBgColor   = "bg-emerald-600";
+  const focusBorder     = "focus:border-emerald-400";
+  const focusRing       = "focus:ring-emerald-200";
+  const slotSelected    = "bg-emerald-600";
+  const slotHover       = "hover:bg-emerald-50";
+  const btnSaveBg       = "bg-emerald-600 hover:bg-emerald-700";
 
   const inputClass = (hasError) =>
     `w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
@@ -330,7 +327,7 @@ const AppointmentFormModal = ({
         <div className={`${headerBgColor} px-6 py-4 flex justify-between items-center`}>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Calendar size={20} />
-            {appointment?.id ? "Editar Cita Médica" : "Agendar Cita Médica"}
+            {appointment ? "Editar Cita Médica" : "Nueva Cita Médica"}
           </h2>
           <button
             onClick={onClose}
@@ -618,4 +615,4 @@ const AppointmentFormModal = ({
   );
 };
 
-export default AppointmentFormModal;
+export default ClientAppointmentFormModal;
