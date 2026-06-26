@@ -142,25 +142,29 @@ export const CreateOrderPage = () => {
 
   const handleAddProduct = useCallback((product, cantidad) => {
     setProductCart((prev) => {
-      const existing = prev.find((p) => p.id === product.id);
+      const existing = prev.find((p) => p.id === product.id && p.loteId === product.loteId);
       if (existing)
-        return prev.map((p) => p.id === product.id ? { ...p, cantidad: p.cantidad + cantidad } : p);
+        return prev.map((p) => p.id === product.id && p.loteId === product.loteId ? { ...p, cantidad: p.cantidad + cantidad } : p);
       return [...prev, { ...product, cantidad }];
     });
   }, []);
 
-  const handleRemoveProduct = useCallback((id) => {
-    setProductCart((prev) => prev.filter((p) => p.id !== id));
+  const handleRemoveProduct = useCallback((id, loteId) => {
+    setProductCart((prev) => prev.filter((p) => !(p.id === id && p.loteId === loteId)));
   }, []);
 
-  const handleUpdateQty = useCallback((id, newQty) => {
+  const handleUpdateQty = useCallback((id, loteId, newQty) => {
     if (newQty <= 0) {
-      handleRemoveProduct(id);
+      handleRemoveProduct(id, loteId);
     } else {
       setProductCart((prev) =>
         prev.map((p) => {
-          if (p.id !== id) return p;
-          const maxStock = p.stock ?? Infinity;
+          if (!(p.id === id && p.loteId === loteId)) return p;
+          let maxStock = p.stock ?? Infinity;
+          if (p.loteId) {
+            const lote = p.lotes?.find(l => l.id === p.loteId);
+            if (lote) maxStock = lote.cantidad;
+          }
           const cappedQty = Math.min(newQty, maxStock);
           return { ...p, cantidad: cappedQty };
         })
@@ -282,6 +286,7 @@ export const CreateOrderPage = () => {
             precioUnitario: Number(p.precio),
             descuento: 0,
             subtotal: Number(p.cantidad * p.precio),
+            loteId: p.loteId ? Number(p.loteId) : null,
           })),
           servicios: serviceCart.map((s) => ({
             servicioId: Number(s.servicioId),

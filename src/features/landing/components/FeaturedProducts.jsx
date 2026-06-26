@@ -80,6 +80,8 @@ export const FeaturedProducts = () => {
               price: Number(producto.precio ?? producto.price ?? 0),
               image: producto.imagen || producto.image || null,
               stock: producto.stock ?? producto.existencia ?? 0,
+              requiereFormula: producto.requiereFormula,
+              requiereFormulaMedica: producto.requiereFormulaMedica,
             };
 
             const cart = useCart();

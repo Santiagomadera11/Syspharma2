@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { LS, read, write } from "../../shared/services/lsService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import ProductCardGrid, { ProductRowList } from "./components/ProductCard";
+import ProductDetailModal from "../../shared/ui/ProductDetailModal";
 
 const ProductCard = ({ product, onAdd }) => {
   // Map from product schema to ProductCardGrid schema, asegurando todos los campos
@@ -38,6 +39,7 @@ const ClientCatalogo = () => {
   // no view mode toggle on home, always grid view
   const [toast, setToast] = useState(null);
   const [userName, setUserName] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const listRef = React.useRef(null);
 
   // scroll to product list whenever a category filter is applied
@@ -67,14 +69,22 @@ const ClientCatalogo = () => {
         console.log("[DEBUG] Productos cargados:", storedProducts);
         const mappedProducts = Array.isArray(storedProducts)
           ? storedProducts.map((p) => ({
+              ...p,
               id: p.id,
               nombre: p.nombre || p.name || "Sin nombre",
+              name: p.nombre || p.name || "Sin nombre",
               precio: Number(p.precio ?? p.price ?? 0),
+              price: Number(p.precio ?? p.price ?? 0),
               imagen: p.imagen || p.image || "/src/assets/farmacia.avif",
+              image: p.imagen || p.image || "/src/assets/farmacia.avif",
               categoria: p.categoria || "Otros",
               laboratorio:
                 p.laboratorio || p.marca || p.proveedor || "Genérico",
+              marca:
+                p.laboratorio || p.marca || p.proveedor || "Genérico",
               stock: p.stock ?? p.existencia ?? 0,
+              requiereFormula: p.requiereFormula,
+              requiereFormulaMedica: p.requiereFormulaMedica,
             }))
           : [];
         setProducts(mappedProducts);
@@ -229,12 +239,20 @@ const ClientCatalogo = () => {
                 key={p.id}
                 product={p}
                 onAdd={saveCartAndNotify}
+                onOpenDetail={setSelectedProduct}
                 disabled={(p.stock || 0) <= 0}
               />
             ))}
           </div>
         )}
       </div>
+
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
 
       {toast && (
         <ToastNotification

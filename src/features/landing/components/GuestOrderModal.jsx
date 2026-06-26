@@ -142,34 +142,58 @@ const GuestOrderModal = ({ isOpen, onClose, product }) => {
 
             <div className="p-6 overflow-y-auto">
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
-                  <div>
-                    <p className="text-xs text-gray-500">Precio Unitario</p>
-                    <p className="font-bold text-gray-700">
-                      ${" "}
-                      {Number(
-                        product.precio ?? product.price ?? 0,
-                      ).toLocaleString()}
-                    </p>
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-xs text-gray-500 font-bold uppercase">Precio Unitario</p>
+                      <p className="font-bold text-gray-700">
+                        ${" "}
+                        {Number(
+                          product.precio ?? product.price ?? 0,
+                        ).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <label className="text-xs font-bold text-gray-500">
+                        Cant:
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={formData.cantidad}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            cantidad: Number(e.target.value),
+                          })
+                        }
+                        className="w-16 p-1 text-center border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs font-bold text-gray-500">
-                      Cant:
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={formData.cantidad}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          cantidad: Number(e.target.value),
-                        })
-                      }
-                      className="w-16 p-1 text-center border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
+                  {(product.marca || product.presentacion || product.concentracion) && (
+                    <div className="border-t border-gray-200/60 pt-2 grid grid-cols-3 gap-2 text-[11px] text-gray-600">
+                      {product.marca && (
+                        <div>
+                          <span className="font-bold uppercase text-[9px] text-gray-400 block">Marca</span>
+                          <span className="font-medium text-gray-800">{product.marca}</span>
+                        </div>
+                      )}
+                      {product.concentracion && (
+                        <div>
+                          <span className="font-bold uppercase text-[9px] text-gray-400 block">Concentración</span>
+                          <span className="font-medium text-gray-800">{product.concentracion}</span>
+                        </div>
+                      )}
+                      {product.presentacion && (
+                        <div>
+                          <span className="font-bold uppercase text-[9px] text-gray-400 block">Presentación</span>
+                          <span className="font-medium text-gray-800">{product.presentacion}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
