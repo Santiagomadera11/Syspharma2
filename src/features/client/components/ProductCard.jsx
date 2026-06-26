@@ -19,7 +19,13 @@ export const ProductCardGrid = ({
   children,
 }) => {
   const isOutOfStock = (product.stock ?? 0) <= 0;
-  const effectivelyDisabled = disabled || isOutOfStock;
+  const requiresPrescription = !!(product.requiereFormula || product.requiereFormulaMedica);
+  const effectivelyDisabled = disabled || isOutOfStock || requiresPrescription;
+
+  const name = product.name || product.nombre || "Producto";
+  const image = product.image || product.imagen || null;
+  const price = Number(product.price ?? product.precio ?? product.precioActual ?? 0);
+  const marca = product.marca || product.laboratorio || "Genérico";
 
   return (
   <div
@@ -33,14 +39,23 @@ export const ProductCardGrid = ({
     }}
   >
     <div className="relative h-40 bg-gray-50 flex items-center justify-center overflow-hidden group">
-      {product.image ? (
+      {image ? (
         <img
-          src={product.image}
-          alt={product.name}
+          src={image}
+          alt={name}
           className="w-full h-full object-cover"
         />
       ) : (
         <Pill size={48} className="text-gray-300" />
+      )}
+
+      {/* Badge de fórmula médica */}
+      {requiresPrescription && (
+        <div className="absolute top-2 left-2 z-10">
+          <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm flex items-center gap-1">
+            Fórmula médica 🩺
+          </span>
+        </div>
       )}
 
       {/* Overlay de agotado */}
@@ -53,10 +68,10 @@ export const ProductCardGrid = ({
     <div className="p-4 flex flex-col flex-1">
       <div className="flex-1">
         <h4 className="font-semibold text-gray-800 text-sm line-clamp-2">
-          {product.name}
+          {name}
         </h4>
-        {product.marca && (
-          <p className="text-xs text-gray-500 mt-1">{product.marca}</p>
+        {marca && (
+          <p className="text-xs text-gray-500 mt-1">{marca}</p>
         )}
         {(() => {
           const stockVal = product.stock ?? null;
@@ -82,7 +97,7 @@ export const ProductCardGrid = ({
       </div>
       <div className="mt-3">
         <div className="text-emerald-600 font-semibold text-lg">
-          {fmt(product.price ?? product.precio ?? product.precioActual)}
+          {fmt(price)}
         </div>
       </div>
 
@@ -100,7 +115,7 @@ export const ProductCardGrid = ({
               }}
               disabled={effectivelyDisabled}
               className={`${effectivelyDisabled ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 text-white"} p-2 rounded-full transition shadow-sm`}
-              title={effectivelyDisabled ? "Stock máximo alcanzado" : "Añadir"}
+              title={requiresPrescription ? "Requiere fórmula médica" : (effectivelyDisabled ? "Stock máximo alcanzado" : "Añadir")}
             >
               <Plus size={14} />
             </button>
@@ -113,7 +128,7 @@ export const ProductCardGrid = ({
               }}
               disabled={effectivelyDisabled}
               className="bg-emerald-600 text-white p-2 rounded-full hover:bg-emerald-700 transition shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
-              title="Comprar ahora"
+              title={requiresPrescription ? "Requiere fórmula médica" : "Comprar ahora"}
             >
               <svg
                 className="w-4 h-4"
@@ -145,13 +160,22 @@ export const ProductRowList = ({
   onAdd,
   disabled,
   children,
-}) => (
+}) => {
+  const requiresPrescription = !!(product.requiereFormula || product.requiereFormulaMedica);
+  const effectivelyDisabled = disabled || requiresPrescription;
+
+  const name = product.name || product.nombre || "Producto";
+  const image = product.image || product.imagen || null;
+  const price = Number(product.price ?? product.precio ?? product.precioActual ?? 0);
+  const marca = product.marca || product.laboratorio || "Genérico";
+
+  return (
   <div className="bg-white border border-gray-100 rounded-lg p-4 flex items-center gap-4 hover:shadow-sm transition">
     <div className="h-20 w-20 bg-gray-50 rounded flex-shrink-0 flex items-center justify-center">
-      {product.image ? (
+      {image ? (
         <img
-          src={product.image}
-          alt={product.name}
+          src={image}
+          alt={name}
           className="h-full w-full object-cover rounded"
         />
       ) : (
@@ -159,9 +183,16 @@ export const ProductRowList = ({
       )}
     </div>
     <div className="flex-1 min-w-0">
-      <h4 className="font-semibold text-gray-800">{product.name}</h4>
-      {product.marca && (
-        <p className="text-sm text-gray-500">{product.marca}</p>
+      <h4 className="font-semibold text-gray-800">{name}</h4>
+      {marca && (
+        <p className="text-sm text-gray-500">{marca}</p>
+      )}
+      {requiresPrescription && (
+        <div className="mt-1">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+            Fórmula médica 🩺
+          </span>
+        </div>
       )}
       {typeof product.stock !== "undefined" && (
         <div className="mt-1">
@@ -180,23 +211,25 @@ export const ProductRowList = ({
     <div className="flex items-center gap-3 flex-shrink-0">
       <div className="text-right">
         <div className="text-emerald-600 font-bold text-lg">
-          {fmt(product.price)}
+          {fmt(price)}
         </div>
       </div>
       {!children && (
         <>
           <button
             onClick={() => onAdd && onAdd(product.id)}
-            disabled={disabled}
-            className={`${disabled ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 text-white"} px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition`}
+            disabled={effectivelyDisabled}
+            className={`${effectivelyDisabled ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 text-white"} px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition`}
+            title={requiresPrescription ? "Requiere fórmula médica" : (disabled ? "Stock máximo alcanzado" : "Añadir")}
           >
-            <Plus size={14} /> {disabled ? "Stock máximo alcanzado" : "Añadir"}
+            <Plus size={14} /> {requiresPrescription ? "Restringido" : (disabled ? "Stock máximo" : "Añadir")}
           </button>
         </>
       )}
       {children}
     </div>
   </div>
-);
+  );
+};
 
 export default ProductCardGrid;

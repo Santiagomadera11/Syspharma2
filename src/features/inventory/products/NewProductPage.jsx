@@ -14,11 +14,12 @@ const NewProductPage = () => {
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "", // <-- AGREGADO
+    marca: "",
     tipoProducto: "Producto General",
     categoriaId: "",
     proveedorId: "",
     precio: "",
-    stock: "",
+    stock: 0,
     estado: true,
     esDestacado: false,
     enOferta: false,
@@ -60,11 +61,12 @@ const NewProductPage = () => {
         setFormData({
           nombre: product.nombre || "",
           descripcion: product.descripcion || "", // <-- AGREGADO
+          marca: product.marca || "",
           tipoProducto: product.tipoProducto || "Producto General",
           categoriaId: product.categoriaId || "",
           proveedorId: product.proveedorId || "",
           precio: product.precio || "",
-          stock: product.stock || "",
+          stock: product.stock ?? 0,
           estado: product.estado !== undefined ? product.estado : true,
           esDestacado: product.esDestacado || false,
           enOferta: product.enOferta || false,
@@ -124,6 +126,8 @@ const NewProductPage = () => {
     const payload = {
       nombre: formData.nombre.trim(),
       tipoProducto: formData.tipoProducto,
+      marca: formData.marca ? formData.marca.trim() : null,
+      presentacion: formData.presentacion ? formData.presentacion.trim() : null,
       categoriaId: Number(formData.categoriaId),
       proveedorId: formData.proveedorId ? Number(formData.proveedorId) : null,
       precio: Number(formData.precio),
@@ -137,7 +141,6 @@ const NewProductPage = () => {
       // Detalles del medicamento
       composicion: formData.composicion,
       concentracion: formData.concentracion,
-      presentacion: formData.presentacion,
       viaAdministracion: formData.viaAdministracion,
       registroSanitario: formData.registroSanitario,
       requiereFormula: formData.requiereFormula,
@@ -150,8 +153,34 @@ const NewProductPage = () => {
 
     try {
       if (isEditing) {
-        await productService.update({ id: editingProductId, ...payload });
+        const updated = await productService.update({ id: editingProductId, ...payload });
+
+        // Actualizar en localStorage si existe para sincronizar la landing pública
+        const stored = JSON.parse(localStorage.getItem("syspharma_products") || "[]");
+        const index = stored.findIndex(p => p.id === updated.id);
+        if (index !== -1) {
+          stored[index] = {
+            id: updated.id,
+            nombre: updated.nombre,
+            precio: updated.precio,
+            stock: updated.stock,
+            imagen: updated.imagen,
+            categoria: updated.categoria,
+            marca: updated.marca,
+            presentacion: updated.presentacion,
+            tipoProducto: updated.tipoProducto,
+            composicion: updated.composicion,
+            concentracion: updated.concentracion,
+            viaAdministracion: updated.viaAdministracion,
+            registroSanitario: updated.registroSanitario,
+            requiereFormula: updated.requiereFormula,
+            estado: updated.estado,
+          };
+          localStorage.setItem("syspharma_products", JSON.stringify(stored));
+        }
+
         window.dispatchEvent(new CustomEvent("products:changed"));
+        window.dispatchEvent(new Event("syspharma_products_updated"));
         setConfirmData({
           type: "success",
           title: "Producto Actualizado",
@@ -169,7 +198,15 @@ const NewProductPage = () => {
           precio: created.precio,
           stock: created.stock,
           imagen: created.imagen,
-          categoria: categories.find(c => c.id === Number(formData.categoriaId))?.nombre || "Sin categoría",
+          categoria: created.categoria,
+          marca: created.marca,
+          presentacion: created.presentacion,
+          tipoProducto: created.tipoProducto,
+          composicion: created.composicion,
+          concentracion: created.concentracion,
+          viaAdministracion: created.viaAdministracion,
+          registroSanitario: created.registroSanitario,
+          requiereFormula: created.requiereFormula,
           estado: true,
         };
         localStorage.setItem("syspharma_products", JSON.stringify([...stored, newProduct]));
@@ -185,7 +222,7 @@ const NewProductPage = () => {
           onConfirm: () => {
             setShowConfirmModal(false);
             setFormData({
-              nombre: "", descripcion: "", tipoProducto: "Producto General", categoriaId: "", proveedorId: "",
+              nombre: "", descripcion: "", marca: "", tipoProducto: "Producto General", categoriaId: "", proveedorId: "",
               precio: "", stock: "", estado: true, esDestacado: false, enOferta: false,
               porcentajeDescuento: 0, esRecomendado: false, composicion: "", concentracion: "",
               presentacion: "", viaAdministracion: "", registroSanitario: "", requiereFormula: false, imagen: null,
@@ -256,6 +293,14 @@ const NewProductPage = () => {
                   value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} />
               </div>
 
+              {/* Marca */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Marca</label>
+                <input type="text" className="w-full text-sm border border-gray-300 rounded px-3 py-2 placeholder-gray-400"
+                  placeholder="Ej: Bayer, Roche, Genfar..."
+                  value={formData.marca} onChange={(e) => setFormData({ ...formData, marca: e.target.value })} />
+              </div>
+
               {/* Descripción (AGREGADO) */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Descripción</label>
@@ -287,17 +332,12 @@ const NewProductPage = () => {
                 </select>
               </div>
 
-              {/* Proveedor - usa id */}
+              {/* Presentación */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Proveedor</label>
-                <select className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-                  value={formData.proveedorId}
-                  onChange={(e) => setFormData({ ...formData, proveedorId: e.target.value })}>
-                  <option value="">Seleccionar...</option>
-                  {providers.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nombre}</option>
-                  ))}
-                </select>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Presentación</label>
+                <input type="text" className="w-full text-sm border border-gray-300 rounded px-3 py-2 placeholder-gray-400"
+                  placeholder="Ej: Cápsula, Tableta, Jarabe..."
+                  value={formData.presentacion} onChange={(e) => setFormData({ ...formData, presentacion: e.target.value })} />
               </div>
 
               {/* Precio y Stock */}
@@ -308,11 +348,16 @@ const NewProductPage = () => {
                   <input type="number" className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded"
                     value={formData.precio} onChange={(e) => setFormData({ ...formData, precio: e.target.value })} />
                 </div>
-                <div className="relative">
+                <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Stock</label>
-                  <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                  <input type="number" className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded"
-                    value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} />
+                  <div className="relative">
+                    <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                    <input type="number" readOnly className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded bg-gray-100 cursor-not-allowed font-medium text-gray-600"
+                      value={formData.stock} />
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1 leading-relaxed">
+                    El stock se actualiza automáticamente con las compras registradas.
+                  </p>
                 </div>
               </div>
 
@@ -331,11 +376,6 @@ const NewProductPage = () => {
                         <label className="block text-xs font-bold text-gray-700 mb-1">Concentración</label>
                         <input type="text" className="w-full text-sm border border-gray-300 rounded px-3 py-2"
                           value={formData.concentracion} onChange={(e) => setFormData({ ...formData, concentracion: e.target.value })} />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Presentación</label>
-                        <input type="text" className="w-full text-sm border border-gray-300 rounded px-3 py-2"
-                          value={formData.presentacion} onChange={(e) => setFormData({ ...formData, presentacion: e.target.value })} />
                       </div>
                     </div>
                     <div>

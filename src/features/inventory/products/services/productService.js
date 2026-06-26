@@ -4,15 +4,17 @@ const ENDPOINT = "Producto";
 
 const mapProduct = (p) => ({
   ...p,
+  marca: p.marca || "",
   categoria: p.categoriaNombre || p.categoria || "",
   proveedor: p.proveedorNombre || p.proveedor || "",
   tipoProducto: p.medicamento ? "Medicamento" : "Producto General",
   composicion: p.medicamento?.composicion || "",
-  concentracion: p.medicamento?.concentracion || "",
-  presentacion: p.medicamento?.presentacion || "",
+  concentracion: p.concentracion || p.medicamento?.concentracion || "",
+  presentacion: p.presentacion || "",
   viaAdministracion: p.medicamento?.viaAdministracion || "",
   registroSanitario: p.medicamento?.registroSanitario || "",
-  requiereFormula: p.medicamento?.requiereFormula || false,
+  requiereFormula: p.requiereFormulaMedica !== undefined ? p.requiereFormulaMedica : (p.medicamento?.requiereFormula || false),
+  requiereFormulaMedica: p.requiereFormulaMedica !== undefined ? p.requiereFormulaMedica : (p.medicamento?.requiereFormula || false),
 });
 
 export const productService = {
@@ -32,6 +34,8 @@ export const productService = {
     const payload = {
       nombre: product.nombre,
       descripcion: product.descripcion || null,
+      marca: product.marca || null,
+      presentacion: product.presentacion || null,
       categoriaId: product.categoriaId,
       proveedorId: product.proveedorId || null,
       precio: product.precio,
@@ -44,7 +48,6 @@ export const productService = {
         ? {
             composicion: product.composicion || null,
             concentracion: product.concentracion || null,
-            presentacion: product.presentacion || null,
             viaAdministracion: product.viaAdministracion || null,
             registroSanitario: product.registroSanitario || null,
             requiereFormula: !!product.requiereFormula,
@@ -63,6 +66,8 @@ export const productService = {
       id: product.id,
       nombre: product.nombre,
       descripcion: product.descripcion || null,
+      marca: product.marca || null,
+      presentacion: product.presentacion || null,
       categoriaId: product.categoriaId,
       proveedorId: product.proveedorId || null,
       precio: product.precio,
@@ -75,7 +80,6 @@ export const productService = {
         ? {
             composicion: product.composicion || null,
             concentracion: product.concentracion || null,
-            presentacion: product.presentacion || null,
             viaAdministracion: product.viaAdministracion || null,
             registroSanitario: product.registroSanitario || null,
             requiereFormula: !!product.requiereFormula,
