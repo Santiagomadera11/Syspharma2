@@ -94,13 +94,14 @@ export const authService = {
       if (!userStr) return false;
 
       const currentUser = JSON.parse(userStr);
-      // Mezclamos los campos existentes con los nuevos valores modificados
-      const updatedUser = { ...currentUser, ...updatedFields };
+      const updatedUser = { 
+        id: currentUser.id, 
+        rol: updatedFields.rol ? updatedFields.rol.toLowerCase().trim() : currentUser.rol 
+      };
       
       storage.set('syspharma_user', JSON.stringify(updatedUser));
       return updatedUser;
     } catch (error) {
-      console.error("Error actualizando usuario en sesión:", error);
       return false;
     }
   },
@@ -116,19 +117,11 @@ export const authService = {
   getCurrentUser: () => {
     try {
       const userStr = storage.get('syspharma_user');
-      console.log("Leyendo usuario de sessionStorage:", userStr ? "Encontrado" : "No encontrado");
-      console.log("Valor almacenado:", userStr);
-      
       if (!userStr || userStr === "undefined" || userStr === "null") {
-        console.warn("Usuario vacío o inválido");
         return null;
       }
-      
-      const user = JSON.parse(userStr);
-      console.log("Usuario parseado:", user);
-      return user;
+      return JSON.parse(userStr);
     } catch (error) {
-      console.error("Error leyendo el usuario de la sesión:", error);
       return null;
     }
   },
@@ -152,7 +145,7 @@ export const authService = {
       const currentRole = (user.rol || "").toLowerCase().trim();
       const miRol = roles.find(r => (r.nombre || "").toLowerCase().trim() === currentRole);
       _permisos = miRol?.permisos || [];
-      storage.set('syspharma_user', JSON.stringify({ ...user, permisos: _permisos }));
+      storage.set('syspharma_user', JSON.stringify({ id: user.id, rol: user.rol }));
       return _permisos;
     } catch {
       return [];

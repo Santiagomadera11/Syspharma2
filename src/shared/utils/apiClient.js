@@ -13,9 +13,7 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem("token") || sessionStorage.getItem("syspharma_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("✅ Token adjuntado al header Authorization");
     } else {
-      console.warn("⚠️ No hay token disponible");
     }
     return config;
   },

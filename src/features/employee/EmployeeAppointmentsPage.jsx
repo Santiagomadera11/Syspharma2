@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect } from "react";
 import {
   Calendar,
@@ -27,7 +28,7 @@ import { EmployeeAvailabilityConfigPage } from "./services/appointments/Employee
 import EmployeeDoctorsPage from "./services/doctors/EmployeeDoctorsPage";
 
 export const EmployeeAppointmentsPage = () => {
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const userRole = (currentUser.rol || "").toLowerCase().trim();
   const userPerms = (currentUser.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const isAdmin = userRole === "administrador";
@@ -77,11 +78,9 @@ export const EmployeeAppointmentsPage = () => {
   const loadData = async () => {
     try {
       const appts = await appointmentService.getAppointments();
-      console.log("📋 Citas cargadas:", appts);
       setAppointments(appts);
 
       const docs = await appointmentService.getDoctors();
-      console.log("👨‍⚕️ Médicos cargados:", docs);
       setDoctors(docs);
     } catch (error) {
       console.error("❌ Error cargando datos:", error);

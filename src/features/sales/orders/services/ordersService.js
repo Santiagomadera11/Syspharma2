@@ -23,7 +23,6 @@ export const ordersService = {
   },
 
   create: async (orderData) => {
-    console.log("📦 ordersService - Enviando al servidor:", orderData);
     const res = await apiClient.post(ENDPOINT, orderData);
     notifyChange();
     return res.data;

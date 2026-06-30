@@ -27,7 +27,6 @@ export const UserFormModal = ({ isOpen, onClose, onSave, userToEdit }) => {
   useEffect(() => {
     if (!isOpen) return;
 
-    userService.getRoles().then(roles => setRolesOptions(roles)).catch(console.error);
 
     // Cargar tipos de documento desde backend con fallback a localStorage
     fetchDocumentTypes().then(types => setDocumentTypes(types));

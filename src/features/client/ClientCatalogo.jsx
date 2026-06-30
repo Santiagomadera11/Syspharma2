@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { LS, read, write } from "../../shared/services/lsService";
@@ -26,6 +27,7 @@ const ProductCard = ({ product, onAdd }) => {
 };
 
 const ClientCatalogo = () => {
+  const { currentUser } = useCurrentUser();
   const [products, setProducts] = useState([]);
   // Depuración: mostrar productos en consola
   console.log("[DEBUG] Productos en memoria:", products);
@@ -51,13 +53,10 @@ const ClientCatalogo = () => {
 
   // load user from localStorage for greeting
   useEffect(() => {
-    try {
-      const u = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-      if (u && u.nombre) setUserName(u.nombre);
-    } catch {
-      // ignore parse errors
+    if (currentUser && currentUser.nombre) {
+      setUserName(currentUser.nombre);
     }
-  }, []);
+  }, [currentUser]);
 
   // load products
   useEffect(() => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Lock, ArrowRight, ChevronLeft, X, Key } from "lucide-react";
 import { authService } from "../auth/authService";
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import { sendRecoveryEmail } from "./passwordRecoveryService";
 import axios from "axios";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
@@ -73,6 +74,7 @@ const PERMS_EMPLOYEE = [
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { loginUser } = useCurrentUser();
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [toast, setToast] = useState(null);
   const [error, setError] = useState("");
@@ -244,12 +246,12 @@ const LoginPage = () => {
       sessionStorage.setItem("syspharma_token", data.token);
       localStorage.setItem("token", data.token);
 
-      const normalizedUser = {
-        ...data.user,
+      const userSession = {
+        id: data.user.id,
         rol: data.user.rol?.toLowerCase().trim(),
-        permisos: Array.isArray(data.user.permisos) ? data.user.permisos : [],
       };
-      sessionStorage.setItem("syspharma_user", JSON.stringify(normalizedUser));
+      sessionStorage.setItem("syspharma_user", JSON.stringify(userSession));
+      await loginUser(data.user.id, data.token);
 
       try {
         const response = await axios.get("http://localhost:5055/api/Producto", {
@@ -275,7 +277,7 @@ const LoginPage = () => {
         console.warn("⚠️ No se pudieron sincronizar productos:", err.message);
       }
 
-      const role = normalizedUser.rol;
+      const role = userSession.rol;
       const userPerms = data.user?.permisos || [];
 
       const rutasPorRol = {
@@ -290,7 +292,6 @@ const LoginPage = () => {
 
       navigate(redirectPath);
 
-      console.log("✨ LOGIN EXITOSO - Navegando a:", redirectPath);
       navigate(redirectPath);
     } catch (err) {
       console.error("❌ Error al entrar:", err);

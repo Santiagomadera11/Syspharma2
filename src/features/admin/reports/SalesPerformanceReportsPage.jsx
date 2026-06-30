@@ -75,6 +75,53 @@ export const SalesPerformanceReportsPage = () => {
     return Array.from(map.values()).sort((a, b) => b.totalServicios - a.totalServicios);
   }, [citas]);
 
+  const handleDownloadCSV = () => {
+    if (activeTab === "empleados") {
+      if (!employeesSummary.length) {
+        alert("No hay datos para exportar");
+        return;
+      }
+      const headers = ["Empleado", "Total Ventas", "Total Gastos", "Total Turnos"];
+      const rows = employeesSummary.map(e => [
+        e.userName || "",
+        e.totalVentas || 0,
+        e.totalGastos || 0,
+        e.totalTurnos || 0
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(","), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `rendimiento_empleados_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      if (!medicosSummary.length) {
+        alert("No hay datos para exportar");
+        return;
+      }
+      const headers = ["Médico", "Total Servicios", "Total Ingresos"];
+      const rows = medicosSummary.map(m => [
+        m.nombreMedico || "",
+        m.totalServicios || 0,
+        m.totalIngresos || 0
+      ]);
+
+      const csvContent = "data:text/csv;charset=utf-8," 
+        + [headers.join(","), ...rows.map(r => r.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `productividad_medica_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   const topSeller = employeesSummary[0] || null;
   const totalVentasGrupo = employeesSummary.reduce((s, e) => s + e.totalVentas, 0);
   const META_VENTAS = 5000000;
@@ -97,7 +144,7 @@ export const SalesPerformanceReportsPage = () => {
           <h1 className="text-2xl font-bold text-gray-800">Dashboard de Rendimiento</h1>
           <p className="text-sm text-gray-500 mt-1">Análisis de desempeño de empleados y médicos</p>
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+        <button onClick={handleDownloadCSV} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
           <Download size={16} /> Descargar
         </button>
       </div>

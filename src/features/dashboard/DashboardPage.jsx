@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,7 +16,8 @@ const COLORS = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6"];
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   
   // --- 1. ESTADO DE RANGO DE FECHAS (EL CALENDARIO) ---
   const todayStr = new Date().toISOString().split('T')[0];

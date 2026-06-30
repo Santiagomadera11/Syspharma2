@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useRef } from "react";
 import { Camera, Lock, Edit2, Check, X } from "lucide-react";
 import { ChangePasswordModal } from "./components/ChangePasswordModal";
@@ -7,13 +8,8 @@ import { getDocumentTypes } from "../settings/services/parameterService";
 import { userService } from "../users/services/userService";
 
 export const ClientMiPerfil = () => {
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-    } catch {
-      return {};
-    }
-  });
+  const { currentUser, refreshUser } = useCurrentUser();
+  const [user, setUser] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -34,10 +30,10 @@ export const ClientMiPerfil = () => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const sessionUser = authService.getCurrentUser() || {};
-    setUser(sessionUser);
+    if (!currentUser) return;
+    setUser(currentUser);
 
-    const full = (sessionUser.nombre || "").trim();
+    const full = (currentUser.nombre || "").trim();
     let derivedFirst = "";
     let derivedLast = "";
 
@@ -48,14 +44,13 @@ export const ClientMiPerfil = () => {
     }
 
     setFormData({
-      nombres: derivedFirst || sessionUser.nombres || "",
-      apellidos: derivedLast || sessionUser.apellidos || "",
-      telefono: sessionUser.telefono || "",
-      documento: sessionUser.documento || "",
-      correo: sessionUser.email || sessionUser.correo || "",
-      direccion: sessionUser.direccion || "",
-      // FIX: guardamos el ID numérico, no el texto
-      tipoDocumento: sessionUser.tipoDocumentoId || "",
+      nombres: derivedFirst || currentUser.nombres || "",
+      apellidos: derivedLast || currentUser.apellidos || "",
+      telefono: currentUser.telefono || "",
+      documento: currentUser.documento || "",
+      correo: currentUser.email || currentUser.correo || "",
+      direccion: currentUser.direccion || "",
+      tipoDocumento: currentUser.tipoDocumentoId || "",
     });
 
     try {
@@ -64,7 +59,7 @@ export const ClientMiPerfil = () => {
     } catch {
       setDocumentTypes([]);
     }
-  }, []);
+  }, [currentUser]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -122,11 +117,7 @@ export const ClientMiPerfil = () => {
         tipoDocumentoId: formData.tipoDocumento ? Number(formData.tipoDocumento) : null,
       };
 
-      const updatedUserSession = authService.updateUserInSession(sessionUpdates);
-      if (updatedUserSession) {
-        setUser(updatedUserSession);
-      }
-
+      await refreshUser();
       setIsEditing(false);
       setToast({
         message: "Perfil actualizado correctamente en el sistema",
@@ -149,6 +140,15 @@ export const ClientMiPerfil = () => {
       zIndex: 70,
     });
   };
+
+  if (!user) {
+    return (
+      <div className="h-full flex items-center justify-center p-8 font-sans">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500 mr-3"></div>
+        <span className="text-gray-600 font-medium">Cargando perfil...</span>
+      </div>
+    );
+  }
 
   const getInitials = () => {
     const full = (user.nombre || formData.nombres || "").trim();
@@ -227,15 +227,9 @@ export const ClientMiPerfil = () => {
                       const result = await userService.uploadFoto(user.id, file);
                       console.log("Resultado:", result);
 
-                      const avatarUrl = result.avatar.startsWith("http")
-                        ? result.avatar
-                        : `http://localhost:5055${result.avatar}`;
-                      const updated = authService.updateUserInSession({ avatar: avatarUrl });
-                      if (updated) setUser(updated);
-
+                      await refreshUser();
                       setTempAvatar(null);
                       setToast({ message: "Foto actualizada correctamente", type: "success", zIndex: 70 });
-                      window.dispatchEvent(new Event("permissionsUpdated"));
 
                     } catch (error) {
                       // ✅ Log 2: ver el error completo

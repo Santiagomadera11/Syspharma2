@@ -210,7 +210,6 @@ const NewProductPage = () => {
           estado: true,
         };
         localStorage.setItem("syspharma_products", JSON.stringify([...stored, newProduct]));
-        console.log("✅ Producto guardado en localStorage:", newProduct);
 
         window.dispatchEvent(new CustomEvent("products:changed"));
         window.dispatchEvent(new Event("syspharma_products_updated"));

@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -20,16 +21,8 @@ const fmt = (v) =>
 export const EmployeeSalesPage = () => {
   const navigate = useNavigate();
 
-  // ── Leer usuario y permisos (se re-lee en cada render para capturar cambios en tiempo real)
-  const getUser = () => JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-  const [user, setUser] = useState(getUser);
-
-  // Recarga permisos cuando el admin los actualiza en tiempo real
-  useEffect(() => {
-    const handlePermissionsUpdated = () => setUser(getUser());
-    window.addEventListener("permissionsUpdated", handlePermissionsUpdated);
-    return () => window.removeEventListener("permissionsUpdated", handlePermissionsUpdated);
-  }, []);
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
 
   // ── Helpers de permisos
   const isAdmin = (user.rol || "").toLowerCase().trim() === "administrador";
@@ -75,6 +68,7 @@ export const EmployeeSalesPage = () => {
   }, [canViewSales]);
 
   const loadTurno = useCallback(async () => {
+    if (!user?.id) return;
     try {
       const turno = await turnService.getActiveTurn(user?.id);
       setCurrentTurn(turno);
@@ -86,6 +80,7 @@ export const EmployeeSalesPage = () => {
   }, [user?.id]);
 
   const loadTodayExpenses = useCallback(async () => {
+    if (!user?.id) return;
     try {
       const data = await expensesService.getTodayExpenses(user.id);
       setTodayExpenses(Array.isArray(data) ? data : []);

@@ -62,8 +62,12 @@ export const CategoriesPage = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      let filterParam = "todos";
+      if (statusFilter === "Activo") filterParam = "activo";
+      if (statusFilter === "Inactivo") filterParam = "inactivo";
+
       const [cats, prods] = await Promise.all([
-        categoryService.getAllIncludingInactive(),
+        categoryService.getAllIncludingInactive(filterParam),
         productService.getAll(),
       ]);
       const enriched = cats.map((cat) => ({
@@ -86,7 +90,7 @@ export const CategoriesPage = () => {
       window.removeEventListener("categories:changed", loadData);
       window.removeEventListener("products:changed", loadData);
     };
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     if (notification) {
@@ -247,7 +251,7 @@ export const CategoriesPage = () => {
                         : <span className="text-gray-400">Sin asociar</span>}
                     </td>
                     <td className="py-1.5 px-3 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${cat.estado ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${cat.estado ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                         {cat.estado ? "Activo" : "Inactivo"}
                       </span>
                     </td>

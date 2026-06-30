@@ -36,28 +36,41 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-function App() {
+import { UserProvider, useCurrentUser } from "./shared/context/UserContext";
+
+function AppContent() {
   usePermissionsSync(); // 🔄 Sincronizar permisos cada 30 segundos
+  const { refreshUser } = useCurrentUser();
 
   useEffect(() => {
-    const user = authService.getCurrentUser();
+    const userStr = sessionStorage.getItem("syspharma_user");
     const token = sessionStorage.getItem("syspharma_token");
 
     // Recargar permisos para mantener la sesión sincronizada con la base de datos
-    if (token && user) {
-      authService.recargarPermisos();
+    if (token && userStr) {
+      authService.recargarPermisos().then(() => {
+        refreshUser();
+      });
     }
   }, []);
 
   return (
+    <div className="app-container">
+      <AppRouter />
+      <ToastHost />
+      <CartDrawer />
+    </div>
+  );
+}
+
+function App() {
+  return (
     <ErrorBoundary>
-      <CartProvider>
-        <div className="app-container">
-          <AppRouter />
-          <ToastHost />
-          <CartDrawer />
-        </div>
-      </CartProvider>
+      <UserProvider>
+        <CartProvider>
+          <AppContent />
+        </CartProvider>
+      </UserProvider>
     </ErrorBoundary>
   );
 }

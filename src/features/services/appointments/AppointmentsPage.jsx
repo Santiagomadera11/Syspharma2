@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Calendar as CalendarIcon, List, Settings, Plus, Search, Eye, Edit, Trash2,
@@ -17,7 +18,7 @@ const getAuthHeaders = () => ({
 });
 
 export const AppointmentsPage = () => {
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const currentUserRole = (currentUser.rol || "Empleado").toLowerCase();
   const isEmployeePanel = currentUserRole === "empleado";
   

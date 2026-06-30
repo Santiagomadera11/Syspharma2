@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -29,7 +30,7 @@ const EmployeeSidebar = ({ isOpen, onClose, onShowLogoutModal }) => {
     return () => window.removeEventListener("permissionsUpdated", handlePermissionsUpdate);
   }, []);
 
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const userRole = (currentUser.rol || "").toLowerCase().trim();
   const userPerms = (currentUser.permisos || []).map(normalizePerm);
 

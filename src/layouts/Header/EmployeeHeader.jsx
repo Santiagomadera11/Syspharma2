@@ -3,25 +3,14 @@ import { Bell, Menu, Stethoscope, Eye, ShoppingBag } from "lucide-react";
 import { appointmentService } from "../../features/services/appointments/services/appointmentService";
 import { ordersService } from "../../features/sales/orders/services/ordersService";
 import { useNavigate } from "react-router-dom";
+import { useCurrentUser } from "/src/shared/context/UserContext";
 
 export const EmployeeHeader = ({ onMenuClick }) => {
-  const [user, setUser] = useState({ nombre: "Usuario", rol: "Empleado" });
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || { nombre: "Usuario", rol: "Empleado" };
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const storedUser = sessionStorage.getItem("syspharma_user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-
-    // Escuchar cambios de foto/permisos
-    const handleUpdate = () => {
-      const updated = sessionStorage.getItem("syspharma_user");
-      if (updated) setUser(JSON.parse(updated));
-    };
-    window.addEventListener("permissionsUpdated", handleUpdate);
-    return () => window.removeEventListener("permissionsUpdated", handleUpdate);
-  }, []);
 
   useEffect(() => {
     const loadNotifications = async () => {
