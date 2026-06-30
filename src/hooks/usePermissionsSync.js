@@ -1,20 +1,18 @@
 import { useEffect, useRef } from "react";
 import { rolesService } from "../features/settings/rolesService";
+import { useCurrentUser } from "/src/shared/context/UserContext";
 
 const POLL_INTERVAL = 30_000; // 30 segundos
 
 export const usePermissionsSync = () => {
   const intervalRef = useRef(null);
+  const { currentUser, refreshUser } = useCurrentUser();
 
   useEffect(() => {
     const sync = async () => {
       try {
-        const currentUser = JSON.parse(
-          sessionStorage.getItem("syspharma_user") || "{}"
-        );
-
         // Solo aplica para empleados (no admin, no cliente)
-        if (!currentUser?.rolId || currentUser?.rol === "Administrador") return;
+        if (!currentUser?.rolId || currentUser?.rol?.toLowerCase().trim() === "administrador") return;
 
         // Consulta los permisos actuales del rol desde la BD
         const permisosActuales = await rolesService.getPermisos(currentUser.rolId);
@@ -29,16 +27,14 @@ export const usePermissionsSync = () => {
           permisosActuales.some((p) => !permisosGuardados.includes(p));
 
         if (cambiaron) {
-          // Actualiza sessionStorage con los nuevos permisos
-          currentUser.permisos = permisosActuales;
-          sessionStorage.setItem("syspharma_user", JSON.stringify(currentUser));
+          // Refrescar el contexto
+          await refreshUser();
 
           // Notifica a todos los componentes
           window.dispatchEvent(new Event("permissionsUpdated"));
         }
       } catch (error) {
-        // Silencioso — no interrumpir al usuario si falla
-        console.warn("Error sincronizando permisos:", error);
+        // Silencioso
       }
     };
 
@@ -49,5 +45,5 @@ export const usePermissionsSync = () => {
     intervalRef.current = setInterval(sync, POLL_INTERVAL);
 
     return () => clearInterval(intervalRef.current);
-  }, []);
+  }, [currentUser?.id, currentUser?.rolId, refreshUser]);
 };

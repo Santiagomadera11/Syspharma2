@@ -10,7 +10,6 @@ const UserDetailModal = ({ isOpen, onClose, user, onUpdate }) => {
   const [roles, setRoles] = useState([]);
 
   useEffect(() => {
-    if (isOpen) userService.getRoles().then(setRoles).catch(console.error);
   }, [isOpen]);
 
   useEffect(() => {

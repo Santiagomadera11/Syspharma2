@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState } from "react";
 import { X, Search, AlertCircle, ChevronRight, ChevronLeft, Loader } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +17,8 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
   const [toast, setToast] = useState(null);
   const [searchError, setSearchError] = useState("");
 
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const canCreateReturn = userRole === "administrador" || userPerms.includes("sales.create") || userPerms.includes("sales.return");
@@ -97,7 +99,6 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
       detalles: detallesParaDevolver,
     };
 
-    console.log("📋 DTO a enviar:", dtoParaEnviar);
 
     try {
       setLoading(true);
@@ -108,7 +109,7 @@ export const ReturnForm = ({ isOpen, onClose, onSuccess }) => {
         resetForm();
         onSuccess?.();
         // ← NUEVO: Navegar de vuelta a ventas después de crear devolución (se refrescará automáticamente)
-        const userRole = (JSON.parse(sessionStorage.getItem("syspharma_user") || "{}").rol || "").toLowerCase().trim();
+        const userRole = (user.rol || "").toLowerCase().trim();
         navigate(userRole === "administrador" ? "/admin/ventas" : "/employee/ventas");
       }, 1500);
     } catch (err) {

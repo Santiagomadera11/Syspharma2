@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -40,7 +41,8 @@ export const ProductsPage = () => {
 
   const itemsPerPage = 6;
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const isAdmin = userRole === "administrador";
@@ -109,7 +111,6 @@ export const ProductsPage = () => {
       }));
 
       localStorage.setItem("syspharma_products", JSON.stringify(productsForPublic));
-      console.log("✅ Productos sincronizados a localStorage:", productsForPublic.length);
 
       window.dispatchEvent(new Event("syspharma_products_updated"));
     } catch (err) {

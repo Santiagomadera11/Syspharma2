@@ -36,10 +36,8 @@ export const returnService = {
       })),
     };
 
-    console.log("📤 Enviando payload CREATE devolución:", payload);
     try {
       const res = await apiClient.post(ENDPOINT, payload);
-      console.log("✅ Devolución creada:", res.data);
       return res.data;
     } catch (err) {
       console.error("❌ Error al crear devolución:", {

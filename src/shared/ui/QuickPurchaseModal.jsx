@@ -27,7 +27,6 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
         });
       }
     } catch (error) {
-      console.error("Error cargando datos del usuario:", error);
     }
   }, []);
 

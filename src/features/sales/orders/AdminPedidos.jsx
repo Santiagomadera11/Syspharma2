@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Search, Eye, ChevronLeft, ChevronRight, Calendar,
@@ -10,7 +11,8 @@ import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 export const AdminPedidos = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((p) => String(p || "").toLowerCase().trim());
   const isAdmin = userRole === "administrador";

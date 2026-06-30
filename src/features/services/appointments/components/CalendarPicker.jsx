@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 
@@ -15,7 +16,7 @@ export const CalendarPicker = ({
   minDate,
   maxDate,
 }) => {
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const currentUserRole = (currentUser.rol || "Empleado").toLowerCase();
   const isEmployeePanel = currentUserRole === "empleado";
   const selectedBgClass = isEmployeePanel ? "bg-blue-600" : "bg-emerald-600";

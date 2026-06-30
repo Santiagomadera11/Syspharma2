@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { RotateCcw, ArrowLeft } from "lucide-react";
@@ -8,7 +9,8 @@ export const ReturnsPage = () => {
   const navigate = useNavigate();
   const { devoluciones, loading, fetchAll } = useReturns();
 
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const ventasPath = userRole === "administrador" ? "/admin/ventas" : "/employee/ventas";

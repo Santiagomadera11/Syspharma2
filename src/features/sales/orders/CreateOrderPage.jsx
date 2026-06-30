@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, AlertCircle, Search } from "lucide-react";
@@ -24,7 +25,7 @@ export const CreateOrderPage = () => {
 
   const esUnPedido = location.pathname.toLowerCase().includes("pedido");
   const isEmployeePath = location.pathname.startsWith("/employee");
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const isEmployeeRole = (currentUser.rol || "") === "Empleado";
 
   const primary = isEmployeeRole ? "#2563eb" : "#059669";
@@ -37,6 +38,13 @@ export const CreateOrderPage = () => {
   const [clientInfo, setClientInfo] = useState({
     documento: "", nombre: "", telefono: "", correo: "", metodoPagoId: "",
   });
+  const [montoRecibido, setMontoRecibido] = useState("");
+  const [referenciaPago, setReferenciaPago] = useState("");
+
+  useEffect(() => {
+    setMontoRecibido("");
+    setReferenciaPago("");
+  }, [clientInfo.metodoPagoId]);
 
   // ============ NUEVO: Estado para IVA ============
   const [porcentajeIva, setPorcentajeIva] = useState(19);
@@ -99,7 +107,6 @@ export const CreateOrderPage = () => {
           setUsuarios(Array.isArray(data) ? data : []);
         }
       } catch (err) {
-        console.warn("Error cargando usuarios:", err);
       }
     };
     cargarUsuarios();
@@ -237,7 +244,6 @@ export const CreateOrderPage = () => {
           citaIds: serviceCart.map((s) => s.appointmentId).filter(Boolean), // ← NUEVO
         };
 
-        console.log("📝 Enviando PEDIDO:", JSON.stringify(pedidoPayload, null, 2));
         const pedidoResponse = await ordersService.create(pedidoPayload);
 
         // ── Actualizar stock en localStorage para reflejar el pedido ──
@@ -272,6 +278,7 @@ export const CreateOrderPage = () => {
           clienteDocumento: clientInfo.documento || "",
           clienteTelefono: clientInfo.telefono || "",
           metodoPagoId: Number(clientInfo.metodoPagoId),
+          referenciasPago: referenciaPago || null,
           porcentajeIva: porcentajeIva,
           subtotal: subtotal,
           iva: iva,
@@ -298,7 +305,6 @@ export const CreateOrderPage = () => {
           })),
         };
 
-        console.log("💰 Enviando VENTA:", JSON.stringify(ventaPayload, null, 2));
         const ventaResponse = await salesService.create(ventaPayload);
 
         // ── Actualizar stock en localStorage para reflejar la venta ──
@@ -474,6 +480,12 @@ export const CreateOrderPage = () => {
               disabled={!clientInfo.nombre || (isEmployeeRole && !turnoActivo)}
               porcentajeIva={porcentajeIva}
               esUnPedido={esUnPedido}
+              metodoPagoId={clientInfo.metodoPagoId}
+              paymentMethods={paymentMethods}
+              montoRecibido={montoRecibido}
+              setMontoRecibido={setMontoRecibido}
+              referenciaPago={referenciaPago}
+              setReferenciaPago={setReferenciaPago}
             />
           </div>
         </div>

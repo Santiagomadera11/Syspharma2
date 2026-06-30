@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useCallback } from "react";
 import { X, Save, Plus, Trash2, CheckCircle } from "lucide-react";
 import axios from "axios";
@@ -9,7 +10,7 @@ const getAuthHeaders = () => ({
 });
 
 const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", onSave }) => {
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const isEmployee = currentUser.rol === "Empleado";
   const headerBg = isEmployee ? "bg-blue-50" : "bg-green-50";
   const headerBorder = isEmployee ? "border-blue-200" : "border-green-200";

@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useEffect, useState } from "react";
 import { Search, Calendar, List, Plus, X, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
 import { appointmentService } from "../services/appointments/services/appointmentService";
@@ -7,6 +8,7 @@ import AppointmentsCalendarView from "./components/AppointmentsCalendarView";
 import { availabilityService } from "../services/appointments/services/availabilityService";
 
 export const ClientMisCitas = () => {
+  const { currentUser } = useCurrentUser();
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,7 +32,7 @@ export const ClientMisCitas = () => {
         window.removeEventListener("appointments:changed", onChange);
         window.removeEventListener("storage", onChange);
     };
-  }, []);
+  }, [currentUser]);
 
   const loadData = async () => {
     try {
@@ -40,8 +42,6 @@ export const ClientMisCitas = () => {
       ]);
 
       setDoctors(doctorsData);
-
-      const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
 
       if (!currentUser || !currentUser.id) {
         setAppointments([]);
@@ -72,14 +72,12 @@ export const ClientMisCitas = () => {
 
   // ✅ AQUÍ ESTÁ LA MAGIA: PRE-LLENAR DATOS
   const openNewAppointment = () => {
-    const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-    
     setEditingAppointment({
-      userId: currentUser.id,
-      paciente: currentUser.nombre || currentUser.name || "",
-      documento: currentUser.documento || "",
-      telefono: currentUser.telefono || "",
-      email: currentUser.email || "",
+      userId: currentUser?.id,
+      paciente: currentUser?.nombre || currentUser?.name || "",
+      documento: currentUser?.documento || "",
+      telefono: currentUser?.telefono || "",
+      email: currentUser?.email || "",
       fecha: "",
       hora: "",
       servicio: "",

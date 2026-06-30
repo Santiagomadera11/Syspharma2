@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useRef } from "react";
 import {
   ShoppingBag, DollarSign, Search, ChevronLeft, ChevronRight,
@@ -181,6 +182,7 @@ const FacturaModal = ({ order, onClose }) => {
 //  Vista principal de Mis Pedidos (cliente)
 // ─────────────────────────────────────────────────────────────
 export const ClientMisPedidos = () => {
+  const { currentUser } = useCurrentUser();
   const [orders, setOrders]               = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [filterStatus, setFilterStatus]   = useState("Todos");
@@ -203,10 +205,10 @@ export const ClientMisPedidos = () => {
 
   // 1. CARGAR PEDIDOS
   useEffect(() => {
+    if (!currentUser) return;
     const fetchOrders = async () => {
       setLoading(true);
       try {
-        const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
         const response = await ordersService.getAll();
         const data = Array.isArray(response) ? response : (response.data || []);
 
@@ -229,7 +231,7 @@ export const ClientMisPedidos = () => {
       }
     };
     fetchOrders();
-  }, []);
+  }, [currentUser]);
 
   // 2. FILTRADO
   useEffect(() => {

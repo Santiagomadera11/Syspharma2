@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useMemo, useState } from "react";
 import { Search, Plus, Eye, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { ReturnDetailModal } from "./ReturnDetailModal";
@@ -25,7 +26,8 @@ export const ReturnList = ({ devoluciones = [], loading, onRefresh }) => {
   const itemsPerPage = 5;
 
   // Validar permisos
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const canCreateReturn = userRole === "administrador" || userPerms.includes("sales.create") || userPerms.includes("sales.return");

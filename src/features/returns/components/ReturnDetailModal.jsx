@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState } from "react";
 import { X, CheckCircle, XCircle, Loader, Clock, User, Package, FileText } from "lucide-react";
 import { returnService } from "../services/returnService";
@@ -18,7 +19,8 @@ export const ReturnDetailModal = ({ isOpen, onClose, devolucion, onRefresh }) =>
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const userRole = (user.rol || "").toLowerCase().trim();
 
   if (!isOpen || !devolucion) return null;

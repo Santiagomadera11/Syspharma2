@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import {
@@ -72,7 +73,8 @@ const CarritoPage = () => {
   const formatCurrency = (amount) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(amount);
 
   const handleAbrirCheckout = () => {
-    const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+    const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
     const methods = getPaymentMethods();
     setPaymentMethods(methods || []);
     // Pre-llenar con la dirección del perfil si existe

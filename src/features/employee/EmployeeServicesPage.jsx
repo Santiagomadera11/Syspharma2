@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect } from "react";
 import {
   Plus,
@@ -22,6 +23,7 @@ import { turnService } from "../sales/services/turnService";
 const SERVICES_ENDPOINT = "Servicio";
 
 export const EmployeeServicesPage = () => {
+  const { currentUser } = useCurrentUser();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,9 +41,7 @@ export const EmployeeServicesPage = () => {
   );
   const [showTurnTooltip, setShowTurnTooltip] = useState(false);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
-  const [user] = useState(
-    JSON.parse(sessionStorage.getItem("syspharma_user") || "{}"),
-  );
+  const user = currentUser || {};
 
   // Cargar servicios de la API
   useEffect(() => {
@@ -52,7 +52,6 @@ export const EmployeeServicesPage = () => {
     try {
       setLoading(true);
       const response = await apiClient.get(SERVICES_ENDPOINT);
-      console.log("📋 Servicios cargados:", response.data);
       setServices(response.data || []);
     } catch (error) {
       console.error("❌ Error cargando servicios:", error);

@@ -1,4 +1,7 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState } from "react";
+import { authService } from "../../auth/authService";
+import axios from "axios";
 import { X, Lock, AlertCircle, CheckCircle } from "lucide-react";
 import { userService } from "../../users/services/userService";
 
@@ -6,6 +9,7 @@ import { userService } from "../../users/services/userService";
  * Modal para cambiar contraseña con validación en 2 pasos
  */
 export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
+  const { currentUser } = useCurrentUser();
   const [step, setStep] = useState(1); // Paso 1: validar actual, Paso 2: nueva contraseña
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -15,7 +19,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
 
   if (!isOpen) return null;
 
-  const handleValidateCurrentPassword = (e) => {
+  const handleValidateCurrentPassword = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -24,26 +28,27 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
       return;
     }
 
-    const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+    const user = currentUser || {};
 
-    // Validar contra el usuario global en syspharma_users si existe, sino contra syspharma_user
-    const allUsers = userService.getAll();
-    const found = allUsers.find(
-      (u) => u.id === user.id || u.email === user.email,
-    );
-    const storedPassword = found?.password || user.password || "";
+    try {
+      setLoading(true);
+      const res = await authService.login(user.email, currentPassword);
+      if (res && res.error) {
+        setError("La contraseña actual no es correcta");
+        return;
+      }
 
-    if (currentPassword !== storedPassword) {
-      setError("La contraseña actual no es correcta");
-      return;
+      // Pasar al paso 2
+      setStep(2);
+      setCurrentPassword("");
+    } catch (err) {
+      setError("Error al validar la contraseña actual");
+    } finally {
+      setLoading(false);
     }
-
-    // Pasar al paso 2
-    setStep(2);
-    setCurrentPassword("");
   };
 
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -64,24 +69,16 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
 
     try {
       setLoading(true);
+      const user = currentUser || {};
 
-      // Actualizar contraseña en localStorage para el usuario actual
-      const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-      user.password = newPassword;
-      user.lastPasswordUpdate = new Date().toISOString();
-      sessionStorage.setItem("syspharma_user", JSON.stringify(user));
+      const response = await axios.post("http://localhost:5055/api/Auth/reset-password", {
+        email: user.email,
+        newPassword: newPassword
+      });
 
-      // Actualizar también en el array global de usuarios (syspharma_users)
-      const allUsers = userService.getAll();
-      const found = allUsers.find(
-        (u) => u.id === user.id || u.email === user.email,
-      );
-      if (found) {
-        userService.update({
-          ...found,
-          password: newPassword,
-          lastPasswordUpdate: new Date().toISOString(),
-        });
+      if (response.data && response.data.error) {
+        setError(response.data.message || "Error al actualizar la contraseña");
+        return;
       }
 
       // Reset form
@@ -99,8 +96,8 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
       setTimeout(() => {
         onClose();
       }, 1000);
-    } catch {
-      setError("Error al actualizar contraseña");
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al cambiar la contraseña en el servidor");
     } finally {
       setLoading(false);
     }
