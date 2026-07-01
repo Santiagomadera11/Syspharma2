@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Plus,
   Search,
@@ -42,24 +42,34 @@ export const EmployeeServicesPage = () => {
   const [showTurnTooltip, setShowTurnTooltip] = useState(false);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const user = currentUser || {};
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
-  // Cargar servicios de la API
-  useEffect(() => {
-    loadServices();
-  }, []);
-
-  const loadServices = async () => {
+  const loadServices = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       setLoading(true);
       const response = await apiClient.get(SERVICES_ENDPOINT);
+      if (!isMountedRef.current) return;
       setServices(response.data || []);
     } catch (error) {
       console.error("❌ Error cargando servicios:", error);
-      setServices([]);
+      if (isMountedRef.current) setServices([]);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
+      isLoadingRef.current = false;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    loadServices();
+    return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
+    };
+  }, [loadServices]);
 
   // Escuchar cambios en servicios desde otras páginas
   useEffect(() => {
@@ -78,7 +88,7 @@ export const EmployeeServicesPage = () => {
       window.removeEventListener("services:changed", handleServicesChange);
       window.removeEventListener("turn:changed", handleTurnChange);
     };
-  }, []);
+  }, [loadServices]);
 
   // --- ACCIONES ---
   const handleCreate = () => {

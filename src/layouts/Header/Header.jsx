@@ -14,6 +14,7 @@ export const Header = ({ onMenuClick }) => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const mounted = useRef(false);
+  const isNotificationsLoadingRef = useRef(false);
 
   const getAppointmentsRoute = (role) => {
     if (!role) return '/citas';
@@ -25,6 +26,8 @@ export const Header = ({ onMenuClick }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadVencimientos = async () => {
       try {
         const token = sessionStorage.getItem("syspharma_token");
@@ -45,6 +48,9 @@ export const Header = ({ onMenuClick }) => {
     };
 
     const loadNotifications = async () => {
+      if (isNotificationsLoadingRef.current) return;
+      isNotificationsLoadingRef.current = true;
+
       try {
         const lastSeen = localStorage.getItem('lastSeenNotificationsAt');
         
@@ -97,10 +103,18 @@ export const Header = ({ onMenuClick }) => {
             return dateB - dateA;
           });
 
-        setNotifications(combined);
+        if (isMounted) {
+          setNotifications(combined);
+        }
       } catch (error) {
         console.error('Error loading notifications:', error);
-        setNotifications([]);
+        if (isMounted) {
+          setNotifications([]);
+        }
+      } finally {
+        if (isMounted) {
+          isNotificationsLoadingRef.current = false;
+        }
       }
     };
 
@@ -116,6 +130,8 @@ export const Header = ({ onMenuClick }) => {
     window.addEventListener('sales:changed', onChangeWithDelay);
     
     return () => {
+      isMounted = false;
+      isNotificationsLoadingRef.current = false;
       window.removeEventListener('appointments:changed', onChangeWithDelay);
       window.removeEventListener('syspharma_orders_updated', onChangeWithDelay);
       window.removeEventListener('sales:changed', onChangeWithDelay);

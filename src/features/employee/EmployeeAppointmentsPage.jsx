@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Calendar,
   List,
@@ -54,17 +54,40 @@ export const EmployeeAppointmentsPage = () => {
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [statusMenuFor, setStatusMenuFor] = useState(null);
   const [isDaySummaryModalOpen, setIsDaySummaryModalOpen] = useState(false);
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
+
+  const loadData = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    try {
+      const appts = await appointmentService.getAppointments();
+      const docs = await appointmentService.getDoctors();
+      if (!isMountedRef.current) return;
+      setAppointments(appts);
+      setDoctors(docs);
+    } catch (error) {
+      console.error("❌ Error cargando datos:", error);
+    } finally {
+      if (isMountedRef.current) {
+        isLoadingRef.current = false;
+      }
+    }
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadData();
 
     // Escuchar cambios en citas desde otras vistas
     window.addEventListener("appointments:changed", loadData);
 
     return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
       window.removeEventListener("appointments:changed", loadData);
     };
-  }, []);
+  }, [loadData]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -74,18 +97,6 @@ export const EmployeeAppointmentsPage = () => {
     if (activeTab === "calendario" && !canCalendar && canList) setActiveTab("citas");
     if (activeTab === "citas" && !canList && canCalendar) setActiveTab("calendario");
   }, [activeTab, canCalendar, canList]);
-
-  const loadData = async () => {
-    try {
-      const appts = await appointmentService.getAppointments();
-      setAppointments(appts);
-
-      const docs = await appointmentService.getDoctors();
-      setDoctors(docs);
-    } catch (error) {
-      console.error("❌ Error cargando datos:", error);
-    }
-  };
 
   const getStatusColor = (status) => {
     switch (status) {

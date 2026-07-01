@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Search, Plus, DollarSign, Eye, ChevronLeft, ChevronRight,
@@ -52,6 +52,8 @@ export const SalesPage = () => {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [todayExpenses, setTodayExpenses] = useState([]);  
   const [confirmAnular, setConfirmAnular] = useState(null); 
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
   const itemsPerPage = 8; 
 
@@ -82,27 +84,36 @@ export const SalesPage = () => {
   };
 
   const loadSales = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       const data = await salesService.getAll();
+      if (!isMountedRef.current) return;
       setSales(Array.isArray(data) ? data : []);
-    } catch { setSales([]); }
-    finally { setLoading(false); }
+    } catch { if (isMountedRef.current) setSales([]); }
+    finally { if (isMountedRef.current) setLoading(false); isLoadingRef.current = false; }
   }, []);
 
   const loadTodayExpenses = useCallback(async () => {
     if (!user?.id) return;
     try {
       const data = await expensesService.getTodayExpenses(user.id);
+      if (!isMountedRef.current) return;
       setTodayExpenses(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Error gastos:", e);
-      setTodayExpenses([]);
+      if (isMountedRef.current) setTodayExpenses([]);
     }
   }, [user.id]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadSales();
     loadTodayExpenses();
+    return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
+    };
   }, [loadSales, loadTodayExpenses, location]);
 
   const handleSaveExpense = async () => {
