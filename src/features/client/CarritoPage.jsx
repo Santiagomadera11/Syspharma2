@@ -10,6 +10,7 @@ import {
 import { getPaymentMethods } from "../settings/services/parameterService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { ordersService } from "../sales/orders/services/ordersService";
+import farmaciaImage from "../../assets/farmacia.avif";
 import { useNavigate } from "react-router-dom";
 
 const CarritoPage = () => {
@@ -101,7 +102,7 @@ const CarritoPage = () => {
               const isRestricted = !!(it.requiereFormula || it.requiereFormulaMedica);
               return (
                 <div key={it.id} className="flex items-center gap-4 bg-white border border-gray-100 p-4 rounded-2xl shadow-sm">
-                  <img src={it.imagen || "/src/assets/farmacia.avif"} className="w-20 h-20 object-cover rounded-xl" alt="" />
+                  <img src={it.imagen || farmaciaImage} className="w-20 h-20 object-cover rounded-xl" alt="" />
                   <div className="flex-1">
                     <h4 className={`font-bold ${isRestricted ? "line-through text-gray-400" : "text-gray-900"}`}>{it.nombre}</h4>
                     {(() => {

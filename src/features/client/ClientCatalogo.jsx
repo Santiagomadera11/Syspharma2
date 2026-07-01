@@ -5,6 +5,7 @@ import { LS, read, write } from "../../shared/services/lsService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import ProductCardGrid, { ProductRowList } from "./components/ProductCard";
 import ProductDetailModal from "../../shared/ui/ProductDetailModal";
+import farmaciaImage from "../../assets/farmacia.avif";
 
 const ProductCard = ({ product, onAdd }) => {
   // Map from product schema to ProductCardGrid schema, asegurando todos los campos
@@ -12,7 +13,7 @@ const ProductCard = ({ product, onAdd }) => {
     id: product.id,
     name: product.nombre || product.name || "Sin nombre",
     price: Number(product.precio ?? product.price ?? 0),
-    image: product.imagen || product.image || "/src/assets/farmacia.avif",
+    image: product.imagen || product.image || farmaciaImage,
     marca:
       product.laboratorio || product.marca || product.proveedor || "Genérico",
     stock: product.stock ?? product.existencia ?? 0,
@@ -74,8 +75,8 @@ const ClientCatalogo = () => {
               name: p.nombre || p.name || "Sin nombre",
               precio: Number(p.precio ?? p.price ?? 0),
               price: Number(p.precio ?? p.price ?? 0),
-              imagen: p.imagen || p.image || "/src/assets/farmacia.avif",
-              image: p.imagen || p.image || "/src/assets/farmacia.avif",
+              imagen: p.imagen || p.image || farmaciaImage,
+              image: p.imagen || p.image || farmaciaImage,
               categoria: p.categoria || "Otros",
               laboratorio:
                 p.laboratorio || p.marca || p.proveedor || "Genérico",
