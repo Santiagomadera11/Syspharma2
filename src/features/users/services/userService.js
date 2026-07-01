@@ -1,6 +1,6 @@
 import { apiClient } from "../../../shared/utils/apiClient";
 
-const API_BASE = "http://localhost:5055";
+const API_BASE = import.meta.env.VITE_API_URL || "https://syspharma-backend.onrender.com";
 const USER_ENDPOINT = "Usuario";
 const ROLES_ENDPOINT = "RolMaestro";
 
@@ -78,20 +78,11 @@ export const userService = {
     formData.append("foto", file);
     
     const token = sessionStorage.getItem("syspharma_token");
-    const response = await fetch(
-      `${API_BASE}/api/Usuario/${userId}/foto`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      }
-    );
+    const response = await apiClient.post(`/api/Usuario/${userId}/foto`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data?.message || `Error ${response.status}`);
-    }
+    const data = response.data;
 
     // ✅ Devolver URL completa para que sessionStorage quede bien
     return {

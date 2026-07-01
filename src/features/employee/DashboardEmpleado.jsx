@@ -4,11 +4,11 @@ import {
   Calendar, Clock, Users, ShoppingCart, Plus,
   AlertCircle, CheckCircle, Package, ArrowRight, Stethoscope,
 } from "lucide-react";
-import axios from "axios";
+import { apiClient } from "../../shared/utils/apiClient";
 import { turnService } from "../sales/services/turnService";
 import { OpenShiftModal } from "../sales/components/OpenShiftModal";
 
-const API = "http://localhost:5055/api";
+const API = "/api";
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
 });
@@ -35,9 +35,9 @@ export const DashboardEmpleado = () => {
   const loadData = useCallback(async () => {
     try {
       const [citasRes, productosRes, ventasRes] = await Promise.allSettled([
-        axios.get(`${API}/Cita`, getAuthHeaders()),
-        axios.get(`${API}/Producto`, getAuthHeaders()),
-        axios.get(`${API}/Venta`, getAuthHeaders()),
+        apiClient.get(`${API}/Cita`, getAuthHeaders()),
+        apiClient.get(`${API}/Producto`, getAuthHeaders()),
+        apiClient.get(`${API}/Venta`, getAuthHeaders()),
       ]);
       if (citasRes.status === "fulfilled") setCitas(citasRes.value.data || []);
       if (productosRes.status === "fulfilled") setProductos(productosRes.value.data || []);

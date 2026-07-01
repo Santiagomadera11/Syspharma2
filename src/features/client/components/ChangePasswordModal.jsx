@@ -1,7 +1,7 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState } from "react";
 import { authService } from "../../auth/authService";
-import axios from "axios";
+import { apiClient } from "../../../shared/utils/apiClient";
 import { X, Lock, AlertCircle, CheckCircle } from "lucide-react";
 import { userService } from "../../users/services/userService";
 
@@ -71,7 +71,7 @@ export const ChangePasswordModal = ({ isOpen, onClose, onPasswordChanged }) => {
       setLoading(true);
       const user = currentUser || {};
 
-      const response = await axios.post("http://localhost:5055/api/Auth/reset-password", {
+      const response = await apiClient.post("/api/Auth/reset-password", {
         email: user.email,
         newPassword: newPassword
       });

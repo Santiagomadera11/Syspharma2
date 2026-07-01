@@ -11,10 +11,11 @@ import { ordersService } from "./services/ordersService";
 import { authService } from "../../auth/authService";
 import { fetchPaymentMethods, getPaymentMethods } from "../../settings/services/parameterService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
+import { apiClient } from "../../../shared/utils/apiClient";
 
 // ============ NUEVO: Servicio de clientes (ajusta la ruta según tu proyecto) ============
 // Si no tienes clientService, créalo o usa axios directamente
-const API_URL = "http://localhost:5055/api";
+const API_URL = "/api";
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
 });
@@ -101,11 +102,8 @@ export const CreateOrderPage = () => {
     // ============ NUEVO: Cargar usuarios al montar ============
     const cargarUsuarios = async () => {
       try {
-        const response = await fetch(`${API_URL}/Usuario`, getAuthHeaders());
-        if (response.ok) {
-          const data = await response.json();
-          setUsuarios(Array.isArray(data) ? data : []);
-        }
+        const response = await apiClient.get(`${API_URL}/Usuario`);
+        setUsuarios(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
       }
     };
