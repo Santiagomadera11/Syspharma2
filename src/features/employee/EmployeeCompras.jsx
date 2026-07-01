@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Plus, Search, Eye, Edit, Trash2,
   ChevronLeft, ChevronRight, Filter, ShoppingBag, AlertCircle, CheckCircle
@@ -19,22 +19,32 @@ export const EmployeeCompras = () => {
   const [modalMode, setModalMode] = useState("create");
   const [notification, setNotification] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
   const loadCompras = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       setLoading(true);
       const data = await purchaseService.getAll();
+      if (!isMountedRef.current) return;
       setCompras(Array.isArray(data) ? data : []);
-    } catch { setCompras([]); }
-    finally { setLoading(false); }
+    } catch { if (isMountedRef.current) setCompras([]); }
+    finally { if (isMountedRef.current) setLoading(false); isLoadingRef.current = false; }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadCompras();
-    purchaseService.getEstados().then(setEstados).catch(() => setEstados([]));
+    purchaseService.getEstados().then((data) => { if (isMountedRef.current) setEstados(Array.isArray(data) ? data : []); }).catch(() => { if (isMountedRef.current) setEstados([]); });
     const handleChange = () => loadCompras();
     window.addEventListener("purchases:changed", handleChange);
-    return () => window.removeEventListener("purchases:changed", handleChange);
+    return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
+      window.removeEventListener("purchases:changed", handleChange);
+    };
   }, [loadCompras]);
 
   useEffect(() => {

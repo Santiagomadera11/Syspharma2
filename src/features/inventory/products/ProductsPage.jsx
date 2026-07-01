@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus, Search, Edit, Trash2, Eye,
@@ -40,6 +40,8 @@ export const ProductsPage = () => {
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [productToToggle, setProductToToggle] = useState(null);
   const [loading, setLoading] = useState(false);
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
   const itemsPerPage = 6;
   const navigate = useNavigate();
@@ -82,7 +84,9 @@ export const ProductsPage = () => {
         shadow: "shadow-emerald-200",
       };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       setLoading(true);
       const [prods, cats, provs] = await Promise.all([
@@ -90,6 +94,7 @@ export const ProductsPage = () => {
         categoryService.getAll(),
         providerService.getAll(),
       ]);
+      if (!isMountedRef.current) return;
       setProducts(prods);
       setCategories(cats);
       setProviders(provs);
@@ -114,15 +119,21 @@ export const ProductsPage = () => {
 
       localStorage.setItem("syspharma_products", JSON.stringify(productsForPublic));
 
-      window.dispatchEvent(new Event("syspharma_products_updated"));
+      if (isMountedRef.current) {
+        window.dispatchEvent(new Event("syspharma_products_updated"));
+      }
     } catch (err) {
       console.error("Error cargando datos:", err);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      isLoadingRef.current = false;
     }
-  };
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadData();
 
     const handleCategoryChange = () => loadData();
@@ -130,10 +141,12 @@ export const ProductsPage = () => {
     window.addEventListener("products:changed", handleCategoryChange);
 
     return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
       window.removeEventListener("categories:changed", handleCategoryChange);
       window.removeEventListener("products:changed", handleCategoryChange);
     };
-  }, []);
+  }, [loadData]);
 
   const handleCreate = () => {
     if (!canCreate) return;

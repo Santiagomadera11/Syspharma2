@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   Search, Eye, ChevronLeft, ChevronRight, Calendar,
   Plus, Edit, CheckCircle,
@@ -38,23 +38,31 @@ export const EmployeePedidos = () => {
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const [tooltipOrderId, setTooltipOrderId] = useState(null);
   const itemsPerPage = 10;
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
   const loadOrders = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       setLoading(true);
       const data = await ordersService.getAll();
+      if (!isMountedRef.current) return;
       setOrders(Array.isArray(data) ? data : []);
-    } catch { setOrders([]); }
-    finally { setLoading(false); }
+    } catch { if (isMountedRef.current) setOrders([]); }
+    finally { if (isMountedRef.current) setLoading(false); isLoadingRef.current = false; }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadOrders();
-    ordersService.getEstados().then(setEstados).catch(() => setEstados([]));
+    ordersService.getEstados().then((data) => { if (isMountedRef.current) setEstados(Array.isArray(data) ? data : []); }).catch(() => { if (isMountedRef.current) setEstados([]); });
     const handleSync = () => loadOrders();
     window.addEventListener("syspharma_orders_updated", handleSync);
     window.addEventListener("orders:changed", handleSync);
     return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
       window.removeEventListener("syspharma_orders_updated", handleSync);
       window.removeEventListener("orders:changed", handleSync);
     };
