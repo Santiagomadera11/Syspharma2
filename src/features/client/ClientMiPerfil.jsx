@@ -6,6 +6,7 @@ import { ToastNotification } from "../../shared/ui/ToastNotification";
 import { authService } from "../auth//authService";
 import { getDocumentTypes } from "../settings/services/parameterService";
 import { userService } from "../users/services/userService";
+import { getFotoPerfilUrl } from "/src/shared/utils/userAvatar";
 
 export const ClientMiPerfil = () => {
   const { currentUser, refreshUser } = useCurrentUser();
@@ -199,8 +200,8 @@ export const ClientMiPerfil = () => {
             <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center border-4 border-emerald-300 shadow-lg overflow-hidden">
               {tempAvatar ? (
                 <img src={tempAvatar} alt="avatar-preview" className="w-full h-full object-cover" />
-              ) : user.avatar ? (
-                <img src={user.avatar} alt="avatar" className="w-full h-full object-cover" />
+              ) : (user.avatar || user.fotoPerfil || user.foto || user.foto_perfil) ? (
+                <img src={getFotoPerfilUrl(user)} alt="avatar" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-3xl font-bold text-emerald-600">{getInitials()}</span>
               )}

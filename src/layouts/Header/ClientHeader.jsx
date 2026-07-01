@@ -10,6 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { read, write, LS } from "../../shared/services/lsService";
 import { useCurrentUser } from "/src/shared/context/UserContext";
+import { getFotoPerfilUrl } from "/src/shared/utils/userAvatar";
 import { appointmentService } from "../../features/services/appointments/services/appointmentService";
 import { ordersService } from "../../features/sales/orders/services/ordersService";
 
@@ -305,8 +306,8 @@ export const ClientHeader = ({ onMenuClick }) => {
             </p>
           </div>
           <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-green-600 rounded-full flex items-center justify-center font-bold border-2 border-green-200 shadow-sm text-xs flex-shrink-0">
-            {user.avatar ? (
-              <img src={user.avatar} alt={user.nombre} className="w-full h-full rounded-full object-cover border-2 border-green-200 shadow-sm" />
+            {user.avatar || user.fotoPerfil || user.foto || user.foto_perfil ? (
+              <img src={getFotoPerfilUrl(user)} alt={user.nombre} className="w-full h-full rounded-full object-cover border-2 border-green-200 shadow-sm" />
             ) : (
               <div className="w-full h-full bg-white text-green-600 rounded-full flex items-center justify-center font-bold">
                 {user.nombre?.charAt(0)}

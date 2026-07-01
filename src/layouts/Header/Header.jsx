@@ -5,6 +5,7 @@ import { ordersService } from '../../features/sales/orders/services/ordersServic
 import { useNavigate } from 'react-router-dom';
 import icono1 from '../../assets/icono1.png'; // ? NUEVO: import del logo
 import { useCurrentUser } from "/src/shared/context/UserContext";
+import { getFotoPerfilUrl } from "/src/shared/utils/userAvatar";
 import { apiClient } from '../../shared/utils/apiClient';
 
 export const Header = ({ onMenuClick }) => {
@@ -272,8 +273,8 @@ export const Header = ({ onMenuClick }) => {
             <p className="text-[10px] text-primary-100 font-medium uppercase mt-0.5">{user.rol}</p>
           </div>
           <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-primary-600 rounded-full flex items-center justify-center font-bold border-2 border-primary-200 shadow-sm text-xs flex-shrink-0">
-            {user.avatar ? (
-              <img src={user.avatar} alt={user.nombre} className="w-full h-full rounded-full object-cover border-2 border-primary-200 shadow-sm" />
+            {user.avatar || user.fotoPerfil || user.foto || user.foto_perfil ? (
+              <img src={getFotoPerfilUrl(user)} alt={user.nombre} className="w-full h-full rounded-full object-cover border-2 border-primary-200 shadow-sm" />
             ) : (
               <div className="w-full h-full bg-white text-primary-600 rounded-full flex items-center justify-center font-bold">
                 {user.nombre?.charAt(0)}

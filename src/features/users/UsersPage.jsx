@@ -9,6 +9,7 @@ import { userService } from "./services/userService";
 import { UserFormModal } from "./components/UserFormModal";
 import UserDetailModal from "./components/UserDetailModal";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
+import { getFotoPerfilUrl } from "/src/shared/utils/userAvatar";
 
 export const UsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -219,8 +220,8 @@ export const UsersPage = () => {
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full border border-gray-200 flex-shrink-0 flex items-center justify-center bg-gray-100 text-gray-600 font-bold text-xs overflow-hidden">
-                              {user.avatar ? (
-                                <img src={user.avatar} alt={user.nombre} className="w-full h-full object-cover" />
+                              {user.avatar || user.fotoPerfil || user.foto || user.foto_perfil ? (
+                                <img src={getFotoPerfilUrl(user)} alt={user.nombre} className="w-full h-full object-cover" />
                               ) : (
                                 user.nombre?.charAt(0)
                               )}
