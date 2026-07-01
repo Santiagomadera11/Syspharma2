@@ -42,12 +42,16 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
         cantidad: d.cantidad,
         precio:   d.precioUnitario || d.precio || 0,
         subtotal: d.subtotal || d.cantidad * (d.precioUnitario || d.precio || 0),
+        porcentajeIva: d.porcentajeIva ?? 0,
+        iva:      d.iva ?? 0,
       }))
     : (order.productos || []).map(p => ({
         nombre:   p.nombre,
         cantidad: p.cantidad,
         precio:   p.precio || 0,
         subtotal: p.precio * p.cantidad,
+        porcentajeIva: p.porcentajeIva ?? 0,
+        iva:      p.iva ?? 0,
       }));
 
   // ============ NUEVO: Calcular subtotal e IVA si no vienen del backend ============
@@ -55,6 +59,11 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
   const subtotal = subtotalBackend !== null ? subtotalBackend : subtotalCalculado;
   const iva = ivaBackend !== null ? ivaBackend : (subtotal * (porcentajeIva / 100));
   const total = totalBackend !== null ? totalBackend : (subtotal + iva);
+
+  const sumaIvasDetalle = detalles.reduce((s, d) => s + (d.iva || 0), 0);
+  const ivaConsistente = order.ivaConsistente !== undefined 
+    ? order.ivaConsistente 
+    : (Math.abs(sumaIvasDetalle - iva) < 1.0);
   
   const totalProductos = detalles.reduce((s, d) => s + d.cantidad, 0);
   const cantidadItems = detalles.length; // ← NUEVO: Cantidad de líneas/items
@@ -151,7 +160,14 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
                   <div key={idx} className="flex justify-between items-start pb-2 border-b border-gray-200 last:border-0 last:pb-0">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-800 truncate">{d.nombre}</p>
-                      <p className="text-[10px] text-gray-500">Cantidad: {d.cantidad}</p>
+                      <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500">
+                        <span>Cantidad: {d.cantidad}</span>
+                        {d.porcentajeIva > 0 && (
+                          <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded font-medium border border-emerald-100">
+                            IVA: {d.porcentajeIva}% ({formatCurrency(d.iva)})
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right ml-2 flex-shrink-0">
                       <p className="text-xs font-bold text-emerald-600">{formatCurrency(d.subtotal)}</p>
@@ -169,6 +185,19 @@ export const OrderDetailModal = ({ isOpen, onClose, order }) => {
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Notas</label>
               <div className="bg-amber-50 rounded-lg p-2 border border-amber-100">
                 <p className="text-xs text-gray-600">{order.notas}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Alerta de inconsistencia de IVA */}
+          {!ivaConsistente && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-xs leading-relaxed flex gap-2 items-start">
+              <span className="text-base">⚠️</span>
+              <div>
+                <p className="font-semibold text-amber-900">Advertencia de Inconsistencia Fiscal</p>
+                <p className="mt-0.5 text-amber-700">
+                  La suma del IVA detallado de los ítems ({formatCurrency(sumaIvasDetalle)}) no coincide con el IVA guardado en la cabecera del pedido ({formatCurrency(iva)}). Este es un registro histórico que conserva los valores originales.
+                </p>
               </div>
             </div>
           )}

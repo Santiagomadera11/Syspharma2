@@ -17,6 +17,7 @@ const ProductModal = ({
     categoriaId: "",
     proveedorId: "",
     precio: "",
+    porcentajeIva: 0,
     stock: 0,
     estado: true,
     imagen: null,
@@ -55,6 +56,10 @@ const ProductModal = ({
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 500 * 1024) {
+        alert("La imagen es demasiado grande. El tamaño máximo permitido es 500KB.");
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target.result;
@@ -73,6 +78,7 @@ const ProductModal = ({
       categoriaId: formData.categoriaId ? Number(formData.categoriaId) : null,
       proveedorId: formData.proveedorId ? Number(formData.proveedorId) : null,
       precio: Number(formData.precio),
+      porcentajeIva: Number(formData.porcentajeIva) || 0,
       stock: Number(formData.stock),
     });
     onClose();
@@ -109,7 +115,7 @@ const ProductModal = ({
                   <>
                     <Upload size={24} className="text-gray-400 mx-auto mb-2" />
                     <p className="text-xs font-semibold text-gray-600">Sube una imagen</p>
-                    <p className="text-xs text-gray-500 mt-1">PNG, JPG hasta 5MB</p>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG hasta 500KB</p>
                   </>
                 )}
               </button>
@@ -161,6 +167,15 @@ const ProductModal = ({
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Precio ($)</label>
               <input type="number" className="w-full text-sm border border-gray-300 rounded px-3 py-2" {...field("precio")} />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1">IVA (%)</label>
+              <select className="w-full text-sm border border-gray-300 rounded px-3 py-2 bg-white focus:outline-none focus:border-emerald-500"
+                value={formData.porcentajeIva} onChange={(e) => setFormData(p => ({ ...p, porcentajeIva: Number(e.target.value) }))}>
+                <option value={0}>0% (Exento)</option>
+                <option value={5}>5%</option>
+                <option value={19}>19%</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Stock</label>

@@ -216,6 +216,10 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
     providers.find(p => String(p.id) === String(formData.proveedorId))?.nombre ||
     initialData?.proveedorNombre || "-";
 
+  const proveedorDocumento =
+    providers.find(p => String(p.id) === String(formData.proveedorId))?.documento ||
+    initialData?.proveedorDocumento || "";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh] overflow-y-auto">
@@ -251,6 +255,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
                   <div>
                     <p className="text-xs text-gray-500 font-bold mb-1">PROVEEDOR</p>
                     <p className="font-bold text-gray-900">{proveedorNombre}</p>
+                    {proveedorDocumento && <p className="text-[11px] text-gray-500 font-semibold mt-0.5">NIT/C.C.: {proveedorDocumento}</p>}
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 font-bold mb-1">NÚMERO</p>
