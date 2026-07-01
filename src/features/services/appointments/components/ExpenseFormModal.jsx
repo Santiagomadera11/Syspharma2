@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect } from "react";
 import {
   X, Save, DollarSign, FileText, Tag, TrendingDown, AlertCircle,
@@ -7,6 +8,8 @@ import { expensesService } from "../../../sales/services/expensesService";
 import { turnService } from "../../../sales/services/turnService";
 
 const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) => {
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const [formData, setFormData] = useState({
     concepto: "",
     monto: "",
@@ -49,8 +52,6 @@ const ExpenseFormModal = ({ isOpen, onClose, onSave, initialData, isViewMode }) 
       alert("Concepto y Monto son obligatorios");
       return;
     }
-
-    const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
 
     const turno = await turnService.getActiveTurn(user.id);
     if (!turno) {

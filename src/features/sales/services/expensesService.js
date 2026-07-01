@@ -37,8 +37,6 @@ export const expensesService = {
 
   // Crear gasto
   create: async (gastoData) => {
-    console.log("📤 Enviando gasto al backend:", JSON.stringify(gastoData, null, 2));
-    console.log("🔑 Token:", getToken());
     
     const res = await fetch(`${API_URL}/gasto`, {
       method: "POST",
@@ -47,7 +45,6 @@ export const expensesService = {
     });
     
     const responseText = await res.text();
-    console.log("📥 Respuesta del servidor:", responseText);
     
     if (!res.ok) {
       console.error("❌ Error 400:", responseText);

@@ -54,6 +54,39 @@ export const ShiftHistoryReportsPage = () => {
   const totalVentas = cerrados.reduce((s, t) => s + (t.totalVentas || 0), 0);
   const totalGastos = cerrados.reduce((s, t) => s + (t.totalGastos || 0), 0);
 
+  const handleDownloadCSV = () => {
+    if (!filtered.length) {
+      alert("No hay datos para exportar");
+      return;
+    }
+    const headers = ["ID", "Apertura", "Cierre", "Empleado", "Base", "Ventas", "Gastos", "Saldo en Caja", "Estado"];
+    const rows = filtered.map(t => {
+      const saldo = (t.montoBase || 0) + (t.totalVentas || 0) - (t.totalGastos || 0);
+      return [
+        t.id,
+        t.fechaApertura ? new Date(t.fechaApertura).toISOString() : "",
+        t.fechaCierre ? new Date(t.fechaCierre).toISOString() : "",
+        t.usuarioNombre || "",
+        t.montoBase || 0,
+        t.totalVentas || 0,
+        t.totalGastos || 0,
+        saldo,
+        t.estado ? t.estado.toUpperCase() : "CERRADO"
+      ];
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `historico_turnos_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const formatDate = (s) => s ? new Date(s).toLocaleDateString("es-CO") : "—";
   const formatTime = (s) => s ? new Date(s).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) : "—";
 
@@ -64,7 +97,7 @@ export const ShiftHistoryReportsPage = () => {
           <h1 className="text-2xl font-bold text-gray-800">Histórico de Turnos</h1>
           <p className="text-xs text-gray-500 mt-0.5">Reportes de cajas con desglose de ingresos</p>
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+        <button onClick={handleDownloadCSV} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
           <Download size={16} /> Descargar
         </button>
       </div>

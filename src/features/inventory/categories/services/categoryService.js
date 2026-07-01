@@ -3,14 +3,18 @@ import { apiClient } from "../../../../shared/utils/apiClient";
 const ENDPOINT = "Categoria";
 
 // Solo activas — para dropdowns de productos, compras, etc.
-const getAll = async () => {
-  const response = await apiClient.get(ENDPOINT);
+const getAll = async (estado) => {
+  const params = {};
+  if (estado) params.estado = estado;
+  const response = await apiClient.get(ENDPOINT, { params });
   return response.data;
 };
 
 // Activas + inactivas — para la página de gestión de categorías
-const getAllIncludingInactive = async () => {
-  const response = await apiClient.get(`${ENDPOINT}/todas`);
+const getAllIncludingInactive = async (estado) => {
+  const params = {};
+  if (estado) params.estado = estado;
+  const response = await apiClient.get(`${ENDPOINT}/todas`, { params });
   return response.data;
 };
 

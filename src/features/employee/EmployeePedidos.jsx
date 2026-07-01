@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Search, Eye, ChevronLeft, ChevronRight, Calendar,
@@ -16,7 +17,8 @@ const fmt = (v) =>
 
 export const EmployeePedidos = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const canEditOrder = permissionService.hasPerm(user.rol, "billing.create");
 
   const [orders, setOrders] = useState([]);

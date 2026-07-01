@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -54,7 +55,8 @@ export const SalesPage = () => {
 
   const itemsPerPage = 8; 
 
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const canCreateSale = userRole === "administrador" || userPerms.includes("sales.create");
@@ -88,6 +90,7 @@ export const SalesPage = () => {
   }, []);
 
   const loadTodayExpenses = useCallback(async () => {
+    if (!user?.id) return;
     try {
       const data = await expensesService.getTodayExpenses(user.id);
       setTodayExpenses(Array.isArray(data) ? data : []);

@@ -8,18 +8,21 @@ import useCart from "../../shared/context/CartContext";
 // Map product schema used by backend to the interface expected by ProductCardGrid
 const ProductCard = ({ product, onAdd, onOpenDetail }) => {
   const mappedProduct = {
+    ...product,
     id: product.id,
     name: product.nombre,
     price: product.precio,
     image: product.imagen || "",
     marca: product.laboratorio || "",
     stock: product.stock ?? product.existencia ?? 0,
+    requiereFormula: product.requiereFormula,
+    requiereFormulaMedica: product.requiereFormulaMedica,
   };
   return (
     <ProductCardGrid
       product={mappedProduct}
       onAdd={() => onAdd(product.id)}
-      onOpenDetail={() => onOpenDetail(product)}
+      onOpenDetail={onOpenDetail}
       disabled={(product.stock ?? 0) <= 0}
     />
   );

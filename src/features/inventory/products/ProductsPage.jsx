@@ -1,15 +1,28 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus, Search, Edit, Trash2, Eye,
   ChevronLeft, ChevronRight, Package,
-  X, CheckCircle, AlertCircle,
+  X, CheckCircle, AlertCircle, Database
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
+import { ProductLotesModal } from "./components/ProductLotesModal";
 import { productService } from "./services/productService";
 import { categoryService } from "../categories/services/categoryService";
 import { providerService } from "../providers/services/providerService";
 import { StatusNotification } from "/src/shared/ui/StatusNotification";
+
+const isExpiringSoon = (expiryDateStr) => {
+  if (!expiryDateStr) return false;
+  const expiry = new Date(expiryDateStr + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  expiry.setHours(0, 0, 0, 0);
+  const diffTime = expiry - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays <= 30;
+};
 
 export const ProductsPage = () => {
   const [products, setProducts] = useState([]);
@@ -22,6 +35,7 @@ export const ProductsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
+  const [lotesProduct, setLotesProduct] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [productToToggle, setProductToToggle] = useState(null);
@@ -29,7 +43,8 @@ export const ProductsPage = () => {
 
   const itemsPerPage = 6;
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const userRole = (user.rol || "").toLowerCase().trim();
   const userPerms = (user.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const isAdmin = userRole === "administrador";
@@ -86,11 +101,18 @@ export const ProductsPage = () => {
         stock: p.stock || 0,
         imagen: p.imagen,
         categoria: p.categoria || "Sin categoría",
+        marca: p.marca || "",
+        presentacion: p.presentacion || "",
+        tipoProducto: p.tipoProducto || "Producto General",
+        composicion: p.composicion || "",
+        concentracion: p.concentracion || "",
+        viaAdministracion: p.viaAdministracion || "",
+        registroSanitario: p.registroSanitario || "",
+        requiereFormula: p.requiereFormula || false,
         estado: p.estado !== false,
       }));
 
       localStorage.setItem("syspharma_products", JSON.stringify(productsForPublic));
-      console.log("✅ Productos sincronizados a localStorage:", productsForPublic.length);
 
       window.dispatchEvent(new Event("syspharma_products_updated"));
     } catch (err) {
@@ -185,9 +207,16 @@ export const ProductsPage = () => {
     const matchSearch =
       p.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.categoria?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus =
-      filterStatus === "todos" ||
-      (filterStatus === "Activo" ? p.estado : !p.estado);
+    
+    let matchStatus = true;
+    if (filterStatus === "Activo") {
+      matchStatus = p.estado;
+    } else if (filterStatus === "Inactivo") {
+      matchStatus = !p.estado;
+    } else if (filterStatus === "proximos") {
+      matchStatus = p.estado && isExpiringSoon(p.fechaVencimientoProxima);
+    }
+    
     return matchSearch && matchStatus;
   });
 
@@ -240,6 +269,7 @@ export const ProductsPage = () => {
           <option value="todos">Todos</option>
           <option value="Activo">Activos</option>
           <option value="Inactivo">Inactivos</option>
+          <option value="proximos">Próximos a vencer</option>
         </select>
       </div>
 
@@ -259,6 +289,7 @@ export const ProductsPage = () => {
                 <tr>
                   <th className="py-2.5 px-3 sm:px-4 text-[11px] font-semibold tracking-wider uppercase">ID</th>
                   <th className="py-2.5 px-3 sm:px-4 text-[11px] font-semibold tracking-wider uppercase">Nombre</th>
+                  <th className="py-2.5 px-3 sm:px-4 text-[11px] font-semibold tracking-wider uppercase">Marca</th>
                   <th className="py-2.5 px-3 sm:px-4 text-[11px] font-semibold tracking-wider uppercase hidden md:table-cell">Categoría</th>
                   <th className="py-2.5 px-3 sm:px-4 text-[11px] text-center font-semibold tracking-wider uppercase">Stock</th>
                   <th className="py-2.5 px-3 sm:px-4 text-[11px] text-right font-semibold tracking-wider uppercase hidden lg:table-cell">Precio</th>
@@ -274,8 +305,12 @@ export const ProductsPage = () => {
                       <div className="flex items-center gap-2">
                         <Package size={14} className={`${theme.icon} flex-shrink-0`} />
                         <span className="text-xs font-semibold text-gray-900 truncate">{prod.nombre}</span>
+                        {isExpiringSoon(prod.fechaVencimientoProxima) && (
+                          <span className="text-xs ml-1 select-none cursor-help" title={`Próximo a vencer (${prod.fechaVencimientoProxima})`}>⚠️</span>
+                        )}
                       </div>
                     </td>
+                    <td className="py-2.5 px-3 sm:px-4 text-xs text-gray-600 font-semibold">{prod.marca || "-"}</td>
                     <td className="py-2.5 px-3 sm:px-4 text-xs text-gray-600 hidden md:table-cell">{prod.categoria}</td>
                     <td className="py-2.5 px-3 sm:px-4 text-xs text-center font-semibold text-gray-900">{prod.stock}</td>
                     <td className={`py-2.5 px-3 sm:px-4 text-xs text-right font-semibold ${theme.text} hidden lg:table-cell`}>$ {Number(prod.precio).toLocaleString()}</td>
@@ -288,6 +323,9 @@ export const ProductsPage = () => {
                       <div className="flex justify-center gap-1.5">
                         <button onClick={() => setDetailProduct(prod)} className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
                           <Eye size={16} />
+                        </button>
+                        <button onClick={() => setLotesProduct(prod)} className="p-1.5 rounded-md text-purple-600 hover:bg-purple-50 transition-colors" title="Ver lotes">
+                          <Database size={16} />
                         </button>
                         {canToggleStatus && (
                           <button onClick={() => handleStatusToggle(prod)} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
@@ -349,7 +387,12 @@ export const ProductsPage = () => {
                 <div className="flex items-start gap-2 flex-1 min-w-0">
                   <Package size={18} className={`${theme.icon} flex-shrink-0 mt-1`} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-gray-900 truncate">{prod.nombre}</p>
+                    <p className="text-sm font-bold text-gray-900 truncate">
+                      {prod.nombre}
+                      {isExpiringSoon(prod.fechaVencimientoProxima) && (
+                        <span className="text-xs ml-1 select-none" title={`Próximo a vencer (${prod.fechaVencimientoProxima})`}>⚠️</span>
+                      )}
+                    </p>
                     <p className="text-xs text-gray-600">ID: {prod.id}</p>
                   </div>
                 </div>
@@ -365,6 +408,9 @@ export const ProductsPage = () => {
               <div className="flex gap-2">
                 <button onClick={() => setDetailProduct(prod)} className="flex-1 py-1.5 px-3 rounded-md text-blue-600 hover:bg-blue-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
                   <Eye size={14} /> Ver
+                </button>
+                <button onClick={() => setLotesProduct(prod)} className="flex-1 py-1.5 px-3 rounded-md text-purple-600 hover:bg-purple-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
+                  <Database size={14} /> Lotes
                 </button>
                 {canToggleStatus && (
                   <button onClick={() => handleStatusToggle(prod)} className="flex-1 py-1.5 px-3 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
@@ -401,6 +447,10 @@ export const ProductsPage = () => {
 
       <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} initialData={editingItem} categories={categories} providers={providers} />
 
+      {lotesProduct && (
+        <ProductLotesModal isOpen={!!lotesProduct} onClose={() => setLotesProduct(null)} product={lotesProduct} />
+      )}
+
       {notification && <StatusNotification message={notification.message} type={notification.type} duration={notification.duration} onClose={() => setNotification(null)} />}
 
       {/* Modal Detalle */}
@@ -423,7 +473,9 @@ export const ProductsPage = () => {
                 <div className={`${detailProduct.imagen ? "md:col-span-2" : "md:col-span-3"} grid grid-cols-2 gap-2 sm:gap-3 text-sm overflow-y-auto`}>
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">ID</label><p className="text-xs text-gray-900 font-medium truncate">{detailProduct.id}</p></div>
                   <div><label className="text-xs font-semibold text-gray-500 uppercase block">Nombre</label><p className="text-xs text-gray-900 font-medium line-clamp-2">{detailProduct.nombre}</p></div>
-                  
+                  <div><label className="text-xs font-semibold text-gray-500 uppercase block">Marca</label><p className="text-xs text-gray-900 font-medium truncate">{detailProduct.marca || "Genérico"}</p></div>
+                  <div><label className="text-xs font-semibold text-gray-500 uppercase block">Presentación</label><p className="text-xs text-gray-900 font-medium truncate">{detailProduct.presentacion || "Sin especificar"}</p></div>
+
                   <div className="col-span-2">
                     <label className="text-xs font-semibold text-gray-500 uppercase block">Descripción</label>
                     <p className="text-xs text-gray-900 font-medium whitespace-pre-line">{detailProduct.descripcion || "Sin descripción disponible."}</p>
@@ -447,12 +499,23 @@ export const ProductsPage = () => {
                   {detailProduct.tipoProducto === "Medicamento" && (
                     <>
                       <div className="col-span-2 border-t border-gray-100 pt-2 mt-2"><h3 className="font-semibold text-[10px] text-gray-400 uppercase tracking-wider mb-2">Información del Medicamento</h3></div>
-                      {detailProduct.presentacion && <div><label className="text-xs font-semibold text-gray-500 uppercase block">Presentación</label><p className="text-xs text-gray-900 truncate">{detailProduct.presentacion}</p></div>}
                       {detailProduct.viaAdministracion && <div><label className="text-xs font-semibold text-gray-500 uppercase block">Vía Admin</label><p className="text-xs text-gray-900 truncate">{detailProduct.viaAdministracion}</p></div>}
                       {detailProduct.concentracion && <div><label className="text-xs font-semibold text-gray-500 uppercase block">Concentración</label><p className="text-xs text-gray-900 truncate">{detailProduct.concentracion}</p></div>}
                       {detailProduct.composicion && <div><label className="text-xs font-semibold text-gray-500 uppercase block">Composición</label><p className="text-xs text-gray-900 truncate">{detailProduct.composicion}</p></div>}
                       {detailProduct.registroSanitario && <div><label className="text-xs font-semibold text-gray-500 uppercase block">Registro Sanitario</label><p className="text-xs text-gray-900 truncate">{detailProduct.registroSanitario}</p></div>}
-                      {detailProduct.requiereFormula !== undefined && <div><label className="text-xs font-semibold text-gray-500 uppercase block">Requiere Fórmula</label><p className="text-xs text-gray-900">{detailProduct.requiereFormula ? "Sí" : "No"}</p></div>}
+                      {detailProduct.requiereFormula !== undefined && (
+                        <div className="col-span-2 mt-1">
+                          {detailProduct.requiereFormula ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                              Requiere fórmula médica 🩺
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                              Venta libre 🟢
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

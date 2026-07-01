@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Lock, ArrowRight, ChevronLeft, X, Key } from "lucide-react";
 import { authService } from "../auth/authService";
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import { sendRecoveryEmail } from "./passwordRecoveryService";
 import axios from "axios";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
@@ -73,6 +74,7 @@ const PERMS_EMPLOYEE = [
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { loginUser } = useCurrentUser();
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [toast, setToast] = useState(null);
   const [error, setError] = useState("");
@@ -103,15 +105,16 @@ const LoginPage = () => {
 
   const handleEnviarCorreo = async (e) => {
     e.preventDefault();
-    if (!recoveryEmail) {
+    const email = (recoveryEmail || "").trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setToast({
-        message: "Ingresa tu correo electrónico",
+        message: "Ingresa un correo electrónico válido",
         type: "error",
         zIndex: 70,
       });
       return;
     }
-    const result = await sendRecoveryEmail(recoveryEmail);
+    const result = await sendRecoveryEmail(email);
     if (result.error) {
       setToast({ message: result.message, type: "error", zIndex: 70 });
       return;
@@ -188,6 +191,22 @@ const LoginPage = () => {
       });
       return;
     }
+
+    const hasMinLength = newPassword.length >= 8;
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    const hasSpecialChar = /[^A-Za-z0-9]/.test(newPassword);
+
+    if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
+      setToast({
+        message: "La contraseña debe tener mínimo 8 caracteres, incluyendo mayúscula, minúscula, número y carácter especial.",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setToast({
         message: "Las contraseñas no coinciden",
@@ -244,12 +263,12 @@ const LoginPage = () => {
       sessionStorage.setItem("syspharma_token", data.token);
       localStorage.setItem("token", data.token);
 
-      const normalizedUser = {
-        ...data.user,
+      const userSession = {
+        id: data.user.id,
         rol: data.user.rol?.toLowerCase().trim(),
-        permisos: Array.isArray(data.user.permisos) ? data.user.permisos : [],
       };
-      sessionStorage.setItem("syspharma_user", JSON.stringify(normalizedUser));
+      sessionStorage.setItem("syspharma_user", JSON.stringify(userSession));
+      await loginUser(data.user.id, data.token);
 
       try {
         const response = await axios.get("http://localhost:5055/api/Producto", {
@@ -275,7 +294,7 @@ const LoginPage = () => {
         console.warn("⚠️ No se pudieron sincronizar productos:", err.message);
       }
 
-      const role = normalizedUser.rol;
+      const role = userSession.rol;
       const userPerms = data.user?.permisos || [];
 
       const rutasPorRol = {
@@ -290,7 +309,6 @@ const LoginPage = () => {
 
       navigate(redirectPath);
 
-      console.log("✨ LOGIN EXITOSO - Navegando a:", redirectPath);
       navigate(redirectPath);
     } catch (err) {
       console.error("❌ Error al entrar:", err);

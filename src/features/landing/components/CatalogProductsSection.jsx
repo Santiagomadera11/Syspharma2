@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Search, Plus } from "lucide-react";
+import { Search } from "lucide-react";
 import useCart from "../../../shared/context/CartContext";
 import GuestOrderModal from "./GuestOrderModal";
 import ProductDetailModal from "../../../shared/ui/ProductDetailModal";
 import { toast } from "../../../shared/utils/toast";
+import ProductCardGrid from "../../client/components/ProductCard";
 
 export const CatalogProductsSection = () => {
   // Estado para productos originales (lista completa sin modificar)
@@ -22,10 +23,10 @@ export const CatalogProductsSection = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [guestProduct, setGuestProduct] = useState(null);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const cart = useCart();
 
   // Cargar productos y categorías del localStorage al montar el componente
   useEffect(() => {
-    console.log("🔄 CatalogProductsSection montado, cargando datos...");
     cargarDatos();
     window.addEventListener("syspharma_products_updated", cargarDatos);
 
@@ -38,31 +39,23 @@ export const CatalogProductsSection = () => {
     try {
       // La página pública carga productos desde localStorage
       // Los productos se sincronizan desde el admin/employee cuando crean nuevos
-      console.log("📦 Intentando cargar productos desde localStorage...");
 
       const stored = localStorage.getItem("syspharma_products");
-      console.log("💾 localStorage.syspharma_products existe?", !!stored);
-      console.log("💾 localStorage.syspharma_products contenido:", stored?.substring(0, 200));
 
       let products = JSON.parse(stored || "[]");
-      console.log("📦 Productos cargados (RAW):", products.length);
 
       if (products.length > 0) {
-        console.log("📋 Primer producto RAW:", JSON.stringify(products[0]));
       }
 
       // Filtrar solo productos activos (estado === true o estado === "Activo")
       const activeProducts = products.filter((p) => {
         const isActive = p.estado === true || p.estado === "Activo" || p.estado === undefined || p.estado === null;
         if (!isActive) {
-          console.log(`   ❌ ${p.nombre}: estado=${p.estado} (filtrado)`);
         }
         return isActive;
       });
 
-      console.log("✅ Productos activos:", activeProducts.length);
       if (activeProducts.length > 0) {
-        console.log("📋 Primer producto activo:", JSON.stringify(activeProducts[0]));
       }
 
       // Guardar en estado original
@@ -75,7 +68,6 @@ export const CatalogProductsSection = () => {
 
       setCategorias(uniqueCategories);
 
-      console.log("📂 Categorías encontradas:", uniqueCategories);
     } catch (error) {
       console.error("❌ Error loading products:", error);
       setProductosOriginales([]);
@@ -85,11 +77,6 @@ export const CatalogProductsSection = () => {
 
   // FUNCIÓN ÚNICA DE FILTRADO: aplica todos los filtros simultáneamente
   const filtrarProductos = () => {
-    console.log("🔍 Filtrando productos...");
-    console.log("   - Productos originales:", productosOriginales.length);
-    console.log("   - Búsqueda:", searchValue);
-    console.log("   - Categoría:", categoriaSeleccionada);
-    console.log("   - Rango precio:", priceRange);
 
     const filtered = productosOriginales.filter((product) => {
       // Filtro 1: Búsqueda por nombre
@@ -111,13 +98,11 @@ export const CatalogProductsSection = () => {
       const passes = matchesSearch && matchesCategory && matchesPrice;
 
       if (!passes) {
-        console.log(`   ❌ ${product.nombre}: search=${matchesSearch}, cat=${matchesCategory}, price=${matchesPrice}`);
       }
 
       return passes;
     });
 
-    console.log("✅ Productos filtrados:", filtered.length);
     setFilteredProducts(filtered);
   };
 
@@ -162,124 +147,7 @@ export const CatalogProductsSection = () => {
 
 
 
-  const ProductCard = ({ product }) => {
-    const isOutOfStock = (product.stock ?? product.stockTotal ?? 0) <= 0;
-
-    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition h-full flex flex-col">
-        {/* Imagen */}
-        <div className="relative h-40 bg-gray-50 flex items-center justify-center overflow-hidden group">
-          {product.imagen ? (
-            <img
-              src={product.imagen}
-              alt={product.nombre}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="text-gray-300 text-sm">Sin imagen</div>
-          )}
-
-          {/* Overlay de agotado */}
-          {isOutOfStock && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <span className="text-white font-bold">Agotado</span>
-            </div>
-          )}
-        </div>
-
-        {/* Contenido */}
-        <div className="p-4 flex flex-col flex-1">
-          <div className="flex-1">
-            {/* Nombre */}
-            <h4 className="font-semibold text-gray-800 text-sm line-clamp-2">
-              {product.nombre}
-            </h4>
-
-            {/* Laboratorio/Marca */}
-            {product.laboratorio && (
-              <p className="text-xs text-gray-500 mt-1">
-                {product.laboratorio}
-              </p>
-            )}
-
-            {/* Stock Status */}
-            {(() => {
-              const stockVal = product.stock ?? product.stockTotal ?? null;
-              if (stockVal === null) return null;
-              if (stockVal === 0)
-                return (
-                  <div className="mt-2">
-                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
-                      Producto agotado
-                    </span>
-                  </div>
-                );
-              if (stockVal < 50)
-                return (
-                  <div className="mt-2">
-                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-medium">
-                      Pocas unidades
-                    </span>
-                  </div>
-                );
-              return null;
-            })()}
-          </div>
-
-          {/* Precio */}
-          <div className="mt-3">
-            <div className="text-emerald-600 font-semibold text-lg">
-              ${(product.precio || 0).toLocaleString("es-CO")}
-            </div>
-          </div>
-
-          {/* Botones de acción */}
-          <div className="mt-3 flex items-center justify-between">
-            <div />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setSelectedProduct(product)}
-                disabled={isOutOfStock}
-                className={`${
-                  isOutOfStock
-                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                } p-2 rounded-full transition shadow-sm`}
-                title={isOutOfStock ? "Stock máximo alcanzado" : "Ver detalles"}
-              >
-                <Plus size={14} />
-              </button>
-              <button
-                onClick={() => {
-                  if (isOutOfStock) return;
-                  setGuestProduct(product);
-                  setIsGuestModalOpen(true);
-                }}
-                disabled={isOutOfStock}
-                className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition shadow-sm disabled:bg-gray-300"
-                title="Comprar ahora"
-              >
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M6 6h15l-1.5 9h-13L4 2H2"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // Replaced local ProductCard component with the unified ProductCardGrid import.
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -421,9 +289,39 @@ export const CatalogProductsSection = () => {
           {/* GRID DE PRODUCTOS */}
           {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              {filteredProducts.map((product) => {
+                const mapped = {
+                  ...product,
+                  id: product.id,
+                  name: product.nombre || product.name || "Producto",
+                  marca: product.laboratorio || product.marca || product.proveedor || "",
+                  price: Number(product.precio ?? product.price ?? 0),
+                  image: product.imagen || product.image || null,
+                  stock: product.stock ?? product.existencia ?? 0,
+                  requiereFormula: product.requiereFormula,
+                  requiereFormulaMedica: product.requiereFormulaMedica,
+                };
+                return (
+                  <ProductCardGrid
+                    key={product.id}
+                    product={mapped}
+                    onOpenDetail={() => setSelectedProduct(product)}
+                    onAdd={() => {
+                      try {
+                        cart.addToCart(product);
+                        toast.success(`¡${product.nombre} agregado al carrito!`);
+                      } catch (e) {
+                        console.error(e);
+                        toast.error("Error al agregar al carrito");
+                      }
+                    }}
+                    onQuickBuy={() => {
+                      setGuestProduct(product);
+                      setIsGuestModalOpen(true);
+                    }}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="flex items-center justify-center min-h-96">

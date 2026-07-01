@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useMemo, useState } from "react";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog";
 import {
@@ -159,7 +160,8 @@ export const SettingsPage = () => {
   const [roleActive, setRoleActive] = useState(true);
   const [selectedPerms, setSelectedPerms] = useState({});
 
-  const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
 
   React.useEffect(() => { loadRoles(); }, []);
 
@@ -307,12 +309,9 @@ export const SettingsPage = () => {
         type: "success",
       });
       
-      // 🔄 Actualizar sessionStorage si el usuario logueado tiene este rol
-      const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-      if (currentUser.rolId === payload.id || currentUser.rol === payload.nombre) {
-        currentUser.permisos = permissions;
-        sessionStorage.setItem("syspharma_user", JSON.stringify(currentUser));
-        // Disparar evento para que los componentes se actualicen
+      // 🔄 Refrescar contexto si el usuario logueado tiene este rol
+      if (currentUser.rolId === payload.id || (currentUser.rol || "").toLowerCase() === payload.nombre?.toLowerCase()) {
+        await refreshUser();
         window.dispatchEvent(new Event("permissionsUpdated"));
       }
       

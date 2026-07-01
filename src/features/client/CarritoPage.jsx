@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import {
@@ -42,7 +43,12 @@ const CarritoPage = () => {
         imagen: p.imagen || item.imagen,
         precioActual: Number(p.precio || item.precio || 0),
         cantidad: item.cantidad || 1,
-        producto: p
+        producto: p,
+        marca: p.marca || p.laboratorio || p.proveedor || item.marca || "",
+        concentracion: p.concentracion || p.medicamento?.concentracion || item.concentracion || "",
+        presentacion: p.presentacion || item.presentacion || "",
+        requiereFormula: p.requiereFormula !== undefined ? p.requiereFormula : (p.medicamento?.requiereFormula || false),
+        requiereFormulaMedica: p.requiereFormulaMedica !== undefined ? p.requiereFormulaMedica : (p.medicamento?.requiereFormula || false),
       };
     });
     setCartItems(normalized);
@@ -67,7 +73,8 @@ const CarritoPage = () => {
   const formatCurrency = (amount) => new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(amount);
 
   const handleAbrirCheckout = () => {
-    const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+    const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
     const methods = getPaymentMethods();
     setPaymentMethods(methods || []);
     // Pre-llenar con la dirección del perfil si existe
@@ -90,21 +97,35 @@ const CarritoPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lista de Productos */}
           <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((it) => (
-              <div key={it.id} className="flex items-center gap-4 bg-white border border-gray-100 p-4 rounded-2xl shadow-sm">
-                <img src={it.imagen || "/src/assets/farmacia.avif"} className="w-20 h-20 object-cover rounded-xl" alt="" />
-                <div className="flex-1">
-                  <h4 className="font-bold text-gray-900">{it.nombre}</h4>
-                  <p className="text-emerald-600 font-black">{formatCurrency(it.precioActual)}</p>
+            {cartItems.map((it) => {
+              const isRestricted = !!(it.requiereFormula || it.requiereFormulaMedica);
+              return (
+                <div key={it.id} className="flex items-center gap-4 bg-white border border-gray-100 p-4 rounded-2xl shadow-sm">
+                  <img src={it.imagen || "/src/assets/farmacia.avif"} className="w-20 h-20 object-cover rounded-xl" alt="" />
+                  <div className="flex-1">
+                    <h4 className={`font-bold ${isRestricted ? "line-through text-gray-400" : "text-gray-900"}`}>{it.nombre}</h4>
+                    {(() => {
+                      const parts = [it.marca, it.concentracion, it.presentacion].filter(Boolean);
+                      return parts.length > 0 ? (
+                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">{parts.join(" · ")}</p>
+                      ) : null;
+                    })()}
+                    {isRestricted && (
+                      <p className="text-[11px] text-red-600 font-bold mt-1">
+                        ⚠️ Requiere fórmula médica física. Elimínalo para poder comprar.
+                      </p>
+                    )}
+                    <p className="text-emerald-600 font-black mt-1">{formatCurrency(it.precioActual)}</p>
+                  </div>
+                  <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl">
+                    <button onClick={() => changeQty(it.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white border rounded-lg">-</button>
+                    <span className="font-bold w-4 text-center">{it.cantidad}</span>
+                    <button onClick={() => changeQty(it.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white border rounded-lg">+</button>
+                  </div>
+                  <button onClick={() => handleRemove(it.id)} className="p-2 text-red-400 hover:text-red-600">✕</button>
                 </div>
-                <div className="flex items-center gap-3 bg-gray-50 p-2 rounded-xl">
-                  <button onClick={() => changeQty(it.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white border rounded-lg">-</button>
-                  <span className="font-bold w-4 text-center">{it.cantidad}</span>
-                  <button onClick={() => changeQty(it.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white border rounded-lg">+</button>
-                </div>
-                <button onClick={() => handleRemove(it.id)} className="p-2 text-red-400 hover:text-red-600">✕</button>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Resumen de Pago */}
@@ -114,12 +135,29 @@ const CarritoPage = () => {
               <span>Total:</span>
               <span className="text-emerald-600">{formatCurrency(total)}</span>
             </div>
-            <button
-              onClick={handleAbrirCheckout}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold shadow-lg shadow-emerald-100 transition-all"
-            >
-              Finalizar Compra
-            </button>
+            {(() => {
+              const hasRestricted = cartItems.some(it => it.requiereFormula || it.requiereFormulaMedica);
+              return (
+                <>
+                  {hasRestricted && (
+                    <div className="bg-red-50 border border-red-200 text-red-800 rounded-2xl p-4 text-xs font-semibold leading-relaxed">
+                      ⚠️ Hay productos en tu carrito que requieren fórmula médica física. Por favor elimínalos para continuar con la compra.
+                    </div>
+                  )}
+                  <button
+                    onClick={handleAbrirCheckout}
+                    disabled={hasRestricted}
+                    className={`w-full py-4 rounded-2xl font-bold transition-all ${
+                      hasRestricted
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100 active:scale-95"
+                    }`}
+                  >
+                    Finalizar Compra
+                  </button>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

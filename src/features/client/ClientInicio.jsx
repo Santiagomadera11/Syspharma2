@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useEffect, useState } from "react";
 import { 
   ShoppingBag, Calendar, Clock, 
@@ -10,16 +11,17 @@ import { appointmentService } from "../services/appointments/services/appointmen
 
 const ClientInicio = () => {
   const navigate = useNavigate();
+  const { currentUser } = useCurrentUser();
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!currentUser) return;
     const loadData = async () => {
       setLoading(true);
       try {
-        const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
         setUser(currentUser);
         
         // --- LOG DE DIAGNÓSTICO ---
@@ -62,7 +64,7 @@ const ClientInicio = () => {
       }
     };
     loadData();
-  }, []);
+  }, [currentUser]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();

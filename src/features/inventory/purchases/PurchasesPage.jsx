@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Plus, Search, Eye, Edit, Trash2,
@@ -23,7 +24,7 @@ export const PurchasesPage = () => {
   const [purchaseToChangeStatus, setPurchaseToChangeStatus] = useState(null);
   const [notification, setNotification] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const userRole = (currentUser.rol || "").toLowerCase().trim();
   const userPerms = (currentUser.permisos || []).map((perm) => String(perm || "").toLowerCase().trim());
   const isAdmin = userRole === "administrador";

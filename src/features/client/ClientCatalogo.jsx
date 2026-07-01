@@ -1,8 +1,10 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { LS, read, write } from "../../shared/services/lsService";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import ProductCardGrid, { ProductRowList } from "./components/ProductCard";
+import ProductDetailModal from "../../shared/ui/ProductDetailModal";
 
 const ProductCard = ({ product, onAdd }) => {
   // Map from product schema to ProductCardGrid schema, asegurando todos los campos
@@ -25,6 +27,7 @@ const ProductCard = ({ product, onAdd }) => {
 };
 
 const ClientCatalogo = () => {
+  const { currentUser } = useCurrentUser();
   const [products, setProducts] = useState([]);
   // Depuración: mostrar productos en consola
   console.log("[DEBUG] Productos en memoria:", products);
@@ -38,6 +41,7 @@ const ClientCatalogo = () => {
   // no view mode toggle on home, always grid view
   const [toast, setToast] = useState(null);
   const [userName, setUserName] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const listRef = React.useRef(null);
 
   // scroll to product list whenever a category filter is applied
@@ -49,13 +53,10 @@ const ClientCatalogo = () => {
 
   // load user from localStorage for greeting
   useEffect(() => {
-    try {
-      const u = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-      if (u && u.nombre) setUserName(u.nombre);
-    } catch {
-      // ignore parse errors
+    if (currentUser && currentUser.nombre) {
+      setUserName(currentUser.nombre);
     }
-  }, []);
+  }, [currentUser]);
 
   // load products
   useEffect(() => {
@@ -67,14 +68,22 @@ const ClientCatalogo = () => {
         console.log("[DEBUG] Productos cargados:", storedProducts);
         const mappedProducts = Array.isArray(storedProducts)
           ? storedProducts.map((p) => ({
+              ...p,
               id: p.id,
               nombre: p.nombre || p.name || "Sin nombre",
+              name: p.nombre || p.name || "Sin nombre",
               precio: Number(p.precio ?? p.price ?? 0),
+              price: Number(p.precio ?? p.price ?? 0),
               imagen: p.imagen || p.image || "/src/assets/farmacia.avif",
+              image: p.imagen || p.image || "/src/assets/farmacia.avif",
               categoria: p.categoria || "Otros",
               laboratorio:
                 p.laboratorio || p.marca || p.proveedor || "Genérico",
+              marca:
+                p.laboratorio || p.marca || p.proveedor || "Genérico",
               stock: p.stock ?? p.existencia ?? 0,
+              requiereFormula: p.requiereFormula,
+              requiereFormulaMedica: p.requiereFormulaMedica,
             }))
           : [];
         setProducts(mappedProducts);
@@ -229,12 +238,20 @@ const ClientCatalogo = () => {
                 key={p.id}
                 product={p}
                 onAdd={saveCartAndNotify}
+                onOpenDetail={setSelectedProduct}
                 disabled={(p.stock || 0) <= 0}
               />
             ))}
           </div>
         )}
       </div>
+
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
 
       {toast && (
         <ToastNotification

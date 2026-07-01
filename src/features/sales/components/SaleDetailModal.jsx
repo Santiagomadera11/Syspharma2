@@ -47,9 +47,6 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
   const iva = ivaBackend !== null ? ivaBackend : (subtotal * (porcentajeIva / 100));
   const total = totalBackend !== null ? totalBackend : (subtotal + iva);
 
-  console.log("DATOS DE LA VENTA EN EL MODAL:", sale);
-  console.log("PRODUCTOS ENCONTRADOS:", sale.detalles);
-  console.log("SERVICIOS ENCONTRADOS:", sale.servicios);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -102,6 +99,15 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
                 <p className="text-xs font-bold text-gray-800 truncate">{sale.metodoPagoNombre || "Efectivo"}</p>
               </div>
             </div>
+            {sale.referenciasPago && (
+              <div className="flex items-center gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                <Receipt size={14} className="text-gray-400" />
+                <div className="min-w-0">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase leading-none">Referencia de Pago</p>
+                  <p className="text-xs font-bold text-gray-800 truncate">{sale.referenciasPago}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Listado de Items */}

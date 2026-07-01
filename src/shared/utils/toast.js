@@ -7,7 +7,6 @@ export const toast = {
         }),
       );
     } catch {
-      console.log("toast success:", message);
     }
   },
   error: (message, title) => {
@@ -29,7 +28,6 @@ export const toast = {
         }),
       );
     } catch {
-      console.log("toast info:", message);
     }
   },
   // allow simple call like toast('msg')

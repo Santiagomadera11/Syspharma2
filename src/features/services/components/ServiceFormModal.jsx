@@ -89,13 +89,30 @@ const ServiceFormModal = ({
   };
 
   const handleSubmit = () => {
+    const newErrors = {};
     const nameError = formValidations.validateService(formData.nombre);
-    setErrors({ ...errors, nombre: nameError });
+    if (nameError) {
+      newErrors.nombre = nameError;
+    } else if (!formData.nombre || !formData.nombre.trim()) {
+      newErrors.nombre = "El nombre es obligatorio.";
+    }
 
-    if (!formData.nombre || !formData.precio || nameError) {
-      alert("Completa los campos obligatorios correctamente");
+    if (!formData.precio) {
+      newErrors.precio = "El precio es obligatorio.";
+    } else if (Number(formData.precio) <= 0) {
+      newErrors.precio = "El precio debe ser un número mayor a cero.";
+    }
+
+    if (formData.duracion && Number(formData.duracion) <= 0) {
+      newErrors.duracion = "La duración debe ser mayor a cero.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
+
+    setErrors({});
 
     const dataToSave = {
       nombre: formData.nombre,
@@ -211,17 +228,23 @@ const ServiceFormModal = ({
 
           <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-md border border-gray-100">
             <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">Precio ($)</label>
+              <label className="block text-xs font-bold text-gray-600 mb-1">Precio ($) *</label>
               <div className="relative">
                 <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                 <input
                   type="number"
                   disabled={isViewMode}
-                  className={`w-full pl-7 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none ${focusBorderColor} disabled:bg-gray-100 disabled:text-gray-500`}
+                  className={`w-full pl-7 pr-3 py-1.5 text-sm border rounded-md focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 ${
+                    errors.precio ? "border-red-500 focus:ring-1 focus:ring-red-300" : `border-gray-300 ${focusBorderColor}`
+                  }`}
                   value={formData.precio}
-                  onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, precio: e.target.value });
+                    if (errors.precio) setErrors({ ...errors, precio: null });
+                  }}
                 />
               </div>
+              {errors.precio && <p className="text-red-500 text-[10px] mt-1">{errors.precio}</p>}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">Duración (min)</label>
@@ -230,11 +253,17 @@ const ServiceFormModal = ({
                 <input
                   type="number"
                   disabled={isViewMode}
-                  className={`w-full pl-7 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none ${focusBorderColor} disabled:bg-gray-100 disabled:text-gray-500`}
+                  className={`w-full pl-7 pr-3 py-1.5 text-sm border rounded-md focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 ${
+                    errors.duracion ? "border-red-500 focus:ring-1 focus:ring-red-300" : `border-gray-300 ${focusBorderColor}`
+                  }`}
                   value={formData.duracion}
-                  onChange={(e) => setFormData({ ...formData, duracion: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, duracion: e.target.value });
+                    if (errors.duracion) setErrors({ ...errors, duracion: null });
+                  }}
                 />
               </div>
+              {errors.duracion && <p className="text-red-500 text-[10px] mt-1">{errors.duracion}</p>}
             </div>
           </div>
 

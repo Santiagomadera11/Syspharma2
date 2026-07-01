@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, AlertCircle, Search } from "lucide-react";
@@ -24,7 +25,7 @@ export const CreateOrderPage = () => {
 
   const esUnPedido = location.pathname.toLowerCase().includes("pedido");
   const isEmployeePath = location.pathname.startsWith("/employee");
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const isEmployeeRole = (currentUser.rol || "") === "Empleado";
 
   const primary = isEmployeeRole ? "#2563eb" : "#059669";
@@ -37,6 +38,13 @@ export const CreateOrderPage = () => {
   const [clientInfo, setClientInfo] = useState({
     documento: "", nombre: "", telefono: "", correo: "", metodoPagoId: "",
   });
+  const [montoRecibido, setMontoRecibido] = useState("");
+  const [referenciaPago, setReferenciaPago] = useState("");
+
+  useEffect(() => {
+    setMontoRecibido("");
+    setReferenciaPago("");
+  }, [clientInfo.metodoPagoId]);
 
   // ============ NUEVO: Estado para IVA ============
   const [porcentajeIva, setPorcentajeIva] = useState(19);
@@ -99,7 +107,6 @@ export const CreateOrderPage = () => {
           setUsuarios(Array.isArray(data) ? data : []);
         }
       } catch (err) {
-        console.warn("Error cargando usuarios:", err);
       }
     };
     cargarUsuarios();
@@ -142,25 +149,29 @@ export const CreateOrderPage = () => {
 
   const handleAddProduct = useCallback((product, cantidad) => {
     setProductCart((prev) => {
-      const existing = prev.find((p) => p.id === product.id);
+      const existing = prev.find((p) => p.id === product.id && p.loteId === product.loteId);
       if (existing)
-        return prev.map((p) => p.id === product.id ? { ...p, cantidad: p.cantidad + cantidad } : p);
+        return prev.map((p) => p.id === product.id && p.loteId === product.loteId ? { ...p, cantidad: p.cantidad + cantidad } : p);
       return [...prev, { ...product, cantidad }];
     });
   }, []);
 
-  const handleRemoveProduct = useCallback((id) => {
-    setProductCart((prev) => prev.filter((p) => p.id !== id));
+  const handleRemoveProduct = useCallback((id, loteId) => {
+    setProductCart((prev) => prev.filter((p) => !(p.id === id && p.loteId === loteId)));
   }, []);
 
-  const handleUpdateQty = useCallback((id, newQty) => {
+  const handleUpdateQty = useCallback((id, loteId, newQty) => {
     if (newQty <= 0) {
-      handleRemoveProduct(id);
+      handleRemoveProduct(id, loteId);
     } else {
       setProductCart((prev) =>
         prev.map((p) => {
-          if (p.id !== id) return p;
-          const maxStock = p.stock ?? Infinity;
+          if (!(p.id === id && p.loteId === loteId)) return p;
+          let maxStock = p.stock ?? Infinity;
+          if (p.loteId) {
+            const lote = p.lotes?.find(l => l.id === p.loteId);
+            if (lote) maxStock = lote.cantidad;
+          }
           const cappedQty = Math.min(newQty, maxStock);
           return { ...p, cantidad: cappedQty };
         })
@@ -186,8 +197,16 @@ export const CreateOrderPage = () => {
   }, []);
 
   const handleConfirmOrder = async () => {
-    if (!clientInfo.nombre) {
-      setNotification({ message: "El nombre es obligatorio", type: "error" });
+    if (productCart.length === 0 && serviceCart.length === 0) {
+      setNotification({ message: "El carrito está vacío. Agrega productos o servicios.", type: "error" });
+      return;
+    }
+    if (!clientInfo.nombre || !clientInfo.nombre.trim()) {
+      setNotification({ message: "El nombre del cliente es obligatorio", type: "error" });
+      return;
+    }
+    if (clientInfo.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientInfo.correo)) {
+      setNotification({ message: "El correo electrónico ingresado no es válido", type: "error" });
       return;
     }
 
@@ -233,7 +252,6 @@ export const CreateOrderPage = () => {
           citaIds: serviceCart.map((s) => s.appointmentId).filter(Boolean), // ← NUEVO
         };
 
-        console.log("📝 Enviando PEDIDO:", JSON.stringify(pedidoPayload, null, 2));
         const pedidoResponse = await ordersService.create(pedidoPayload);
 
         // ── Actualizar stock en localStorage para reflejar el pedido ──
@@ -268,6 +286,7 @@ export const CreateOrderPage = () => {
           clienteDocumento: clientInfo.documento || "",
           clienteTelefono: clientInfo.telefono || "",
           metodoPagoId: Number(clientInfo.metodoPagoId),
+          referenciasPago: referenciaPago || null,
           porcentajeIva: porcentajeIva,
           subtotal: subtotal,
           iva: iva,
@@ -282,6 +301,7 @@ export const CreateOrderPage = () => {
             precioUnitario: Number(p.precio),
             descuento: 0,
             subtotal: Number(p.cantidad * p.precio),
+            loteId: p.loteId ? Number(p.loteId) : null,
           })),
           servicios: serviceCart.map((s) => ({
             servicioId: Number(s.servicioId),
@@ -293,7 +313,6 @@ export const CreateOrderPage = () => {
           })),
         };
 
-        console.log("💰 Enviando VENTA:", JSON.stringify(ventaPayload, null, 2));
         const ventaResponse = await salesService.create(ventaPayload);
 
         // ── Actualizar stock en localStorage para reflejar la venta ──
@@ -469,6 +488,12 @@ export const CreateOrderPage = () => {
               disabled={!clientInfo.nombre || (isEmployeeRole && !turnoActivo)}
               porcentajeIva={porcentajeIva}
               esUnPedido={esUnPedido}
+              metodoPagoId={clientInfo.metodoPagoId}
+              paymentMethods={paymentMethods}
+              montoRecibido={montoRecibido}
+              setMontoRecibido={setMontoRecibido}
+              referenciaPago={referenciaPago}
+              setReferenciaPago={setReferenciaPago}
             />
           </div>
         </div>

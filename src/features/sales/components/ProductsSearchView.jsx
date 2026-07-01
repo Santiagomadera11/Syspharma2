@@ -37,20 +37,56 @@ export const ProductsSearchView = ({ cart, onAddProduct, onRemoveProduct, onUpda
       .slice(0, 10);
   }, [products, searchTerm]);
 
+  const [selectedLoteId, setSelectedLoteId] = useState("");
+
+  const activeLotes = useMemo(() => {
+    if (!selectedProduct || !selectedProduct.lotes) return [];
+    return [...selectedProduct.lotes]
+      .filter(l => l.cantidad > 0)
+      .sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento));
+  }, [selectedProduct]);
+
+  const selectedLote = useMemo(() => {
+    if (!selectedLoteId || !activeLotes.length) return null;
+    return activeLotes.find(l => l.id === Number(selectedLoteId));
+  }, [selectedLoteId, activeLotes]);
+
+  const handleLoteChange = (loteId) => {
+    setSelectedLoteId(loteId);
+    const lote = activeLotes.find(l => l.id === Number(loteId));
+    const limit = lote ? lote.cantidad : (selectedProduct?.stock || 1);
+    setQuickQty(prev => Math.min(limit, prev));
+  };
+
   const handleSelectProduct = (product) => {
     if (product.stock <= 0) return;
     setSelectedProduct(product);
     setQuickQty(1);
+
+    const productLotes = Array.isArray(product.lotes)
+      ? [...product.lotes].filter(l => l.cantidad > 0).sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento))
+      : [];
+    if (productLotes.length > 0) {
+      setSelectedLoteId(String(productLotes[0].id));
+    } else {
+      setSelectedLoteId("");
+    }
+
     setShowModal(true);
     setShowDropdown(false);
   };
 
   const handleAddToCart = () => {
     if (!selectedProduct) return;
-    onAddProduct(selectedProduct, quickQty);
+    onAddProduct({
+      ...selectedProduct,
+      loteId: selectedLote ? selectedLote.id : null,
+      numeroLote: selectedLote ? selectedLote.numeroLote : null,
+    }, quickQty);
     setShowModal(false);
     setSearchTerm("");
     setSelectedProduct(null);
+    setSelectedLoteId("");
   };
 
   return (
@@ -93,7 +129,13 @@ export const ProductsSearchView = ({ cart, onAddProduct, onRemoveProduct, onUpda
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 truncate text-sm">{product.nombre}</p>
-                    <p className="text-xs text-gray-500">Stock: {product.stock}</p>
+                    {(() => {
+                      const parts = [product.concentracion, product.presentacion].filter(Boolean);
+                      return parts.length > 0 ? (
+                        <p className="text-[11px] text-gray-500 font-medium truncate mb-0.5">{parts.join(" · ")}</p>
+                      ) : null;
+                    })()}
+                    <p className="text-xs text-gray-400">Stock: {product.stock}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="font-bold text-sm" style={{ color: primary }}>
@@ -134,10 +176,34 @@ export const ProductsSearchView = ({ cart, onAddProduct, onRemoveProduct, onUpda
               </div>
               <div className="flex-1">
                 <p className="font-bold text-gray-900">{selectedProduct.nombre}</p>
+                {(() => {
+                  const parts = [selectedProduct.marca, selectedProduct.concentracion, selectedProduct.presentacion].filter(Boolean);
+                  return parts.length > 0 ? (
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">{parts.join(" · ")}</p>
+                  ) : null;
+                })()}
                 <p className="text-sm text-gray-500 mt-1">Precio: {fmt(selectedProduct.precio)}</p>
                 <p className="text-sm text-gray-500">Stock: {selectedProduct.stock}</p>
               </div>
             </div>
+
+            {/* Lotes selector */}
+            {activeLotes.length > 0 && (
+              <div className="mb-4">
+                <label className="text-sm font-semibold text-gray-600 block mb-1">Seleccionar Lote (FEFO)</label>
+                <select
+                  value={selectedLoteId}
+                  onChange={(e) => handleLoteChange(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:border-emerald-500 font-medium"
+                >
+                  {activeLotes.map(l => (
+                    <option key={l.id} value={l.id}>
+                      {l.numeroLote} - Vence: {l.fechaVencimiento} (Stock: {l.cantidad})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="mb-4">
               <label className="text-sm font-semibold text-gray-600 block mb-2">Cantidad</label>
@@ -151,13 +217,19 @@ export const ProductsSearchView = ({ cart, onAddProduct, onRemoveProduct, onUpda
                 <input
                   type="number"
                   min="1"
-                  max={selectedProduct.stock}
+                  max={selectedLote ? selectedLote.cantidad : selectedProduct.stock}
                   value={quickQty}
-                  onChange={(e) => setQuickQty(Math.min(selectedProduct.stock, Math.max(1, parseInt(e.target.value) || 1)))}
+                  onChange={(e) => {
+                    const limit = selectedLote ? selectedLote.cantidad : selectedProduct.stock;
+                    setQuickQty(Math.min(limit, Math.max(1, parseInt(e.target.value) || 1)));
+                  }}
                   className="flex-1 text-center font-bold text-lg bg-transparent border-0 focus:outline-none"
                 />
                 <button
-                  onClick={() => setQuickQty(Math.min(selectedProduct.stock, quickQty + 1))}
+                  onClick={() => {
+                    const limit = selectedLote ? selectedLote.cantidad : selectedProduct.stock;
+                    setQuickQty(Math.min(limit, quickQty + 1));
+                  }}
                   className="w-8 h-8 rounded flex items-center justify-center hover:bg-gray-200 transition"
                 >
                   <Plus size={16} />
@@ -202,44 +274,52 @@ export const ProductsSearchView = ({ cart, onAddProduct, onRemoveProduct, onUpda
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto space-y-2">
-            {cart.map((item) => (
-              <div key={item.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm text-gray-900">{item.nombre}</p>
-                    <p className="text-xs text-gray-500">{fmt(item.precio)} c/u</p>
-                    {item.stock != null && (
-                      <p className="text-xs text-gray-400">Stock disponible: {item.stock}</p>
-                    )}
-                  </div>
-                  <button onClick={() => onRemoveProduct(item.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
-                    <X size={16} />
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 bg-white rounded border border-gray-200">
-                    <button onClick={() => onUpdateQty(item.id, item.cantidad - 1)} className="w-6 h-6 flex items-center justify-center hover:bg-gray-100">
-                      <Minus size={12} />
-                    </button>
-                    <span className="w-6 text-center text-xs font-bold">{item.cantidad}</span>
-                    <button
-                      onClick={() => onUpdateQty(item.id, item.cantidad + 1)}
-                      disabled={item.stock != null && item.cantidad >= item.stock}
-                      className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                      title={item.stock != null && item.cantidad >= item.stock ? "Stock máximo alcanzado" : "Aumentar cantidad"}
-                    >
-                      <Plus size={12} />
+            {cart.map((item) => {
+              const maxStock = item.loteId ? (item.lotes?.find(l => l.id === item.loteId)?.cantidad ?? item.stock) : item.stock;
+              return (
+                <div key={`${item.id}-${item.loteId || 'no-lote'}`} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900">{item.nombre}</p>
+                      {item.numeroLote && (
+                        <p className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 inline-block my-0.5">
+                          Lote: {item.numeroLote}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500">{fmt(item.precio)} c/u</p>
+                      {maxStock != null && (
+                        <p className="text-xs text-gray-400">Stock disponible: {maxStock}</p>
+                      )}
+                    </div>
+                    <button onClick={() => onRemoveProduct(item.id, item.loteId)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                      <X size={16} />
                     </button>
                   </div>
-                  <p className="font-bold text-sm" style={{ color: primary }}>
-                    {fmt(item.precio * item.cantidad)}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 bg-white rounded border border-gray-200">
+                      <button onClick={() => onUpdateQty(item.id, item.loteId, item.cantidad - 1)} className="w-6 h-6 flex items-center justify-center hover:bg-gray-100">
+                        <Minus size={12} />
+                      </button>
+                      <span className="w-6 text-center text-xs font-bold">{item.cantidad}</span>
+                      <button
+                        onClick={() => onUpdateQty(item.id, item.loteId, item.cantidad + 1)}
+                        disabled={maxStock != null && item.cantidad >= maxStock}
+                        className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={maxStock != null && item.cantidad >= maxStock ? "Stock máximo alcanzado" : "Aumentar cantidad"}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                    <p className="font-bold text-sm" style={{ color: primary }}>
+                      {fmt(item.precio * item.cantidad)}
+                    </p>
+                  </div>
+                  {maxStock != null && item.cantidad >= maxStock && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">⚠ Stock máximo alcanzado</p>
+                  )}
                 </div>
-                {item.stock != null && item.cantidad >= item.stock && (
-                  <p className="text-xs text-red-500 mt-1 font-medium">⚠ Stock máximo alcanzado</p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

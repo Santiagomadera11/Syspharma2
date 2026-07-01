@@ -3,10 +3,12 @@ import { Bell, Menu, Eye, ShoppingBag } from 'lucide-react';
 import { appointmentService } from '../../features/services/appointments/services/appointmentService';
 import { ordersService } from '../../features/sales/orders/services/ordersService';
 import { useNavigate } from 'react-router-dom';
-import icono1 from '../../assets/icono1.png'; // ← NUEVO: import del logo
+import icono1 from '../../assets/icono1.png'; // ? NUEVO: import del logo
+import { useCurrentUser } from "/src/shared/context/UserContext";
 
 export const Header = ({ onMenuClick }) => {
-  const [user, setUser] = useState({ nombre: 'Usuario', rol: 'Invitado' });
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || { nombre: 'Usuario', rol: 'Invitado' };
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -22,31 +24,17 @@ export const Header = ({ onMenuClick }) => {
   };
 
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('syspharma_user');
-    if (storedUser) setUser(JSON.parse(storedUser));
-    // Escuchar cambios de foto/permisos
-    const handleUpdate = () => {
-      const updated = sessionStorage.getItem("syspharma_user");
-      if (updated) setUser(JSON.parse(updated));
-    };
-    window.addEventListener("permissionsUpdated", handleUpdate);
-    return () => window.removeEventListener("permissionsUpdated", handleUpdate);  }, []);
-
-  useEffect(() => {
     const loadVencimientos = async () => {
       try {
         const token = sessionStorage.getItem("syspharma_token");
-        console.log("Token:", token ? "existe" : "NO HAY TOKEN"); // ✅ Log
 
         const res = await fetch("http://localhost:5055/api/Producto/proximos-a-vencer", {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        console.log("Status vencimientos:", res.status); // ✅ Log
 
         if (!res.ok) return [];
         const data = await res.json();
-        console.log("Productos próximos a vencer:", data); // ✅ Log
         return data.map(p => ({
           id: `venc-${p.id}`,
           tipo: "vencimiento",

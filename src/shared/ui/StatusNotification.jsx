@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useEffect } from "react";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
@@ -14,7 +15,7 @@ export const StatusNotification = ({
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const isAdmin = (currentUser.rol || "").toLowerCase().trim() === "administrador";
 
   const getStyles = () => {

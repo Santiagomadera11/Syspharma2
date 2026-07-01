@@ -1,9 +1,12 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useEffect, useState } from "react";
 import { X, Trash2 } from "lucide-react";
 import { expensesService } from "../services/expensesService";
 import { ToastNotification } from "../../../shared/ui/ToastNotification";
 
 export const ExpensesModal = ({ isOpen, onClose }) => {
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || {};
   const [expenses, setExpenses] = useState([]);
   const [toast, setToast] = useState(null);
 
@@ -14,9 +17,9 @@ export const ExpensesModal = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   const loadExpenses = async () => {
+    if (!user.id) return;
     try {
-      const user = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
-      const todayExpenses = await expensesService.getTodayExpenses(user.usuarioId || user.id);
+      const todayExpenses = await expensesService.getTodayExpenses(user.id);
       setExpenses(Array.isArray(todayExpenses) ? todayExpenses : []);
     } catch (error) {
       console.error("Error cargando gastos:", error);

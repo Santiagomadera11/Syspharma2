@@ -1,3 +1,4 @@
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect } from "react";
 import {
   Search, Plus, Eye, Edit, Trash2,
@@ -13,7 +14,7 @@ export const UsersPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [roleColorMap, setRoleColorMap] = useState({});
-  const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
+  const { currentUser } = useCurrentUser();
   const userPerms = currentUser.permisos || [];
   const userRole = (currentUser.rol || "").toLowerCase();
   const isAdmin = userRole === "administrador";

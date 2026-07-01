@@ -9,20 +9,19 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { read, write, LS } from "../../shared/services/lsService";
+import { useCurrentUser } from "/src/shared/context/UserContext";
 import { appointmentService } from "../../features/services/appointments/services/appointmentService";
 import { ordersService } from "../../features/sales/orders/services/ordersService";
 
 export const ClientHeader = ({ onMenuClick }) => {
-  const [user, setUser] = useState({ nombre: "Usuario", rol: "Cliente" });
+  const { currentUser } = useCurrentUser();
+  const user = currentUser || { nombre: "Usuario", rol: "Cliente" };
   const [cartCount, setCartCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [cartAnimating, setCartAnimating] = useState(false);
 
   useEffect(() => {
-    const storedUser = sessionStorage.getItem("syspharma_user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-
     const loadCart = () => {
       try {
         const saved = localStorage.getItem("syspharma_cart");
@@ -44,18 +43,11 @@ export const ClientHeader = ({ onMenuClick }) => {
       setTimeout(() => loadNotifications(), 500);
     };
     
-    // Escuchar cambios de foto/permisos
-    const handleUpdate = () => {
-      const updated = sessionStorage.getItem("syspharma_user");
-      if (updated) setUser(JSON.parse(updated));
-    };
-    
     window.addEventListener("syspharma_cart_updated", cartHandler);
     window.addEventListener("syspharma_notifications_updated", handleNotificationsChange);
     window.addEventListener("appointments:changed", handleNotificationsChange);
     window.addEventListener("syspharma_orders_updated", handleNotificationsChange);
     window.addEventListener("sales:changed", handleNotificationsChange);
-    window.addEventListener("permissionsUpdated", handleUpdate);
     
     // initial notifications load
     loadNotifications();
@@ -65,13 +57,11 @@ export const ClientHeader = ({ onMenuClick }) => {
       window.removeEventListener("appointments:changed", handleNotificationsChange);
       window.removeEventListener("syspharma_orders_updated", handleNotificationsChange);
       window.removeEventListener("sales:changed", handleNotificationsChange);
-      window.removeEventListener("permissionsUpdated", handleUpdate);
     };
   }, []);
 
   function loadNotifications() {
     try {
-      const currentUser = JSON.parse(sessionStorage.getItem("syspharma_user") || "{}");
       const userId = currentUser?.id;
       
       // Cargar notificaciones guardadas del LS

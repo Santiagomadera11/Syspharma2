@@ -70,12 +70,12 @@ export const RegisterPage = () => {
 
     const email = (formData.email || "").trim().toLowerCase();
 
-    if (!email) {
-      setToast({ message: "Ingresa un correo valido", type: "error", zIndex: 70 }); 
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setToast({ message: "Ingresa un correo electrónico válido", type: "error", zIndex: 70 }); 
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      setToast({ message: "Las contrasenas no coinciden", type: "error", zIndex: 70 }); 
+      setToast({ message: "Las contraseñas no coinciden", type: "error", zIndex: 70 }); 
       return;
     }
 

@@ -27,7 +27,6 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
         });
       }
     } catch (error) {
-      console.error("Error cargando datos del usuario:", error);
     }
   }, []);
 
@@ -168,7 +167,22 @@ const QuickPurchaseModal = ({ product, onClose, onSuccess }) => {
                 <h3 className="font-semibold text-gray-900">
                   {product.nombre}
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
+                {product.marca && (
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Marca: {product.marca}
+                  </p>
+                )}
+                {product.concentracion && (
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Concentración: {product.concentracion}
+                  </p>
+                )}
+                {product.presentacion && (
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Presentación: {product.presentacion}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600 mt-0.5">
                   {product.categoria && `Categoría: ${product.categoria}`}
                 </p>
                 <p className="text-lg font-bold text-blue-600 mt-2">
