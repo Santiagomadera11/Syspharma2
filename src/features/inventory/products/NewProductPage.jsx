@@ -122,6 +122,9 @@ const NewProductPage = () => {
     if (!formData.nombre.trim()) return showError("Campo Requerido", "Por favor ingresa el nombre del producto");
     if (!formData.categoriaId) return showError("Campo Requerido", "Por favor selecciona una categoría");
     if (!formData.precio || Number(formData.precio) <= 0) return showError("Precio Inválido", "Por favor ingresa un precio válido mayor a 0");
+    if (formData.stock !== undefined && Number(formData.stock) < 0) return showError("Stock Inválido", "El stock no puede ser negativo");
+    if (formData.enOferta && (Number(formData.porcentajeDescuento) < 0 || Number(formData.porcentajeDescuento) > 100))
+      return showError("Descuento Inválido", "El porcentaje de descuento debe estar entre 0 y 100");
 
     const payload = {
       nombre: formData.nombre.trim(),

@@ -105,15 +105,16 @@ const LoginPage = () => {
 
   const handleEnviarCorreo = async (e) => {
     e.preventDefault();
-    if (!recoveryEmail) {
+    const email = (recoveryEmail || "").trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setToast({
-        message: "Ingresa tu correo electrónico",
+        message: "Ingresa un correo electrónico válido",
         type: "error",
         zIndex: 70,
       });
       return;
     }
-    const result = await sendRecoveryEmail(recoveryEmail);
+    const result = await sendRecoveryEmail(email);
     if (result.error) {
       setToast({ message: result.message, type: "error", zIndex: 70 });
       return;
@@ -190,6 +191,22 @@ const LoginPage = () => {
       });
       return;
     }
+
+    const hasMinLength = newPassword.length >= 8;
+    const hasUppercase = /[A-Z]/.test(newPassword);
+    const hasLowercase = /[a-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    const hasSpecialChar = /[^A-Za-z0-9]/.test(newPassword);
+
+    if (!hasMinLength || !hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
+      setToast({
+        message: "La contraseña debe tener mínimo 8 caracteres, incluyendo mayúscula, minúscula, número y carácter especial.",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setToast({
         message: "Las contraseñas no coinciden",

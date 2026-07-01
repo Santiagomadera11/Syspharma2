@@ -197,8 +197,16 @@ export const CreateOrderPage = () => {
   }, []);
 
   const handleConfirmOrder = async () => {
-    if (!clientInfo.nombre) {
-      setNotification({ message: "El nombre es obligatorio", type: "error" });
+    if (productCart.length === 0 && serviceCart.length === 0) {
+      setNotification({ message: "El carrito está vacío. Agrega productos o servicios.", type: "error" });
+      return;
+    }
+    if (!clientInfo.nombre || !clientInfo.nombre.trim()) {
+      setNotification({ message: "El nombre del cliente es obligatorio", type: "error" });
+      return;
+    }
+    if (clientInfo.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientInfo.correo)) {
+      setNotification({ message: "El correo electrónico ingresado no es válido", type: "error" });
       return;
     }
 

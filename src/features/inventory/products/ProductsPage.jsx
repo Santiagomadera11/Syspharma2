@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 import {
   Plus, Search, Edit, Trash2, Eye,
   ChevronLeft, ChevronRight, Package,
-  X, CheckCircle, AlertCircle,
+  X, CheckCircle, AlertCircle, Database
 } from "lucide-react";
 import ProductModal from "./components/ProductFormModal";
+import { ProductLotesModal } from "./components/ProductLotesModal";
 import { productService } from "./services/productService";
 import { categoryService } from "../categories/services/categoryService";
 import { providerService } from "../providers/services/providerService";
@@ -34,6 +35,7 @@ export const ProductsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState(null);
   const [detailProduct, setDetailProduct] = useState(null);
+  const [lotesProduct, setLotesProduct] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [isStatusConfirmOpen, setIsStatusConfirmOpen] = useState(false);
   const [productToToggle, setProductToToggle] = useState(null);
@@ -322,6 +324,9 @@ export const ProductsPage = () => {
                         <button onClick={() => setDetailProduct(prod)} className="p-1.5 rounded-md text-blue-600 hover:bg-blue-50 transition-colors" title="Ver detalle">
                           <Eye size={16} />
                         </button>
+                        <button onClick={() => setLotesProduct(prod)} className="p-1.5 rounded-md text-purple-600 hover:bg-purple-50 transition-colors" title="Ver lotes">
+                          <Database size={16} />
+                        </button>
                         {canToggleStatus && (
                           <button onClick={() => handleStatusToggle(prod)} className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors" title="Cambiar estado">
                             <CheckCircle size={16} />
@@ -404,6 +409,9 @@ export const ProductsPage = () => {
                 <button onClick={() => setDetailProduct(prod)} className="flex-1 py-1.5 px-3 rounded-md text-blue-600 hover:bg-blue-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
                   <Eye size={14} /> Ver
                 </button>
+                <button onClick={() => setLotesProduct(prod)} className="flex-1 py-1.5 px-3 rounded-md text-purple-600 hover:bg-purple-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
+                  <Database size={14} /> Lotes
+                </button>
                 {canToggleStatus && (
                   <button onClick={() => handleStatusToggle(prod)} className="flex-1 py-1.5 px-3 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors text-xs font-medium flex items-center justify-center gap-1">
                     <CheckCircle size={14} /> Estado
@@ -438,6 +446,10 @@ export const ProductsPage = () => {
       )}
 
       <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} initialData={editingItem} categories={categories} providers={providers} />
+
+      {lotesProduct && (
+        <ProductLotesModal isOpen={!!lotesProduct} onClose={() => setLotesProduct(null)} product={lotesProduct} />
+      )}
 
       {notification && <StatusNotification message={notification.message} type={notification.type} duration={notification.duration} onClose={() => setNotification(null)} />}
 

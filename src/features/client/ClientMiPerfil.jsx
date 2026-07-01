@@ -79,6 +79,24 @@ export const ClientMiPerfil = () => {
       return;
     }
 
+    if (formData.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo)) {
+      setToast({
+        message: "El correo electrónico ingresado no es válido",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
+    if (formData.telefono && !/^\+?[0-9\s-]{7,15}$/.test(formData.telefono)) {
+      setToast({
+        message: "El teléfono no es válido (debe tener entre 7 y 15 dígitos)",
+        type: "error",
+        zIndex: 70,
+      });
+      return;
+    }
+
     if (!user || !user.id) {
       setToast({
         message: "No se encontro una sesion activa de usuario",

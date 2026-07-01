@@ -3,8 +3,10 @@ import { X, Save, Tag, FileText, Activity } from "lucide-react";
 
 const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create', onSave, accentColor = "emerald" }) => {
   const [formData, setFormData] = useState({ nombre: '', descripcion: '', estado: true });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
+    setErrors({});
     if (initialData) {
       setFormData({
         ...initialData,
@@ -35,10 +37,28 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
       };
 
   const handleSubmit = () => {
+    const newErrors = {};
+    if (!formData.nombre || !formData.nombre.trim()) {
+      newErrors.nombre = "El nombre de la categoría es obligatorio.";
+    } else if (formData.nombre.trim().length > 100) {
+      newErrors.nombre = "El nombre no puede superar los 100 caracteres.";
+    }
+    if (formData.descripcion && formData.descripcion.trim().length > 500) {
+      newErrors.descripcion = "La descripción no puede superar los 500 caracteres.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
     if (onSave) {
       onSave({
         ...formData,
-        estado: formData.estado // Asegurar que sea booleano
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion ? formData.descripcion.trim() : "",
+        estado: formData.estado
       });
     }
   };
@@ -70,12 +90,16 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
               <input 
                 disabled={isView}
                 type="text" 
-                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none ${accent.focus} focus:ring-1`} 
+                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${accent.focus} focus:ring-1 ${errors.nombre ? 'border-red-500 ring-red-500' : 'border-gray-300'}`} 
                 placeholder="Ej: Antibióticos" 
                 value={formData.nombre}
-                onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                onChange={(e) => {
+                  setFormData({...formData, nombre: e.target.value});
+                  if (errors.nombre) setErrors({...errors, nombre: null});
+                }}
               />
             </div>
+            {errors.nombre && <p className="text-red-500 text-[10px] mt-1">{errors.nombre}</p>}
           </div>
 
           {/* Descripción */}
@@ -85,12 +109,16 @@ const CategoryFormModal = ({ isOpen, onClose, initialData = null, mode = 'create
               <FileText className="absolute left-3 top-3 text-gray-400" size={16} />
               <textarea 
                 disabled={isView}
-                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none ${accent.focus} h-24 resize-none`} 
+                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-md focus:outline-none ${accent.focus} h-24 resize-none ${errors.descripcion ? 'border-red-500 ring-red-500' : 'border-gray-300'}`} 
                 placeholder="Descripción breve de la categoría..." 
                 value={formData.descripcion}
-                onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
+                onChange={(e) => {
+                  setFormData({...formData, descripcion: e.target.value});
+                  if (errors.descripcion) setErrors({...errors, descripcion: null});
+                }}
               />
             </div>
+            {errors.descripcion && <p className="text-red-500 text-[10px] mt-1">{errors.descripcion}</p>}
           </div>
 
           {/* Estado */}

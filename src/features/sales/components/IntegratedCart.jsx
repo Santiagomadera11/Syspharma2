@@ -42,7 +42,8 @@ export const IntegratedCart = ({
   else if (isTarjeta) placeholderText = "Ej: Aprobación 123456";
 
   const isMontoInsuficiente = isEfectivo && (!montoRecibido || Number(montoRecibido) < totalGeneral);
-  const finishDisabled = disabled || isLoading || (!esUnPedido && isMontoInsuficiente);
+  const isRefMissing = isRefRequired && (!referenciaPago || !referenciaPago.trim());
+  const finishDisabled = disabled || isLoading || (!esUnPedido && (isMontoInsuficiente || isRefMissing));
 
   return (
     <div className="w-full bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden flex flex-col h-fit">
@@ -139,13 +140,16 @@ export const IntegratedCart = ({
           {isRefRequired && !esUnPedido && (
             <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Número de referencia / comprobante</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Número de referencia / comprobante</label>
+                  {isRefMissing && <span className="text-[9px] font-bold text-red-500 uppercase">Requerido</span>}
+                </div>
                 <input 
                   type="text" 
                   placeholder={placeholderText} 
                   value={referenciaPago} 
                   onChange={(e) => setReferenciaPago(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-200 focus:bg-white transition-all font-medium"
+                  className={`w-full bg-gray-50 border rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 transition-all font-medium ${isRefMissing ? 'border-red-300 focus:ring-red-200 focus:bg-white' : 'border-gray-200 focus:ring-gray-200 focus:bg-white'}`}
                 />
               </div>
             </div>
