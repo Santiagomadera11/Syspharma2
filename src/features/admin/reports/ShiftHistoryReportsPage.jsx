@@ -3,10 +3,10 @@ import {
   Calendar, TrendingUp, TrendingDown, DollarSign,
   Eye, Download, ArrowUp, ArrowDown, Lock,
 } from "lucide-react";
-import axios from "axios";
+import { apiClient } from "../../../shared/utils/apiClient";
 import { CloseShiftModal } from "../../sales/components/CloseShiftModal";
 
-const API_URL = "http://localhost:5055/api/Turno";
+const API_URL = "/api/Turno";
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
 });
@@ -29,7 +29,7 @@ export const ShiftHistoryReportsPage = () => {
   const loadTurnos = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(API_URL, getAuthHeaders());
+      const res = await apiClient.get(API_URL, getAuthHeaders());
       setTurnos(Array.isArray(res.data) ? res.data : []);
     } catch { setTurnos([]); }
     finally { setLoading(false); }

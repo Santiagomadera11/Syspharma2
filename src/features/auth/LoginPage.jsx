@@ -4,7 +4,7 @@ import { User, Lock, ArrowRight, ChevronLeft, X, Key } from "lucide-react";
 import { authService } from "../auth/authService";
 import { useCurrentUser } from "/src/shared/context/UserContext";
 import { sendRecoveryEmail } from "./passwordRecoveryService";
-import axios from "axios";
+import { apiClient } from "../../shared/utils/apiClient";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
 import loginImage from "../../assets/login.jpg";
 import icono1 from "../../assets/icono1.png"; // ← NUEVO: import del logo
@@ -137,7 +137,7 @@ const LoginPage = () => {
       return;
     }
     try {
-      await axios.post("http://localhost:5055/api/Auth/verify-code", {
+      await apiClient.post("/api/Auth/verify-code", {
         email: recoveryEmail,
         code: enteredCode,
       });
@@ -216,7 +216,7 @@ const LoginPage = () => {
       return;
     }
     try {
-      await axios.post("http://localhost:5055/api/Auth/reset-password", {
+      await apiClient.post("/api/Auth/reset-password", {
         email: recoveryEmail,
         newPassword,
       });
@@ -271,7 +271,7 @@ const LoginPage = () => {
       await loginUser(data.user.id, data.token);
 
       try {
-        const response = await axios.get("http://localhost:5055/api/Producto", {
+        const response = await apiClient.get("/api/Producto", {
           headers: { Authorization: `Bearer ${data.token}` },
         });
         if (response.data && Array.isArray(response.data)) {

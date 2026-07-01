@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import { apiClient } from "../utils/apiClient";
 import { authService } from "../../features/auth/authService";
 
 const UserContext = createContext(null);
@@ -10,13 +10,13 @@ export const UserProvider = ({ children }) => {
 
   const fetchUser = async (id, token) => {
     try {
-      const res = await axios.get(`http://localhost:5055/api/Usuario/${id}`, {
+      const res = await apiClient.get(`/api/Usuario/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const userData = res.data;
 
       // Obtener permisos del rol
-      const rolesRes = await axios.get(`http://localhost:5055/api/RolMaestro`, {
+      const rolesRes = await apiClient.get(`/api/RolMaestro`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const roles = rolesRes.data;

@@ -7,9 +7,9 @@ import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import axios from "axios";
+import { apiClient } from "../../../shared/utils/apiClient";
 
-const API = "http://localhost:5055/api";
+const API = "/api";
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
 });
@@ -27,8 +27,8 @@ export const SalesPerformanceReportsPage = () => {
     try {
       setLoading(true);
       const [turnosRes, citasRes] = await Promise.allSettled([
-        axios.get(`${API}/Turno`, getAuthHeaders()),
-        axios.get(`${API}/Cita`, getAuthHeaders()),
+        apiClient.get(`${API}/Turno`, getAuthHeaders()),
+        apiClient.get(`${API}/Cita`, getAuthHeaders()),
       ]);
       if (turnosRes.status === "fulfilled") setTurnos(turnosRes.value.data || []);
       if (citasRes.status === "fulfilled") setCitas(citasRes.value.data || []);
