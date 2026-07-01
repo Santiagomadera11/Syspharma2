@@ -9,6 +9,7 @@ import {
   ClipboardList, Stethoscope, Calendar, TrendingUp
 } from "lucide-react";
 import { ToastNotification } from "../../shared/ui/ToastNotification";
+import { apiClient } from "../../shared/utils/apiClient";
 import { rolesService } from "./rolesService";
 import { permissionService } from "./permissionService";
 import { PERMISSIONS_CONFIG } from "./rolesConfig";
@@ -169,15 +170,8 @@ export const SettingsPage = () => {
   React.useEffect(() => {
     const cargarConfiguracion = async () => {
       try {
-        const token = sessionStorage.getItem("syspharma_token");
-        const res = await fetch(
-          "http://localhost:5055/api/Configuracion/dias_alerta_vencimiento",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setDiasAlerta(data.valor);
-        }
+        const res = await apiClient.get("/api/Configuracion/dias_alerta_vencimiento");
+        setDiasAlerta(res.data?.valor);
       } catch {}
     };
     cargarConfiguracion();
@@ -245,18 +239,7 @@ export const SettingsPage = () => {
 
   const guardarDiasAlerta = async () => {
     try {
-      const token = sessionStorage.getItem("syspharma_token");
-      await fetch(
-        "http://localhost:5055/api/Configuracion/dias_alerta_vencimiento",
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(diasAlerta),
-        }
-      );
+      await apiClient.put("/api/Configuracion/dias_alerta_vencimiento", diasAlerta);
       setToast({ message: "Configuración guardada", type: "success" });
     } catch {
       setToast({ message: "Error al guardar configuración", type: "error" });

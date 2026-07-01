@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import farmaciaImage from "../../assets/farmacia.avif";
 import { PublicNavbar } from "./components/PublicNavbar";
 import { Zap, Shield, DollarSign, Pill, Mail, Phone } from "lucide-react";
 import { useCrud } from "../../shared/hooks/useCrud";
@@ -63,7 +64,7 @@ export const LandingPage = () => {
           <div className="relative hidden md:flex items-center justify-center">
             <div className="w-full h-96 bg-gradient-to-br from-emerald-100 to-transparent rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden">
               <img
-                src="/src/assets/farmacia.avif"
+                src={farmaciaImage}
                 alt="Farmacia"
                 className="w-full h-full object-cover"
               />

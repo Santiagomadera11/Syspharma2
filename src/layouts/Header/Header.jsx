@@ -5,6 +5,7 @@ import { ordersService } from '../../features/sales/orders/services/ordersServic
 import { useNavigate } from 'react-router-dom';
 import icono1 from '../../assets/icono1.png'; // ? NUEVO: import del logo
 import { useCurrentUser } from "/src/shared/context/UserContext";
+import { apiClient } from '../../shared/utils/apiClient';
 
 export const Header = ({ onMenuClick }) => {
   const { currentUser } = useCurrentUser();
@@ -28,13 +29,8 @@ export const Header = ({ onMenuClick }) => {
       try {
         const token = sessionStorage.getItem("syspharma_token");
 
-        const res = await fetch("http://localhost:5055/api/Producto/proximos-a-vencer", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-
-        if (!res.ok) return [];
-        const data = await res.json();
+        const res = await apiClient.get("/api/Producto/proximos-a-vencer");
+        const data = Array.isArray(res.data) ? res.data : [];
         return data.map(p => ({
           id: `venc-${p.id}`,
           tipo: "vencimiento",

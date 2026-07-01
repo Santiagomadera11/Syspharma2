@@ -1,6 +1,6 @@
-import axios from 'axios';
+import { apiClient } from '../../shared/utils/apiClient';
 
-const API_URL = 'http://localhost:5055/api/Auth';
+const API_URL = '/api/Auth';
 
 // Permisos en memoria (no storage)
 let _permisos = [];
@@ -30,7 +30,7 @@ export const authService = {
 
   login: async (email, password) => {
   try {
-    const response = await axios.post(`${API_URL}/login`, { email, password });
+    const response = await apiClient.post(`${API_URL}/login`, { email, password });
     const data = response.data;
     // Los permisos vienen dentro de data.user, no en data directamente
     _permisos = Array.isArray(data.user?.permisos) ? data.user.permisos : [];
@@ -44,7 +44,7 @@ export const authService = {
 
   register: async (data) => {
     try {
-      await axios.post(`${API_URL}/register`, {
+      await apiClient.post(`${API_URL}/register`, {
         nombre: data.nombre,
         email: data.email,
         password: data.password,
@@ -67,7 +67,7 @@ export const authService = {
       const token = storage.get('syspharma_token');
       
       // Enviamos el PUT mapeando el ID del usuario en la URL
-      const response = await axios.put(`${API_URL}/${userId}`, {
+      const response = await apiClient.put(`${API_URL}/${userId}`, {
         id: userId,
         nombre: `${data.nombres.trim()} ${data.apellidos.trim()}`.trim(),
         email: data.email.trim().toLowerCase(),
@@ -137,8 +137,8 @@ export const authService = {
     if (!token || !user) return [];
 
     try {
-      const res = await axios.get(
-        `http://localhost:5055/api/RolMaestro`,
+      const res = await apiClient.get(
+        '/api/RolMaestro',
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const roles = res.data;

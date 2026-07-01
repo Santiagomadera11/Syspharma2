@@ -4,7 +4,7 @@ import {
   Calendar as CalendarIcon, List, Settings, Plus, Search, Eye, Edit, Trash2,
   ChevronLeft, ChevronRight, Clock, Users, Filter, DollarSign, X, CheckCircle, AlertCircle
 } from "lucide-react";
-import axios from "axios";
+import { apiClient } from "../../../shared/utils/apiClient";
 import AppointmentFormModal from "./components/AppointmentFormModal";
 import AppointmentDetailModal from "./components/AppointmentDetailModal";
 import { StatusNotification } from "../../../shared/ui/StatusNotification";
@@ -12,7 +12,7 @@ import { AvailabilityConfigPage } from "./AvailabilityConfigPage";
 import DoctorsPage from "../doctors/DoctorsPage";
 import { appointmentService } from "./services/appointmentService";
 
-const API_URL = "http://localhost:5055/api/Cita";
+const API_URL = "/api/Cita";
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
 });
@@ -63,8 +63,8 @@ export const AppointmentsPage = () => {
     try {
       setLoading(true);
       const [citasRes, estadosRes, doctorsData] = await Promise.all([
-        axios.get(API_URL, getAuthHeaders()),
-        axios.get(`${API_URL}/estados`, getAuthHeaders()),
+        apiClient.get(API_URL, getAuthHeaders()),
+        apiClient.get(`${API_URL}/estados`, getAuthHeaders()),
         appointmentService.getDoctors(),
       ]);
       setAppointments(Array.isArray(citasRes.data) ? citasRes.data : []);
@@ -132,7 +132,7 @@ export const AppointmentsPage = () => {
     const estado = estados.find(e => e.nombre.toLowerCase() === estadoNombre.toLowerCase());
     if (!estado) return;
     try {
-      await axios.patch(`${API_URL}/${appointmentId}/estado`, estado.id, {
+      await apiClient.patch(`${API_URL}/${appointmentId}/estado`, estado.id, {
         ...getAuthHeaders(),
         headers: { ...getAuthHeaders().headers, "Content-Type": "application/json" }
       });
@@ -146,7 +146,7 @@ export const AppointmentsPage = () => {
   const confirmDelete = async () => {
     if (!showDeleteConfirm) return;
     try {
-      await axios.delete(`${API_URL}/${showDeleteConfirm.id}`, getAuthHeaders());
+      await apiClient.delete(`${API_URL}/${showDeleteConfirm.id}`, getAuthHeaders());
       setNotification({ message: "Cita eliminada correctamente", type: "success" });
       loadData();
     } catch (err) {

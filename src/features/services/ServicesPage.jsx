@@ -7,9 +7,9 @@ import {
 } from "lucide-react";
 import { ConfirmDialog } from "../../shared/ui/ConfirmDialog.jsx";
 import ServiceFormModal from "./components/ServiceFormModal";
-import axios from "axios";
+import { apiClient } from "../../shared/utils/apiClient";
 
-const API_URL = "http://localhost:5055/api/Servicio";
+const API_URL = "/api/Servicio";
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
 });
@@ -46,7 +46,7 @@ export const ServicesPage = () => {
   const loadServices = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axios.get(API_URL, getAuthHeaders());
+      const res = await apiClient.get(API_URL, getAuthHeaders());
       setServices(Array.isArray(res.data) ? res.data : []);
     } catch { setServices([]); }
     finally { setLoading(false); }
@@ -94,7 +94,7 @@ export const ServicesPage = () => {
       confirmText: "Eliminar", danger: true,
       onConfirm: async () => {
         try {
-          await axios.delete(`${API_URL}/${srv.id}`, getAuthHeaders());
+          await apiClient.delete(`${API_URL}/${srv.id}`, getAuthHeaders());
           setNotification({ message: "Servicio eliminado correctamente", type: "success" });
           await loadServices();
         } catch (err) {
@@ -115,7 +115,7 @@ export const ServicesPage = () => {
         try {
           const config = getAuthHeaders();
           config.headers["Content-Type"] = "application/json";
-          await axios.patch(`${API_URL}/${srv.id}/estado`, newEstado, config);
+          await apiClient.patch(`${API_URL}/${srv.id}/estado`, newEstado, config);
           await loadServices();
         } catch (err) {
           setNotification({ message: err?.response?.data?.message || "Error al cambiar estado", type: "error" });
@@ -136,10 +136,10 @@ export const ServicesPage = () => {
 
     try {
       if (editingItem) {
-        await axios.put(API_URL, { ...formData, id: editingItem.id }, getAuthHeaders());
+        await apiClient.put(API_URL, { ...formData, id: editingItem.id }, getAuthHeaders());
         setNotification({ message: "Servicio actualizado correctamente", type: "success" });
       } else {
-        await axios.post(API_URL, formData, getAuthHeaders());
+        await apiClient.post(API_URL, formData, getAuthHeaders());
         setNotification({ message: "Servicio creado correctamente", type: "success" });
       }
       await loadServices();

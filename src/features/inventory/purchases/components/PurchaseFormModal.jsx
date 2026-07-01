@@ -1,10 +1,10 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
 import React, { useState, useEffect, useCallback } from "react";
 import { X, Save, Plus, Trash2, CheckCircle } from "lucide-react";
-import axios from "axios";
+import { apiClient } from "/src/shared/utils/apiClient";
 import { purchaseService } from "../services/purchaseService";
 
-const API_URL = "http://localhost:5055/api";
+const API_URL = "/api";
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${sessionStorage.getItem("syspharma_token")}` },
 });
@@ -41,8 +41,8 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
   const loadData = useCallback(async () => {
     try {
       const [prodsRes, provsRes] = await Promise.all([
-        axios.get(`${API_URL}/Producto`, getAuthHeaders()),
-        axios.get(`${API_URL}/Proveedor`, getAuthHeaders()),
+        apiClient.get(`${API_URL}/Producto`, getAuthHeaders()),
+        apiClient.get(`${API_URL}/Proveedor`, getAuthHeaders()),
       ]);
       setProducts(Array.isArray(prodsRes.data) ? prodsRes.data : []);
       setProviders(Array.isArray(provsRes.data) ? provsRes.data : []);

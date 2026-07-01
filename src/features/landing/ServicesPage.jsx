@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Stethoscope, Clock, DollarSign, Tag, Search, CalendarCheck } from "lucide-react";
 import { PublicLayout } from "./PublicLayout";
-import axios from "axios";
+import { apiClient } from "../../shared/utils/apiClient";
 
-const API_URL = "http://localhost:5055/api/Servicio";
+const API_URL = "/api/Servicio";
 
 const getCategoryIcon = (categoria) => {
   const cat = (categoria || "").toLowerCase();
@@ -25,7 +25,7 @@ export const ServicesPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axios.get(API_URL);
+        const res = await apiClient.get(API_URL);
         const data = Array.isArray(res.data) ? res.data : [];
         setServices(data.filter((s) => s.estado));
       } catch {
