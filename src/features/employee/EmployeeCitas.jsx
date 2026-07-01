@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Calendar as CalendarIcon,
   CheckCircle,
@@ -23,21 +23,27 @@ export const EmployeeCitas = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [doctors, setDoctors] = useState([]);
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
-  const loadAppointments = async () => {
+  const loadAppointments = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       setLoading(true);
       const data = await appointmentService.getAppointments();
+      if (!isMountedRef.current) return;
       setAllAppointments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error cargando citas:", error);
-      setAllAppointments([]);
+      if (isMountedRef.current) setAllAppointments([]);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
+      isLoadingRef.current = false;
     }
-  };
+  }, []);
 
-  const loadDoctors = async () => {
+  const loadDoctors = useCallback(async () => {
     try {
       const { apiClient } = await import("../../shared/utils/apiClient");
       const response = await apiClient.get("Medico");
@@ -46,20 +52,25 @@ export const EmployeeCitas = () => {
         : Array.isArray(response)
         ? response
         : [];
+      if (!isMountedRef.current) return;
       setDoctors(raw);
     } catch (error) {
       console.error("Error cargando médicos:", error);
-      setDoctors([]);
+      if (isMountedRef.current) setDoctors([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadAppointments();
     loadDoctors();
     window.addEventListener("appointments:changed", loadAppointments);
-    return () =>
+    return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
       window.removeEventListener("appointments:changed", loadAppointments);
-  }, []);
+    };
+  }, [loadAppointments, loadDoctors]);
 
   const getPeriodStartDate = (period) => {
     const today = new Date();

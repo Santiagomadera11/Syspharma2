@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Calendar as CalendarIcon, List, Settings, Plus, Search, Eye, Edit, Trash2,
   ChevronLeft, ChevronRight, Clock, Users, Filter, DollarSign, X, CheckCircle, AlertCircle
@@ -40,6 +40,8 @@ export const AppointmentsPage = () => {
 };
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState(null);
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [range, setRange] = useState({
@@ -60,6 +62,9 @@ export const AppointmentsPage = () => {
   const [activeStatusPopover, setActiveStatusPopover] = useState(null);
 
   const loadData = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+
     try {
       setLoading(true);
       const [citasRes, estadosRes, doctorsData] = await Promise.all([
@@ -67,17 +72,28 @@ export const AppointmentsPage = () => {
         apiClient.get(`${API_URL}/estados`, getAuthHeaders()),
         appointmentService.getDoctors(),
       ]);
+      if (!isMountedRef.current) return;
       setAppointments(Array.isArray(citasRes.data) ? citasRes.data : []);
       setEstados(Array.isArray(estadosRes.data) ? estadosRes.data : []);
       setDoctors(Array.isArray(doctorsData) ? doctorsData : []);
     } catch (err) {
       console.error("Error cargando citas:", err);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      isLoadingRef.current = false;
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    isMountedRef.current = true;
+    loadData();
+    return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
+    };
+  }, [loadData]);
 
   // Escuchar cambios en médicos y en citas para refrescar la vista en tiempo real
   useEffect(() => {

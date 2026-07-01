@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight,
   Eye, AlertCircle, CheckCircle, X,
@@ -24,6 +24,8 @@ export const DoctorsPage = () => {
   const [isToggleConfirmOpen, setIsToggleConfirmOpen] = useState(false);
   const [notification, setNotification] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
   const itemsPerPage = 5;
   const { currentUser } = useCurrentUser();
   const userRole = (currentUser.rol || "").toLowerCase().trim();
@@ -35,7 +37,35 @@ export const DoctorsPage = () => {
   const canDelete = hasPerm("appointments.doctors.delete");
   const canChangeStatus = hasPerm("appointments.doctors.status");
 
-  useEffect(() => { loadDoctors(); }, []);
+  const loadDoctors = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    try {
+      setLoading(true);
+      const data = await doctorService.getAll();
+      if (!isMountedRef.current) return;
+      setDoctors(data);
+    } catch (error) {
+      console.error("Error cargando médicos:", error);
+      if (isMountedRef.current) {
+        setNotification({ message: "Error al cargar médicos", type: "error" });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+      isLoadingRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    loadDoctors();
+    return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
+    };
+  }, [loadDoctors]);
 
   useEffect(() => {
     if (notification) {
@@ -43,19 +73,6 @@ export const DoctorsPage = () => {
       return () => clearTimeout(t);
     }
   }, [notification]);
-
-  const loadDoctors = async () => {
-    try {
-      setLoading(true);
-      const data = await doctorService.getAll();
-      setDoctors(data);
-    } catch (error) {
-      console.error("Error cargando médicos:", error);
-      setNotification({ message: "Error al cargar médicos", type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleOpenCreate = () => { if (canCreate) { setEditingDoctor(null); setIsModalOpen(true); } };
   const handleOpenEdit = (doctor) => { if (canEdit) { setEditingDoctor(doctor); setIsModalOpen(true); } };

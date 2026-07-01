@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Plus, Search, Eye, Edit, Trash2,
   ChevronLeft, ChevronRight, Filter, Stethoscope, Clock,
@@ -43,20 +43,31 @@ export const ServicesPage = () => {
     open: false, title: "", message: "", confirmText: "Confirmar", danger: true, onConfirm: null,
   });
 
+  const isMountedRef = useRef(false);
+  const isLoadingRef = useRef(false);
+
   const loadServices = useCallback(async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       setLoading(true);
       const res = await apiClient.get(API_URL, getAuthHeaders());
+      if (!isMountedRef.current) return;
       setServices(Array.isArray(res.data) ? res.data : []);
-    } catch { setServices([]); }
-    finally { setLoading(false); }
+    } catch { if (isMountedRef.current) setServices([]); }
+    finally { if (isMountedRef.current) setLoading(false); isLoadingRef.current = false; }
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
     loadServices();
     const onChange = () => loadServices();
     window.addEventListener("services:changed", onChange);
-    return () => window.removeEventListener("services:changed", onChange);
+    return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
+      window.removeEventListener("services:changed", onChange);
+    };
   }, [loadServices]);
 
   useEffect(() => {

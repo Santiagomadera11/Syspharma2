@@ -1,5 +1,5 @@
 import { useCurrentUser } from "/src/shared/context/UserContext";
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DollarSign, ShoppingBag, Activity, TrendingUp,
@@ -26,8 +26,12 @@ export const DashboardPage = () => {
 
   const [data, setData] = useState({ ventas: [], compras: [], citas: [], productos: [] });
   const [loading, setLoading] = useState(true);
+  const hasLoadedDataRef = useRef(false);
 
   const loadData = useCallback(async () => {
+    if (hasLoadedDataRef.current) return;
+    hasLoadedDataRef.current = true;
+
     setLoading(true);
     try {
       const [vRes, cRes, ciRes, pRes] = await Promise.allSettled([
