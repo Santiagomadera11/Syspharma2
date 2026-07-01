@@ -36,6 +36,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [formErrorMsg, setFormErrorMsg] = useState("");
 
   const loadData = useCallback(async () => {
     try {
@@ -125,11 +126,29 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
   );
 
   const handleAddProduct = () => {
-    if (!selectedProduct) { alert("Selecciona un producto"); return; }
-    if (!productCost || Number(productCost) <= 0) { alert("Ingresa un costo válido"); return; }
-    if (!productQuantity || Number(productQuantity) <= 0) { alert("Ingresa una cantidad válida"); return; }
+    setFormErrorMsg("");
+    if (!selectedProduct) { setFormErrorMsg("Selecciona un producto."); return; }
+    if (!productCost || Number(productCost) <= 0) { setFormErrorMsg("Ingresa un costo unitario válido mayor a 0."); return; }
+    if (!productQuantity || Number(productQuantity) <= 0) { setFormErrorMsg("Ingresa una cantidad válida mayor a 0."); return; }
+
     const product = products.find(p => String(p.id) === String(selectedProduct));
     if (!product) return;
+
+    if (product.tipoProducto === "Medicamento") {
+      if (!productLote || !productLote.trim()) {
+        setFormErrorMsg("El lote es obligatorio para medicamentos.");
+        return;
+      }
+      if (!productFechaVencimiento) {
+        setFormErrorMsg("La fecha de vencimiento es obligatoria para medicamentos.");
+        return;
+      }
+      if (new Date(productFechaVencimiento + "T00:00:00") <= new Date().setHours(0, 0, 0, 0)) {
+        setFormErrorMsg("La fecha de vencimiento del medicamento debe ser una fecha futura.");
+        return;
+      }
+    }
+
     const cantidad = Number(productQuantity);
     const precio = Number(productCost);
     setPurchaseItems(prev => [...prev, {
@@ -148,6 +167,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
     setProductQuantity(1);
     setProductLote("");
     setProductFechaVencimiento("");
+    setFormErrorMsg("");
   };
 
   const handleRemoveItem = (id) => setPurchaseItems(prev => prev.filter(i => i.id !== id));
@@ -155,8 +175,9 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
   const total = purchaseItems.reduce((s, i) => s + i.subtotal, 0);
 
   const handleSave = async () => {
-    if (purchaseItems.length === 0) { alert("Agrega al menos un producto"); return; }
-    if (!formData.proveedorId) { alert("Selecciona un proveedor"); return; }
+    setFormErrorMsg("");
+    if (purchaseItems.length === 0) { setFormErrorMsg("Agrega al menos un producto a la compra."); return; }
+    if (!formData.proveedorId) { setFormErrorMsg("Selecciona un proveedor."); return; }
 
     setLoading(true);
     try {
@@ -184,7 +205,7 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
       if (onSave) await onSave(payload);
       setIsConfirmationOpen(true);
     } catch (err) {
-      alert(err?.response?.data?.message || "Error al guardar la compra");
+      setFormErrorMsg(err?.response?.data?.message || "Error al guardar la compra");
     } finally {
       setLoading(false);
     }
@@ -218,6 +239,11 @@ const PurchaseModal = ({ isOpen, onClose, initialData = null, mode = "create", o
         {/* Body */}
         {!loadingDetails && (
           <div className="p-4 flex-1">
+            {formErrorMsg && (
+              <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded text-xs text-red-600 font-medium">
+                ⚠️ {formErrorMsg}
+              </div>
+            )}
             {isView ? (
               // Vista de detalle — BUG 2 FIX: usa proveedorNombre desde formData/providers, y purchaseItems para la tabla
               <div>

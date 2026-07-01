@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { X, Save, Building2, User, Phone, Mail, MapPin, AlertCircle, FileText } from "lucide-react";
 import { getDocumentTypes, fetchDocumentTypes } from "../../../settings/services/parameterService";
 
+import { formValidations } from "../../../../shared/utils/formValidations";
+
 const ProviderFormModal = ({
   isOpen,
   onClose,
@@ -79,10 +81,32 @@ const ProviderFormModal = ({
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.nombre?.trim()) newErrors.nombre = "El nombre es requerido";
-    if (!formData.contacto?.trim()) newErrors.contacto = "El contacto es requerido";
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      newErrors.email = "Correo inválido";
+    if (!formData.nombre?.trim()) {
+      newErrors.nombre = "El nombre es requerido";
+    }
+
+    const contactError = formValidations.validateName(formData.contacto);
+    if (contactError) {
+      newErrors.contacto = contactError;
+    }
+
+    if (formData.email) {
+      const emailError = formValidations.validateEmail(formData.email);
+      if (emailError) newErrors.email = emailError;
+    }
+
+    if (formData.telefono) {
+      const phoneError = formValidations.validatePhone(formData.telefono);
+      if (phoneError) newErrors.telefono = phoneError;
+    }
+
+    if (formData.tipoDocumentoId && !formData.documento?.trim()) {
+      newErrors.documento = "El número de documento es obligatorio";
+    } else if (formData.documento) {
+      const docError = formValidations.validateDocument(formData.documento);
+      if (docError) newErrors.documento = docError;
+    }
+
     return newErrors;
   };
 
@@ -166,12 +190,13 @@ const ProviderFormModal = ({
               <input
                 type="text"
                 disabled={isView}
-                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none ${accent.focus} disabled:bg-gray-100 disabled:text-gray-500`}
+                className={inputClass(errors.documento)}
                 placeholder="Ej: 900123456-1"
                 value={formData.documento}
                 onChange={(e) => handleChange("documento", e.target.value)}
               />
             </div>
+            {errors.documento && <div className="flex items-center gap-1 mt-1 text-red-500 text-xs"><AlertCircle size={12} /> {errors.documento}</div>}
           </div>
 
           {/* Contacto */}
@@ -199,12 +224,13 @@ const ProviderFormModal = ({
               <input
                 type="tel"
                 disabled={isView}
-                className={`w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none ${accent.focus} disabled:bg-gray-100 disabled:text-gray-500`}
+                className={inputClass(errors.telefono)}
                 placeholder="+57 300 000 0000"
                 value={formData.telefono}
                 onChange={(e) => handleChange("telefono", e.target.value)}
               />
             </div>
+            {errors.telefono && <div className="flex items-center gap-1 mt-1 text-red-500 text-xs"><AlertCircle size={12} /> {errors.telefono}</div>}
           </div>
 
           {/* Email */}

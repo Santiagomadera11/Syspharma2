@@ -105,4 +105,14 @@ export const productService = {
     const response = await apiClient.get(`${ENDPOINT}/proximos-a-vencer`);
     return response.data || [];
   },
+
+  getLotes: async (productoId) => {
+    const response = await apiClient.get(`${ENDPOINT}/${productoId}/lotes`);
+    return response.data || [];
+  },
+
+  getLotePedidos: async (loteId) => {
+    const response = await apiClient.get(`lotes/${loteId}/pedidos`);
+    return response.data || [];
+  },
 };

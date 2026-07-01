@@ -106,6 +106,7 @@ const AppointmentFormModal = ({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     if (appointment) {
@@ -280,7 +281,7 @@ const AppointmentFormModal = ({
     const turnValidation =
       await turnService.validateOperationAllowed(currentUser);
     if (!turnValidation.valid) {
-      alert(turnValidation.message);
+      setToast({ message: turnValidation.message, type: "error" });
       return;
     }
 
@@ -315,7 +316,8 @@ const AppointmentFormModal = ({
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Error al guardar la cita.");
+      const msg = error?.response?.data?.message || "Error al guardar la cita.";
+      setToast({ message: msg, type: "error" });
     } finally {
       setIsSubmitting(false);
     }
@@ -614,6 +616,13 @@ const AppointmentFormModal = ({
           </button>
         </div>
       </div>
+      {toast && (
+        <ToastNotification
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };
