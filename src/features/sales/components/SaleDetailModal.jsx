@@ -24,25 +24,22 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
   const ivaBackend = sale.iva || sale.Iva || null;
   const totalBackend = sale.total || sale.Total || null;
 
-  const allItems = [
-    ...(sale.detalles || []).map((d) => ({
-      nombre: d.productoNombre || "Producto",
-      cantidad: d.cantidad,
-      precio: d.precioUnitario,
-      subtotal: d.subtotal || (d.cantidad * d.precioUnitario),
-      tipo: "P",
-    })),
-    ...(sale.servicios || []).map((s) => ({
-      nombre: s.servicioNombre || "Servicio Médico",
-      cantidad: s.cantidad,
-      precio: s.precioUnitario,
-      subtotal: s.subtotal || (s.cantidad * s.precioUnitario),
-      tipo: "S",
-    })),
-  ];
+  const productos = (sale.detalles || []).map((d) => ({
+    nombre: d.productoNombre || d.producto?.nombre || "Producto",
+    cantidad: d.cantidad,
+    precio: d.precioUnitario,
+    subtotal: d.subtotal || (d.cantidad * d.precioUnitario),
+  }));
+
+  const servicios = (sale.servicios || []).map((s) => ({
+    nombre: s.servicioNombre || s.servicio?.nombre || "Servicio",
+    cantidad: s.cantidad,
+    precio: s.precioUnitario,
+    subtotal: s.subtotal || (s.cantidad * s.precioUnitario),
+  }));
 
   // ============ NUEVO: Calcular subtotal e IVA si no vienen del backend ============
-  const subtotalCalculado = allItems.reduce((s, item) => s + (item.subtotal || item.cantidad * item.precio), 0);
+  const subtotalCalculado = productos.reduce((s, item) => s + item.subtotal, 0) + servicios.reduce((s, item) => s + item.subtotal, 0);
   const subtotal = subtotalBackend !== null ? subtotalBackend : subtotalCalculado;
   const iva = ivaBackend !== null ? ivaBackend : (subtotal * (porcentajeIva / 100));
   const total = totalBackend !== null ? totalBackend : (subtotal + iva);
@@ -110,34 +107,63 @@ export const SaleDetailModal = ({ isOpen, onClose, sale }) => {
             )}
           </div>
 
-          {/* Listado de Items */}
-          <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">
-              Artículos ({allItems.length} items)
-            </p>
-            <div className="space-y-1.5">
-              {allItems.length > 0 ? (
-                allItems.map((item, idx) => (
+          {/* Listado de Productos */}
+          {productos.length > 0 && (
+            <div>
+              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 px-1">
+                Productos ({productos.length})
+              </p>
+              <div className="space-y-1.5 mb-4">
+                {productos.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="min-w-0">
                       <p className="text-[11px] font-bold text-gray-800 truncate">
-                        <span className={`text-[8px] mr-1.5 px-1 rounded font-black ${item.tipo === 'P' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                          {item.tipo}
+                        <span className="text-[8px] mr-1.5 px-1 rounded font-black bg-blue-100 text-blue-600">
+                          PROD
                         </span>
                         {item.nombre}
                       </p>
                       <p className="text-[9px] text-gray-400">Cant: {item.cantidad} x {fmt(item.precio)}</p>
                     </div>
                     <div className="text-right ml-2 flex-shrink-0">
-                      <p className="text-[11px] font-black text-gray-900">{fmt(item.subtotal || item.cantidad * item.precio)}</p>
+                      <p className="text-[11px] font-black text-gray-900">{fmt(item.subtotal)}</p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-[10px] text-center text-gray-400 py-4 italic">No hay productos ni servicios registrados</p>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Listado de Servicios */}
+          {servicios.length > 0 && (
+            <div>
+              <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-2 px-1">
+                Servicios ({servicios.length})
+              </p>
+              <div className="space-y-1.5 mb-4">
+                {servicios.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-gray-800 truncate">
+                        <span className="text-[8px] mr-1.5 px-1 rounded font-black bg-purple-100 text-purple-600">
+                          SERV
+                        </span>
+                        {item.nombre}
+                      </p>
+                      <p className="text-[9px] text-gray-400">Cant: {item.cantidad} x {fmt(item.precio)}</p>
+                    </div>
+                    <div className="text-right ml-2 flex-shrink-0">
+                      <p className="text-[11px] font-black text-gray-900">{fmt(item.subtotal)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {productos.length === 0 && servicios.length === 0 && (
+            <p className="text-[10px] text-center text-gray-400 py-4 italic">No hay productos ni servicios registrados</p>
+          )}
 
           {/* Notas compactas */}
           {sale.notas && (
