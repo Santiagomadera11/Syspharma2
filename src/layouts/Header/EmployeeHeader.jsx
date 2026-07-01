@@ -4,6 +4,7 @@ import { appointmentService } from "../../features/services/appointments/service
 import { ordersService } from "../../features/sales/orders/services/ordersService";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "/src/shared/context/UserContext";
+import { getFotoPerfilUrl } from "/src/shared/utils/userAvatar";
 
 export const EmployeeHeader = ({ onMenuClick }) => {
   const { currentUser } = useCurrentUser();
@@ -193,8 +194,8 @@ export const EmployeeHeader = ({ onMenuClick }) => {
             </p>
           </div>
           <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold border-2 border-blue-200 shadow-sm text-xs flex-shrink-0 overflow-hidden">
-            {user.avatar ? (
-              <img src={user.avatar} alt={user.nombre} className="w-full h-full object-cover" />
+            {user.avatar || user.fotoPerfil || user.foto || user.foto_perfil ? (
+              <img src={getFotoPerfilUrl(user)} alt={user.nombre} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-white text-blue-600 flex items-center justify-center font-bold">
                 {user.nombre?.charAt(0)}
